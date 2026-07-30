@@ -6,6 +6,7 @@ import {
   LEVELUP_EASY_STREAK,
   LEVELUP_MIN_SESSIONS,
   MAX_LEVEL,
+  MICRO_ROTATION,
   ROLLING_WINDOW_DAYS,
   SESSIONS_PER_WINDOW,
   SLOT_SECONDS,
@@ -88,7 +89,8 @@ export function buildMovements(slots: Slot[], skills: Skill[], type: SessionType
       referenceTerm: skill.referenceTerm,
       entryPosition: slot.entryPosition,
       exitPosition: slot.exitPosition,
-      seconds: slotSeconds(slot.sequence),
+      // The movement's own duration wins; the config table is only a fallback.
+      seconds: skill.durationSeconds ?? slotSeconds(slot.sequence),
     });
   }
   return movements;
@@ -287,6 +289,104 @@ export interface MicroProgress {
   feedsSlot: number | null;
   weeklyTarget: number | null;
   count: number;
+}
+
+export interface RotationDecision {
+  activate: Micro[];
+  deactivate: Micro[];
+  retire: Micro[];
+  /** Why each chosen micro is in the set, so the reasoning stays inspectable. */
+  reasons: Record<string, string>;
+}
+
+/**
+ * Micro rotation, section 6. Chooses the three to five micros that carry a
+ * weekly goal. Everything about the shape of the selection lives in
+ * MICRO_ROTATION in config, because these weights are meant to be tuned.
+ */
+export function rotateMicros(
+  micros: Micro[],
+  log: MicroLogEntry[],
+  slots: Slot[],
+  skills: Skill[],
+  weekStartDate: string,
+  hasSkateProject: boolean,
+): RotationDecision {
+  const cfg = MICRO_ROTATION;
+  const reasons: Record<string, string> = {};
+
+  const countSince = (name: string, since: string) =>
+    log.filter((l) => l.name === name && l.date >= since).reduce((sum, l) => sum + (l.count || 0), 0);
+
+  // Retire anything that was carrying a goal and was ignored throughout the
+  // window. This is the rule that stops a graveyard of dead targets forming.
+  //
+  // It only starts applying once the log itself is old enough to distinguish
+  // "ignored for three weeks" from "the app is three days old". Without this
+  // guard a fresh install retires every micro on its first rotation.
+  const retireFrom = addDays(weekStartDate, -cfg.retireAfterUntouchedWeeks * ROLLING_WINDOW_DAYS);
+  const firstLogged = log.map((l) => l.date).sort()[0];
+  const historyIsLongEnough = Boolean(firstLogged && firstLogged <= retireFrom);
+  const retire = historyIsLongEnough
+    ? micros.filter((m) => m.active && !m.retired && countSince(m.name, retireFrom) === 0)
+    : [];
+  const retiredIds = new Set(retire.map((m) => m.id));
+
+  const eligible = micros.filter((m) => !m.retired && !retiredIds.has(m.id));
+
+  // The slot closest to levelling up is the one with the most sessions banked
+  // at its current level.
+  const activeSlots = slots.filter((s) => s.active);
+  const progressOf = (slot: Slot) =>
+    skills.find((s) => s.slot === slot.sequence && s.level === slot.currentLevel)?.sessionsAtLevel ?? 0;
+  const closestSlot = activeSlots
+    .slice()
+    .sort((a, b) => progressOf(b) - progressOf(a))[0];
+
+  const chosen: Micro[] = [];
+  const take = (m: Micro | undefined, why: string) => {
+    if (!m || chosen.some((c) => c.id === m.id) || chosen.length >= cfg.maxActive) return;
+    chosen.push(m);
+    reasons[m.name] = why;
+  };
+
+  // At least two feeding the slot closest to levelling up.
+  if (closestSlot) {
+    eligible
+      .filter((m) => m.feedsSlot === closestSlot.sequence)
+      .slice(0, cfg.feedingClosestSlot)
+      .forEach((m) => take(m, `feeds slot ${closestSlot.sequence}, closest to levelling`));
+  }
+
+  // One tied to the live skate project, when there is one.
+  if (hasSkateProject) {
+    for (let i = 0; i < cfg.skateProject; i += 1) {
+      take(eligible.find((m) => m.domain === 'skate'), 'live skate project');
+    }
+  }
+
+  // One wildcard that has not been active recently.
+  const quietFrom = addDays(weekStartDate, -cfg.wildcardQuietWeeks * ROLLING_WINDOW_DAYS);
+  const wildcards = eligible
+    .filter((m) => !m.active && countSince(m.name, quietFrom) === 0)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  for (let i = 0; i < cfg.wildcard; i += 1) {
+    take(wildcards[i], 'wildcard, quiet lately');
+  }
+
+  // Top up to the minimum with whatever feeds an active slot.
+  for (const m of eligible) {
+    if (chosen.length >= cfg.minActive) break;
+    take(m, 'filling the minimum');
+  }
+
+  const chosenIds = new Set(chosen.map((m) => m.id));
+  return {
+    activate: chosen.filter((m) => !m.active),
+    deactivate: micros.filter((m) => m.active && !chosenIds.has(m.id) && !retiredIds.has(m.id)),
+    retire,
+    reasons,
+  };
 }
 
 export function microProgress(

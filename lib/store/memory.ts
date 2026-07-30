@@ -6,6 +6,7 @@ import type {
   Domain,
   Micro,
   MicroLogEntry,
+  MicroPatch,
   NewPlanEntry,
   NewSession,
   PlanEntry,
@@ -141,6 +142,7 @@ export class MemoryStore implements Store {
       sessionsAtLevel: 0,
       lastPracticed: null,
       levelUpDeferred: null,
+      durationSeconds: null,
     };
   });
 
@@ -155,6 +157,7 @@ export class MemoryStore implements Store {
     duration,
     referenceTerm: '',
     active,
+    retired: false,
     stat: [],
   }));
 
@@ -247,6 +250,11 @@ export class MemoryStore implements Store {
 
   async getMicros(): Promise<Micro[]> {
     return this.micros.map((m) => ({ ...m }));
+  }
+
+  async updateMicro(id: string, patch: MicroPatch): Promise<void> {
+    const micro = this.micros.find((m) => m.id === id);
+    if (micro) Object.assign(micro, patch);
   }
 
   async getMicroLogSince(since: string): Promise<MicroLogEntry[]> {

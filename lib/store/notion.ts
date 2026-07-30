@@ -6,6 +6,7 @@ import type {
   Domain,
   Micro,
   MicroLogEntry,
+  MicroPatch,
   NewPlanEntry,
   NewSession,
   PlanEntry,
@@ -126,6 +127,7 @@ function toSkill(page: NotionPage): Skill {
     sessionsAtLevel: rNum(p['Sessions at level']) ?? 0,
     lastPracticed: rDate(p['Last practiced']),
     levelUpDeferred: rDate(p['Level up deferred']),
+    durationSeconds: rNum(p['Duration seconds']),
   };
 }
 
@@ -192,6 +194,7 @@ function toMicro(page: NotionPage): Micro {
     duration: rText(p['Duration']),
     referenceTerm: rText(p['Reference term']),
     active: rCheck(p['Active']),
+    retired: rCheck(p['Retired']),
     stat: rMulti(p['Stat']),
   };
 }
@@ -330,6 +333,14 @@ export class NotionStore implements Store {
   async getMicros(): Promise<Micro[]> {
     const pages = await queryAll(DATA_SOURCES.micros);
     return pages.map(toMicro);
+  }
+
+  async updateMicro(id: string, patch: MicroPatch): Promise<void> {
+    const properties: Record<string, any> = {};
+    if (patch.active !== undefined) properties['Active'] = wCheck(patch.active);
+    if (patch.retired !== undefined) properties['Retired'] = wCheck(patch.retired);
+    if (!Object.keys(properties).length) return;
+    await notionFetch(`/pages/${id}`, { method: 'PATCH', body: { properties } });
   }
 
   async getMicroLogSince(since: string): Promise<MicroLogEntry[]> {

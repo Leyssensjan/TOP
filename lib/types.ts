@@ -23,6 +23,8 @@ export interface Skill {
   sessionsAtLevel: number;
   lastPracticed: string | null;
   levelUpDeferred: string | null;
+  /** Overrides the SLOT_SECONDS fallback in config when set. */
+  durationSeconds: number | null;
 }
 
 export interface Slot {
@@ -99,7 +101,14 @@ export interface Micro {
   duration: string;
   referenceTerm: string;
   active: boolean;
+  /** Ignored for three weeks while active, so it is not offered again. */
+  retired: boolean;
   stat: string[];
+}
+
+export interface MicroPatch {
+  active?: boolean;
+  retired?: boolean;
 }
 
 export interface MicroLogEntry {
@@ -145,6 +154,7 @@ export interface Store {
   updatePlanEntry(id: string, patch: Partial<NewPlanEntry>): Promise<void>;
 
   getMicros(): Promise<Micro[]>;
+  updateMicro(id: string, patch: MicroPatch): Promise<void>;
   getMicroLogSince(since: string): Promise<MicroLogEntry[]>;
   createMicroLog(name: string, date: string, count: number, weekStart: string): Promise<MicroLogEntry>;
 }

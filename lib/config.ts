@@ -14,9 +14,11 @@ export const DATA_SOURCES = {
 export const NOTION_VERSION = '2025-09-03';
 
 /**
- * Seconds per slot for one pass through the Form. Chosen so that six active
- * slots make a round of about 4:50 and all twelve make about 9:35, which lets
- * whole rounds land inside the durations in the brief without odd part-rounds.
+ * Fallback seconds per slot for one pass through the Form. A movement's own
+ * "Duration seconds" in Notion wins whenever it is set; this table only covers
+ * the ones left empty. Chosen so that six active slots make a round of about
+ * 4:50 and all twelve make about 9:35, which lets whole rounds land inside the
+ * durations in the brief without odd part-rounds.
  */
 export const SLOT_SECONDS: Record<number, number> = {
   1: 60, // Centering, breath-paced
@@ -54,3 +56,23 @@ export const LEVELUP_DEFER_DAYS = 14;
 export const ROLLING_WINDOW_DAYS = 7;
 export const SESSIONS_PER_WINDOW = 3;
 export const MAX_LEVEL = 4;
+
+/**
+ * Micro rotation, section 6. Only a few micros carry a weekly goal at a time,
+ * and anything ignored for three weeks is retired rather than re-offered —
+ * that last rule is what stops a graveyard of dead targets accumulating.
+ */
+export const MICRO_ROTATION = {
+  minActive: 3,
+  maxActive: 5,
+  /** At least this many feeding the slot closest to levelling up. */
+  feedingClosestSlot: 2,
+  /** Tied to the live skate project, when there is one. */
+  skateProject: 1,
+  /** Not active recently. */
+  wildcard: 1,
+  /** Untouched this many consecutive weeks while active, then retired. */
+  retireAfterUntouchedWeeks: 3,
+  /** A micro counts as "not recent" once it has been quiet this long. */
+  wildcardQuietWeeks: 3,
+};

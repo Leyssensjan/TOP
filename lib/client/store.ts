@@ -219,9 +219,15 @@ export async function sync(): Promise<SyncResult> {
       const message = err instanceof Error ? err.message : 'Unknown error';
       const retryable = err instanceof ApiError ? err.retryable : true;
 
+      // Micro logs carry no dedupe marker, so once the server has answered at
+      // all the write may have landed. Retrying could double the count, and a
+      // lost tap is cheaper than a wrong one.
+      const serverAnswered = err instanceof ApiError;
+      const unsafeToRepeat = item.path === '/micro' && serverAnswered && (err as ApiError).status !== 401;
+
       // A rejected write will never succeed by repeating it. Anything else
       // stays queued so the next online moment picks it up.
-      if (!retryable && err instanceof ApiError && err.status !== 401) {
+      if (unsafeToRepeat || (!retryable && err instanceof ApiError && err.status !== 401)) {
         failed.push({ ...item, attempts, lastError: message });
       } else {
         keep.push({ ...item, attempts, lastError: message });

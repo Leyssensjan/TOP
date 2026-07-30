@@ -188,9 +188,14 @@ export default function TodayPage() {
         <Rolling rolling={rolling} />
 
         {!adjusting ? (
-          <button className="btn btn-quiet" onClick={() => setAdjusting(true)}>
-            Adjust
-          </button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="btn btn-quiet" onClick={() => setAdjusting(true)}>
+              Adjust
+            </button>
+            <button className="btn btn-quiet" onClick={() => router.push('/micros')}>
+              Micros
+            </button>
+          </div>
         ) : (
           <Checkin
             onCancel={() => setAdjusting(false)}
