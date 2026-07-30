@@ -1,0 +1,51 @@
+import { BadRequest, handle } from '@/lib/api';
+import { MAX_LEVEL } from '@/lib/config';
+import { today as todayDate } from '@/lib/dates';
+import { getStore } from '@/lib/store';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+/** The app proposes, Jan decides. Never automatic. */
+export async function POST(req: Request) {
+  return handle(req, async (body) => {
+    const action = body?.action === 'defer' ? 'defer' : body?.action === 'accept' ? 'accept' : null;
+    if (!action) throw new BadRequest('action must be "accept" or "defer"');
+
+    const slotNumber = typeof body?.slot === 'number' ? body.slot : null;
+    if (slotNumber === null) throw new BadRequest('slot must be a number');
+
+    const date = todayDate();
+    const store = getStore();
+    const [slots, skills] = await Promise.all([store.getSlots(), store.getSkills('movement')]);
+
+    const slot = slots.find((s) => s.sequence === slotNumber);
+    if (!slot) throw new BadRequest(`No slot with sequence ${slotNumber}`);
+
+    const current = skills.find((s) => s.slot === slot.sequence && s.level === slot.currentLevel);
+    if (!current) throw new BadRequest(`No movement at slot ${slotNumber} level ${slot.currentLevel}`);
+
+    if (action === 'defer') {
+      await store.updateSkill(current.id, { levelUpDeferred: date });
+      return { action, slot: slot.sequence, level: slot.currentLevel, deferredOn: date };
+    }
+
+    if (slot.currentLevel >= MAX_LEVEL) throw new BadRequest(`Slot ${slotNumber} is already at the top level`);
+
+    const next = skills.find((s) => s.slot === slot.sequence && s.level === slot.currentLevel + 1);
+    if (!next) throw new BadRequest(`No movement at slot ${slotNumber} level ${slot.currentLevel + 1}`);
+
+    await store.updateSkill(current.id, { status: 'mastered', levelUpDeferred: null });
+    await store.updateSkill(next.id, { status: 'current', sessionsAtLevel: 0 });
+    await store.updateSlot(slot.id, { currentLevel: next.level ?? slot.currentLevel + 1 });
+
+    return {
+      action,
+      slot: slot.sequence,
+      slotName: slot.name,
+      fromLevel: slot.currentLevel,
+      toLevel: next.level,
+      movement: { id: next.id, name: next.name, cues: next.cues, referenceTerm: next.referenceTerm },
+    };
+  });
+}

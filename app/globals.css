@@ -1,0 +1,211 @@
+/* Deep ink blue, warm amber, one muted sage. A 6am room, not a dashboard. */
+:root {
+  --ink: #0e1621;
+  --ink-raised: #172231;
+  --ink-line: #24324a;
+  --amber: #e9a648;
+  --amber-dim: #8a6528;
+  --sage: #93a98f;
+  --text: #ece9e3;
+  --muted: #8a94a4;
+
+  --tap: 56px;
+  --pad: 20px;
+
+  /* iOS ships Avenir Next Condensed, which is the characterful condensed face.
+     Everything falls back to a narrow grotesque, then to the system sans. */
+  --condensed: 'Avenir Next Condensed', 'HelveticaNeue-CondensedBold', 'Arial Narrow', system-ui, sans-serif;
+  --humanist: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--humanist);
+  font-size: 17px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+body {
+  min-height: 100svh;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* Numbers are the loudest thing on screen. */
+.num {
+  font-family: var(--condensed);
+  font-stretch: condensed;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.9;
+}
+
+.screen {
+  min-height: 100svh;
+  padding: max(var(--pad), env(safe-area-inset-top)) var(--pad)
+    max(var(--pad), env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap);
+  padding: 16px 24px;
+  border-radius: 14px;
+  background: var(--ink-raised);
+  border: 1px solid var(--ink-line);
+  color: var(--text);
+  font-size: 17px;
+  width: 100%;
+}
+
+.btn:active {
+  background: #1e2b3d;
+}
+
+.btn-primary {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: #1a1206;
+  font-weight: 600;
+  min-height: 68px;
+  font-size: 20px;
+}
+
+.btn-primary:active {
+  background: #d8952f;
+}
+
+.btn-quiet {
+  background: none;
+  border: 1px solid var(--ink-line);
+}
+
+.btn[aria-pressed='true'] {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.banner {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 15px;
+  border: 1px solid var(--ink-line);
+  background: var(--ink-raised);
+  color: var(--muted);
+}
+
+.banner-warn {
+  border-color: var(--amber-dim);
+  color: var(--amber);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* --- the thread: the one place worth spending effort ---------------------- */
+
+.thread {
+  position: relative;
+  width: 22px;
+  flex: none;
+  align-self: stretch;
+}
+
+.thread-line,
+.thread-fill {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 2px;
+  transform: translateX(-50%);
+  border-radius: 2px;
+}
+
+.thread-line {
+  height: 100%;
+  background: var(--ink-line);
+}
+
+.thread-fill {
+  background: linear-gradient(180deg, var(--amber-dim), var(--amber));
+  transition: height 400ms linear;
+}
+
+.thread-node {
+  position: absolute;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  margin-top: -4.5px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2px solid var(--ink-line);
+}
+
+/* A slot that has not unlocked yet stays a faint dot on the same thread. */
+.thread-node[data-inplay='false'] {
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  margin-top: -2.5px;
+  border-width: 0;
+  background: var(--ink-line);
+}
+
+.thread-node[data-inplay='true'] {
+  border-color: color-mix(in srgb, var(--amber) calc(30% + var(--level) * 17%), var(--ink-line));
+}
+
+.thread-node[data-done='true'] {
+  background: var(--sage);
+  border-color: var(--sage);
+}
+
+.thread-node[data-current='true'] {
+  width: 15px;
+  height: 15px;
+  margin-left: -7.5px;
+  margin-top: -7.5px;
+  background: var(--amber);
+  border-color: var(--amber);
+}
