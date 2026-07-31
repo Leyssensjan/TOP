@@ -1,6 +1,6 @@
 import { handle } from '@/lib/api';
 import { addDays, isValidDate, today as todayDate } from '@/lib/dates';
-import { levelUpProposals, planSession, rollingStatus } from '@/lib/rules';
+import { countFlowSessions, levelUpProposals, planSession, rollingStatus } from '@/lib/rules';
 import { getStore } from '@/lib/store';
 import type { SessionType } from '@/lib/types';
 
@@ -14,9 +14,10 @@ export async function GET(req: Request) {
     const date = isValidDate(dateParam) ? dateParam : todayDate();
 
     const store = getStore();
-    const [slots, skills, planEntry, sessions] = await Promise.all([
+    const [slots, movementSkills, strengthSkills, planEntry, sessions] = await Promise.all([
       store.getSlots(),
       store.getSkills('movement'),
+      store.getSkills('strength'),
       store.getPlanForDay(date),
       store.getSessionsSince(addDays(date, -120)),
     ]);
@@ -27,6 +28,8 @@ export async function GET(req: Request) {
       planned && planned !== 'rest' ? (planned as SessionType) : 'flow';
     const source = planEntry ? 'plan' : 'default';
 
+    const skills = [...movementSkills, ...strengthSkills];
+    const flowsDone = countFlowSessions(sessions);
     const session = planSession(
       slots,
       skills,
@@ -34,6 +37,7 @@ export async function GET(req: Request) {
       date,
       source,
       planEntry?.plannedMinutes ?? null,
+      flowsDone,
     );
 
     const loggedToday = sessions.filter((s) => s.date === date && s.completed);
@@ -45,6 +49,7 @@ export async function GET(req: Request) {
       alreadyLogged: loggedToday.length > 0,
       loggedToday: loggedToday.map((s) => ({ id: s.id, type: s.type, actualMinutes: s.actualMinutes })),
       rolling: rollingStatus(sessions, date),
+      flowSessionsCompleted: flowsDone,
       proposals: levelUpProposals(slots, skills, sessions, date),
       store: store.name,
     };

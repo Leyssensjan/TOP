@@ -37,6 +37,62 @@ export const SLOT_SECONDS: Record<number, number> = {
 
 export const DEFAULT_SLOT_SECONDS = 45;
 
+/**
+ * Flow rounds ramp with experience, counted on completed Flow sessions.
+ * Session n gets the rounds of the first band whose `throughSession` it is
+ * still inside. Flow Short is always a single round.
+ */
+export const ROUND_RAMP: Array<{ throughSession: number; rounds: number }> = [
+  { throughSession: 6, rounds: 2 },
+  { throughSession: 14, rounds: 3 },
+  { throughSession: Number.POSITIVE_INFINITY, rounds: 4 },
+];
+export const FLOW_SHORT_ROUNDS = 1;
+
+/**
+ * Strength, section 4. Five ladders grouped by the Family field on Skills,
+ * run as supersets. Minutes are offsets from the start of the session.
+ */
+export const STRENGTH = {
+  ladders: ['Pull', 'Push', 'Single leg', 'Hinge', 'Hang'],
+  blocks: [
+    { from: 0, to: 4, families: [], label: 'Flow Short as warm-up', rounds: 1, restSeconds: 0, warmUp: true },
+    { from: 4, to: 16, families: ['Pull', 'Push'], label: 'Superset', rounds: 4, restSeconds: 90, warmUp: false },
+    { from: 16, to: 26, families: ['Single leg', 'Hinge'], label: 'Superset', rounds: 3, restSeconds: 60, warmUp: false },
+    { from: 26, to: 30, families: ['Hang'], label: 'Finisher', rounds: 3, restSeconds: 60, warmUp: false },
+  ],
+  prescription: {
+    reps: '3 to 4 sets of 5 to 8, stopping two short of failure',
+    holds: 'build to 30 to 60 seconds',
+    negatives: '5 reps at 4 to 5 seconds down',
+  },
+  /** Level-up when three sets of eight are clean. Proposed, never automatic. */
+  levelUpSets: 3,
+  levelUpReps: 8,
+};
+
+/**
+ * The Today suggestion. Replaces week generation: a single line computed from
+ * the rolling count and the last session, never a form to fill in.
+ */
+export const SUGGESTION = {
+  /** After this type, prefer these next, first available wins. */
+  after: {
+    flow: ['strength', 'engine', 'flow'],
+    'flow short': ['strength', 'engine', 'flow'],
+    strength: ['flow', 'engine'],
+    engine: ['flow', 'strength'],
+    skate: ['flow', 'strength'],
+  } as Record<string, string[]>,
+  /** With the weekly target already met, suggest the gentler option. */
+  whenTargetMet: 'flow short',
+  /** Nothing logged yet. */
+  whenNoHistory: 'flow',
+};
+
+/** How many trick tiers the first run of the Skate screen offers. */
+export const SKATE_FIRST_RUN_TIERS = 3;
+
 /** Target minutes per session type, from section 4 of the brief. */
 export const TARGET_MINUTES: Record<string, number> = {
   flow: 18,

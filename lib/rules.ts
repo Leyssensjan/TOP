@@ -6,8 +6,11 @@ import {
   LEVELUP_EASY_STREAK,
   LEVELUP_MIN_SESSIONS,
   MAX_LEVEL,
+  FLOW_SHORT_ROUNDS,
   MICRO_ROTATION,
+  ROUND_RAMP,
   SKATE_FOCUS,
+  STRENGTH,
   SWITCH_FAKIE_MARKERS,
   ROLLING_WINDOW_DAYS,
   SESSIONS_PER_WINDOW,
@@ -30,6 +33,17 @@ export interface Movement {
   seconds: number;
 }
 
+export interface StrengthBlock {
+  label: string;
+  families: string[];
+  rounds: number;
+  restSeconds: number;
+  fromMinute: number;
+  toMinute: number;
+  warmUp: boolean;
+  movements: Array<{ id: string; name: string; family: string; level: number | null; cues: string; referenceTerm: string }>;
+}
+
 export interface SessionPlan {
   date: string;
   type: SessionType;
@@ -39,7 +53,60 @@ export interface SessionPlan {
   rounds: number;
   /** One pass through the Form. The Runner repeats it `rounds` times. */
   movements: Movement[];
+  /** Only for Strength: the ladders, grouped into supersets. */
+  strength?: { blocks: StrengthBlock[]; prescription: typeof STRENGTH.prescription };
   note: string | null;
+}
+
+/**
+ * Rounds ramp with experience. Session n is the (completed + 1)th Flow, and
+ * takes the rounds of the first band it still fits inside. All in config.
+ */
+export function roundsForFlow(flowSessionsCompleted: number): number {
+  const sessionNumber = Math.max(0, flowSessionsCompleted) + 1;
+  return ROUND_RAMP.find((band) => sessionNumber <= band.throughSession)?.rounds ?? ROUND_RAMP[ROUND_RAMP.length - 1].rounds;
+}
+
+/** Completed Flow sessions so far. Flow Short does not advance the ramp. */
+export function countFlowSessions(sessions: SessionLog[]): number {
+  return sessions.filter((s) => s.completed && s.type === 'flow').length;
+}
+
+/** Strength, section 4: five ladders at their current level, run as supersets. */
+export function buildStrength(skills: Skill[]): StrengthBlock[] {
+  const currentOf = (family: string) =>
+    skills
+      .filter((s) => s.domain === 'strength' && s.family === family)
+      .sort((a, b) => (a.level ?? 0) - (b.level ?? 0))
+      .find((s) => s.status === 'current') ??
+    skills
+      .filter((s) => s.domain === 'strength' && s.family === family)
+      .sort((a, b) => (a.level ?? 0) - (b.level ?? 0))[0];
+
+  return STRENGTH.blocks.map((block) => ({
+    label: block.label,
+    families: [...block.families],
+    rounds: block.rounds,
+    restSeconds: block.restSeconds,
+    fromMinute: block.from,
+    toMinute: block.to,
+    warmUp: block.warmUp,
+    movements: block.families
+      .map((family) => {
+        const skill = currentOf(family);
+        return skill
+          ? {
+              id: skill.id,
+              name: skill.name,
+              family,
+              level: skill.level,
+              cues: skill.cues,
+              referenceTerm: skill.referenceTerm,
+            }
+          : null;
+      })
+      .filter((m): m is NonNullable<typeof m> => m !== null),
+  }));
 }
 
 export interface LevelUpProposal {
@@ -77,12 +144,16 @@ export function buildMovements(slots: Slot[], skills: Skill[], type: SessionType
 
   const movements: Movement[] = [];
   for (const slot of chosen) {
+    // Resolved by the stable slot id. Sequence only decides the order, so the
+    // Form can be reordered without repointing a single movement. Falling back
+    // to Sequence matters: an empty Slot id would otherwise empty the Form.
+    const slotId = slot.slotId || slot.sequence;
     const skill =
-      skills.find((s) => s.slot === slot.sequence && s.level === slot.currentLevel) ??
-      skills.filter((s) => s.slot === slot.sequence).sort((a, b) => (a.level ?? 0) - (b.level ?? 0))[0];
+      skills.find((s) => s.slot === slotId && s.level === slot.currentLevel) ??
+      skills.filter((s) => s.slot === slotId).sort((a, b) => (a.level ?? 0) - (b.level ?? 0))[0];
     if (!skill) continue;
     movements.push({
-      slot: slot.sequence,
+      slot: slotId,
       slotName: slot.name,
       skillId: skill.id,
       name: skill.name,
@@ -92,7 +163,7 @@ export function buildMovements(slots: Slot[], skills: Skill[], type: SessionType
       entryPosition: slot.entryPosition,
       exitPosition: slot.exitPosition,
       // The movement's own duration wins; the config table is only a fallback.
-      seconds: skill.durationSeconds ?? slotSeconds(slot.sequence),
+      seconds: skill.durationSeconds ?? slotSeconds(slotId),
     });
   }
   return movements;
@@ -110,8 +181,25 @@ export function planSession(
   date: string,
   source: 'plan' | 'default',
   targetMinutesOverride?: number | null,
+  flowSessionsCompleted = 0,
 ): SessionPlan {
   const targetMinutes = targetMinutesOverride ?? TARGET_MINUTES[type] ?? 20;
+
+  if (type === 'strength') {
+    const blocks = buildStrength(skills);
+    const hasContent = blocks.some((b) => b.movements.length > 0);
+    return {
+      date,
+      type,
+      source,
+      targetMinutes,
+      totalSeconds: targetMinutes * 60,
+      rounds: 1,
+      movements: [],
+      strength: hasContent ? { blocks, prescription: STRENGTH.prescription } : undefined,
+      note: hasContent ? null : 'No strength movements found in Notion for the five ladders.',
+    };
+  }
 
   if (!isFormSession(type)) {
     return {
@@ -122,10 +210,7 @@ export function planSession(
       totalSeconds: targetMinutes * 60,
       rounds: 1,
       movements: [],
-      note:
-        type === 'strength'
-          ? 'The Strength template is not written yet. Log it when you are done.'
-          : 'No movement list for this type yet. Log it when you are done.',
+      note: 'No movement list for this type yet. Log it when you are done.',
     };
   }
 
@@ -145,7 +230,10 @@ export function planSession(
     };
   }
 
-  const rounds = Math.max(1, Math.round((targetMinutes * 60) / roundSeconds));
+  // Rounds ramp with experience rather than with the clock. Flow Short is
+  // always one round, so a bad morning stays a bad morning's worth of work.
+  const rounds =
+    type === 'flow short' ? FLOW_SHORT_ROUNDS : roundsForFlow(flowSessionsCompleted);
   return {
     date,
     type,
@@ -251,8 +339,9 @@ export function levelUpProposals(
     if (!slot.active) continue;
     if (slot.currentLevel >= MAX_LEVEL) continue;
 
-    const current = skills.find((s) => s.slot === slot.sequence && s.level === slot.currentLevel);
-    const next = skills.find((s) => s.slot === slot.sequence && s.level === slot.currentLevel + 1);
+    const slotId = slot.slotId || slot.sequence;
+    const current = skills.find((s) => s.slot === slotId && s.level === slot.currentLevel);
+    const next = skills.find((s) => s.slot === slotId && s.level === slot.currentLevel + 1);
     if (!current || !next) continue;
     if (current.sessionsAtLevel < LEVELUP_MIN_SESSIONS) continue;
 
@@ -267,7 +356,7 @@ export function levelUpProposals(
     if (!recent.every((s) => s.difficulty === 'easy')) continue;
 
     proposals.push({
-      slot: slot.sequence,
+      slot: slotId,
       slotName: slot.name,
       slotId: slot.id,
       fromLevel: slot.currentLevel,
@@ -417,7 +506,7 @@ export function rotateMicros(
   // at its current level.
   const activeSlots = slots.filter((s) => s.active);
   const progressOf = (slot: Slot) =>
-    skills.find((s) => s.slot === slot.sequence && s.level === slot.currentLevel)?.sessionsAtLevel ?? 0;
+    skills.find((s) => s.slot === (slot.slotId || slot.sequence) && s.level === slot.currentLevel)?.sessionsAtLevel ?? 0;
   const closestSlot = activeSlots
     .slice()
     .sort((a, b) => progressOf(b) - progressOf(a))[0];
@@ -432,9 +521,9 @@ export function rotateMicros(
   // At least two feeding the slot closest to levelling up.
   if (closestSlot) {
     eligible
-      .filter((m) => m.feedsSlot === closestSlot.sequence)
+      .filter((m) => m.feedsSlot === (closestSlot.slotId || closestSlot.sequence))
       .slice(0, cfg.feedingClosestSlot)
-      .forEach((m) => take(m, `feeds slot ${closestSlot.sequence}, closest to levelling`));
+      .forEach((m) => take(m, `feeds slot ${closestSlot.slotId || closestSlot.sequence}, closest to levelling`));
   }
 
   // One tied to the live skate project, when there is one.

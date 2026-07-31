@@ -9,7 +9,8 @@
    "currentLevel": 1,
    "unlockOrder": 1,
    "entryPosition": "standing",
-   "exitPosition": "standing"
+   "exitPosition": "standing",
+   "slotId": 1
   },
   {
    "id": "slot-2",
@@ -20,7 +21,8 @@
    "currentLevel": 1,
    "unlockOrder": 2,
    "entryPosition": "standing",
-   "exitPosition": "forward fold"
+   "exitPosition": "forward fold",
+   "slotId": 2
   },
   {
    "id": "slot-3",
@@ -31,7 +33,8 @@
    "currentLevel": 1,
    "unlockOrder": 7,
    "entryPosition": "forward fold",
-   "exitPosition": "forward fold"
+   "exitPosition": "forward fold",
+   "slotId": 3
   },
   {
    "id": "slot-4",
@@ -42,7 +45,8 @@
    "currentLevel": 1,
    "unlockOrder": 3,
    "entryPosition": "forward fold",
-   "exitPosition": "deep squat"
+   "exitPosition": "deep squat",
+   "slotId": 4
   },
   {
    "id": "slot-5",
@@ -53,7 +57,8 @@
    "currentLevel": 1,
    "unlockOrder": 4,
    "entryPosition": "deep squat",
-   "exitPosition": "beast"
+   "exitPosition": "beast",
+   "slotId": 5
   },
   {
    "id": "slot-6",
@@ -64,7 +69,8 @@
    "currentLevel": 1,
    "unlockOrder": 5,
    "entryPosition": "beast",
-   "exitPosition": "beast"
+   "exitPosition": "beast",
+   "slotId": 6
   },
   {
    "id": "slot-7",
@@ -75,7 +81,8 @@
    "currentLevel": 1,
    "unlockOrder": 10,
    "entryPosition": "beast",
-   "exitPosition": "crab"
+   "exitPosition": "crab",
+   "slotId": 7
   },
   {
    "id": "slot-8",
@@ -86,7 +93,8 @@
    "currentLevel": 1,
    "unlockOrder": 9,
    "entryPosition": "crab",
-   "exitPosition": "seated"
+   "exitPosition": "seated",
+   "slotId": 8
   },
   {
    "id": "slot-9",
@@ -97,7 +105,8 @@
    "currentLevel": 1,
    "unlockOrder": 11,
    "entryPosition": "seated",
-   "exitPosition": "supine"
+   "exitPosition": "supine",
+   "slotId": 9
   },
   {
    "id": "slot-10",
@@ -108,7 +117,8 @@
    "currentLevel": 1,
    "unlockOrder": 8,
    "entryPosition": "supine",
-   "exitPosition": "supine"
+   "exitPosition": "supine",
+   "slotId": 10
   },
   {
    "id": "slot-11",
@@ -119,7 +129,8 @@
    "currentLevel": 1,
    "unlockOrder": 12,
    "entryPosition": "deep squat",
-   "exitPosition": "deep squat"
+   "exitPosition": "deep squat",
+   "slotId": 11
   },
   {
    "id": "slot-12",
@@ -130,7 +141,8 @@
    "currentLevel": 1,
    "unlockOrder": 6,
    "entryPosition": "floor",
-   "exitPosition": "standing"
+   "exitPosition": "standing",
+   "slotId": 12
   }
  ],
  "skills": [

@@ -158,7 +158,15 @@ function Detail({ slot }: { slot: FormSlot }) {
           )}
           {current.referenceTerm && (
             <p>
-              <strong>Look up</strong> {current.referenceTerm}
+              <strong>Look up</strong>{' '}
+              <a
+                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(current.referenceTerm)}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: 'var(--amber)' }}
+              >
+                {current.referenceTerm}
+              </a>
             </p>
           )}
           <p>

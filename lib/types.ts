@@ -36,6 +36,11 @@ export interface Slot {
   id: string;
   name: string;
   sequence: number;
+  /**
+   * Stable identifier matching Skills.Slot. Sequence is the position in the
+   * Form and can be reordered freely; this must not move with it.
+   */
+  slotId: number;
   active: boolean;
   inShortForm: boolean;
   currentLevel: number;

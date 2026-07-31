@@ -147,6 +147,7 @@ export class MemoryStore implements Store {
     id: `slot-${sequence}`,
     name,
     sequence,
+    slotId: sequence,
     active,
     inShortForm,
     currentLevel: 1,

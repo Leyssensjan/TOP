@@ -138,6 +138,9 @@ export default function TodayPage() {
 
   const { session, rolling } = payload;
   const hasMovements = session.movements.length > 0;
+  const hasStrength = (session.strength?.blocks.length ?? 0) > 0;
+  const strengthMovements =
+    session.strength?.blocks.reduce((n, b) => n + b.movements.length, 0) ?? 0;
 
   return (
     <main className="screen">
@@ -152,15 +155,17 @@ export default function TodayPage() {
         </div>
         <p style={{ margin: '0 0 22px', color: 'var(--muted)' }}>
           {hasMovements
-            ? `${session.movements.length} movements${session.rounds > 1 ? ` · ${session.rounds} rounds` : ''}`
-            : (session.note ?? '')}
+            ? `${session.movements.length} movements · ${session.rounds} ${session.rounds === 1 ? 'round' : 'rounds'}`
+            : hasStrength
+              ? `${strengthMovements} lifts · ${session.strength!.blocks.filter((b) => !b.warmUp).length} blocks`
+              : (session.note ?? '')}
         </p>
 
         <button
           className="btn btn-primary"
           onClick={() => begin(session, payload.date)}
-          disabled={!hasMovements}
-          style={hasMovements ? undefined : { opacity: 0.4 }}
+          disabled={!hasMovements && !hasStrength}
+          style={hasMovements || hasStrength ? undefined : { opacity: 0.4 }}
         >
           {resumable ? 'Restart' : 'Start'}
         </button>

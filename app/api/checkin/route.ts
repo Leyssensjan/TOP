@@ -1,6 +1,6 @@
 import { handle } from '@/lib/api';
 import { addDays, isValidDate, today as todayDate } from '@/lib/dates';
-import { adjustForCheckin, planSession, rollingStatus } from '@/lib/rules';
+import { adjustForCheckin, countFlowSessions, planSession, rollingStatus } from '@/lib/rules';
 import { getStore } from '@/lib/store';
 import type { SessionType } from '@/lib/types';
 
@@ -18,9 +18,10 @@ export async function POST(req: Request) {
     const soreness = typeof body?.soreness === 'string' ? body.soreness.slice(0, 500) : '';
 
     const store = getStore();
-    const [slots, skills, planEntry, sessions] = await Promise.all([
+    const [slots, movementSkills, strengthSkills, planEntry, sessions] = await Promise.all([
       store.getSlots(),
       store.getSkills('movement'),
+      store.getSkills('strength'),
       store.getPlanForDay(date),
       store.getSessionsSince(addDays(date, -120)),
     ]);
@@ -28,7 +29,9 @@ export async function POST(req: Request) {
     const planned = planEntry?.sessionType;
     const type: SessionType = planned && planned !== 'rest' ? (planned as SessionType) : 'flow';
 
-    const base = planSession(slots, skills, type, date, planEntry ? 'plan' : 'default', planEntry?.plannedMinutes ?? null);
+    const skills = [...movementSkills, ...strengthSkills];
+    const flowsDone = countFlowSessions(sessions);
+    const base = planSession(slots, skills, type, date, planEntry ? 'plan' : 'default', planEntry?.plannedMinutes ?? null, flowsDone);
     const adjustedTarget = adjustForCheckin(base, { minutes, energy, soreness });
 
     // Rebuild so a switch to Flow Short actually changes the movement list.
@@ -39,6 +42,7 @@ export async function POST(req: Request) {
       date,
       base.source,
       adjustedTarget.targetMinutes,
+      flowsDone,
     );
 
     return {

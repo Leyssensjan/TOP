@@ -146,6 +146,9 @@ function toSlot(page: NotionPage): Slot {
     id: page.id,
     name: rTitle(p['Name']),
     sequence: rNum(p['Sequence']) ?? 0,
+    // Falls back to Sequence so the app is correct both before and after the
+    // reorder, whether or not Slot id has been filled in yet.
+    slotId: rNum(p['Slot id']) ?? rNum(p['Sequence']) ?? 0,
     active: rCheck(p['Active']),
     inShortForm: rCheck(p['In short form']),
     currentLevel: rNum(p['Current level']) ?? 1,
