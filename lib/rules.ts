@@ -7,6 +7,8 @@ import {
   LEVELUP_MIN_SESSIONS,
   MAX_LEVEL,
   MICRO_ROTATION,
+  SKATE_FOCUS,
+  SWITCH_FAKIE_MARKERS,
   ROLLING_WINDOW_DAYS,
   SESSIONS_PER_WINDOW,
   SLOT_SECONDS,
@@ -289,6 +291,83 @@ export interface MicroProgress {
   feedsSlot: number | null;
   weeklyTarget: number | null;
   count: number;
+}
+
+export interface FocusTrick {
+  id: string;
+  skillId: string;
+  name: string;
+  family: string;
+  level: number | null;
+  status: string;
+  reason: 'rusty' | 'project' | 'stretch' | 'switch or fakie';
+  lastPracticed: string | null;
+  attempts: number;
+}
+
+/**
+ * The session focus card from section 9. Everything about its shape lives in
+ * SKATE_FOCUS in config, since these counts are guesses until Jan uses it.
+ */
+export function skateFocus(tricks: Skill[], today: string): FocusTrick[] {
+  const cfg = SKATE_FOCUS;
+  const picked: FocusTrick[] = [];
+  const taken = new Set<string>();
+
+  const add = (skill: Skill, reason: FocusTrick['reason']) => {
+    if (taken.has(skill.id)) return;
+    taken.add(skill.id);
+    picked.push({
+      id: skill.id,
+      skillId: skill.skillId,
+      name: skill.name,
+      family: skill.family,
+      level: skill.level,
+      status: skill.status,
+      reason,
+      lastPracticed: skill.lastPracticed,
+      attempts: skill.attempts,
+    });
+  };
+
+  // Rusty: mastered, but not confirmed inside the rust window. Oldest first.
+  const rusty = tricks
+    .filter((t) => t.status === 'mastered')
+    .filter((t) => !t.lastPracticed || daysBetween(t.lastPracticed, today) >= cfg.rustAfterDays)
+    .sort((a, b) => (a.lastPracticed ?? '').localeCompare(b.lastPracticed ?? ''));
+  rusty.slice(0, cfg.rusty).forEach((t) => add(t, 'rusty'));
+
+  // The live projects.
+  const projects = tricks.filter((t) => t.status === 'current').sort((a, b) => (a.level ?? 0) - (b.level ?? 0));
+  projects.slice(0, cfg.projects).forEach((t) => add(t, 'project'));
+
+  // One stretch attempt: a locked trick whose prerequisites are all mastered,
+  // so it is the nearest thing that is actually reachable.
+  const statusOf = new Map(tricks.map((t) => [t.skillId, t.status]));
+  const reachable = tricks
+    .filter((t) => t.status === 'locked')
+    .filter((t) => t.prereqs.length > 0 && t.prereqs.every((p) => statusOf.get(p) === 'mastered'))
+    .sort((a, b) => (a.level ?? 0) - (b.level ?? 0));
+  reachable.slice(0, cfg.stretch).forEach((t) => add(t, 'stretch'));
+
+  // One switch or fakie item, because that gap closes only if it is scheduled.
+  const switched = tricks
+    .filter((t) => t.status !== 'locked')
+    .filter((t) => SWITCH_FAKIE_MARKERS.some((m) => t.skillId.includes(m)))
+    .sort((a, b) => (a.level ?? 0) - (b.level ?? 0));
+  switched.slice(0, cfg.switchOrFakie).forEach((t) => add(t, 'switch or fakie'));
+
+  return picked;
+}
+
+/** Tricks whose prerequisites are all mastered, so they can be started. */
+export function unlockableTricks(tricks: Skill[]): Set<string> {
+  const statusOf = new Map(tricks.map((t) => [t.skillId, t.status]));
+  return new Set(
+    tricks
+      .filter((t) => t.prereqs.length === 0 || t.prereqs.every((p) => statusOf.get(p) === 'mastered'))
+      .map((t) => t.id),
+  );
 }
 
 export interface RotationDecision {

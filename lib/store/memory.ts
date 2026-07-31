@@ -110,6 +110,35 @@ const MICRO_SEED: MicroSeed[] = [
   ['Stair snack', 'skate', null, 5, 'Any staircase, all day', 'At least once, take three or more flights briskly, two steps at a time.', '2 minutes', true],
 ];
 
+
+// A connected sample of the trick graph, levels 0 to 2, so the Skate screen
+// can be exercised locally. The real 190 live in Notion.
+type SkateSeed = [id: string, name: string, level: number, family: string, prereqs: string];
+
+const SKATE_SEED: SkateSeed[] = [
+  ['foot_placement_reset', 'Foot placement reset', 0, 'Foundation', 'stance_discovery'],
+  ['heel_toe_press', 'Heel-toe press', 0, 'Balance', 'static_balance'],
+  ['safe_bail_reflex', 'Safe bail reflex', 0, 'Foundation', 'static_balance'],
+  ['stance_discovery', 'Stance discovery', 0, 'Foundation', ''],
+  ['static_balance', 'Static balance', 0, 'Foundation', 'stance_discovery'],
+  ['foot_brake', 'Foot brake', 1, 'Stopping', 'repeated_pushing'],
+  ['one_push_glide', 'One-push glide', 1, 'Rolling', 'static_balance,safe_bail_reflex,foot_placement_reset'],
+  ['repeated_pushing', 'Repeated pushing', 1, 'Rolling', 'one_push_glide'],
+  ['roll_over_lines_and_cracks', 'Roll over lines and cracks', 1, 'Terrain', 'straight_roll_20m'],
+  ['straight_roll_20m', 'Straight roll 20m', 1, 'Rolling', 'one_push_glide'],
+  ['tail_stop', 'Tail stop', 1, 'Freestyle foundation', 'static_balance,heel_toe_press'],
+  ['backside_kickturn', 'Backside kickturn', 2, 'Turning', 'tic_tac'],
+  ['carve_turns', 'Carve turns', 2, 'Turning', 'heel_toe_press,straight_roll_20m'],
+  ['fakie_roll_comfort', 'Fakie roll comfort', 2, 'Stance', 'straight_roll_20m'],
+  ['frontside_kickturn', 'Frontside kickturn', 2, 'Turning', 'backside_kickturn'],
+  ['mini_slalom', 'Mini slalom', 2, 'Turning', 'carve_turns'],
+  ['pancake_flip', 'Pancake flip', 2, 'Freestyle foundation', 'static_balance,safe_bail_reflex'],
+  ['speed_check_carve', 'Speed check carve', 2, 'Stopping', 'carve_turns,foot_brake'],
+  ['switch_push_intro', 'Switch push intro', 2, 'Stance', 'repeated_pushing'],
+  ['tail_stop_shuffle', 'Tail stop shuffle', 2, 'Freestyle foundation', 'tail_stop'],
+  ['tic_tac', 'Tic-tac', 2, 'Turning', 'mini_slalom'],
+];
+
 export class MemoryStore implements Store {
   readonly name = 'memory';
 
@@ -144,6 +173,10 @@ export class MemoryStore implements Store {
       lastPracticed: null,
       levelUpDeferred: null,
       durationSeconds: null,
+      skillId: '',
+      family: '',
+      prereqs: [],
+      attempts: 0,
     };
   });
 
@@ -162,6 +195,29 @@ export class MemoryStore implements Store {
     stat: [],
   }));
 
+  private skateSkills: Skill[] = SKATE_SEED.map(([skillId, name, level, family, prereqs]) => ({
+    id: `skate-${skillId}`,
+    name,
+    domain: 'skate' as Domain,
+    slot: null,
+    level,
+    status: 'locked' as const,
+    cues: '',
+    referenceTerm: '',
+    entryPosition: '',
+    exitPosition: '',
+    whyBuilds: '',
+    whyUnlocks: '',
+    sessionsAtLevel: 0,
+    lastPracticed: null,
+    levelUpDeferred: null,
+    durationSeconds: null,
+    skillId,
+    family,
+    prereqs: prereqs ? prereqs.split(',') : [],
+    attempts: 0,
+  }));
+
   private sessions: SessionLog[] = [];
   private plan: PlanEntry[] = [];
   private microLog: MicroLogEntry[] = [];
@@ -177,7 +233,9 @@ export class MemoryStore implements Store {
   }
 
   async getSkills(domain?: Domain): Promise<Skill[]> {
-    return this.skills.filter((s) => !domain || s.domain === domain).map((s) => ({ ...s }));
+    return [...this.skills, ...this.skateSkills]
+      .filter((s) => !domain || s.domain === domain)
+      .map((s) => ({ ...s }));
   }
 
   async createSkill(input: NewSkill): Promise<Skill> {
@@ -198,13 +256,17 @@ export class MemoryStore implements Store {
       lastPracticed: null,
       levelUpDeferred: null,
       durationSeconds: null,
+      skillId: input.skillId,
+      family: input.family,
+      prereqs: input.prereqs.split(',').map((v) => v.trim()).filter(Boolean),
+      attempts: 0,
     };
     this.skills.push(skill);
     return { ...skill };
   }
 
   async updateSkill(id: string, patch: SkillPatch): Promise<void> {
-    const skill = this.skills.find((s) => s.id === id);
+    const skill = [...this.skills, ...this.skateSkills].find((s) => s.id === id);
     if (skill) Object.assign(skill, patch);
   }
 

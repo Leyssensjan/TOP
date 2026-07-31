@@ -25,6 +25,11 @@ export interface Skill {
   levelUpDeferred: string | null;
   /** Overrides the SLOT_SECONDS fallback in config when set. */
   durationSeconds: number | null;
+  /** Skate fields. Empty for movement skills. */
+  skillId: string;
+  family: string;
+  prereqs: string[];
+  attempts: number;
 }
 
 export interface Slot {
@@ -131,6 +136,7 @@ export interface NewSkill {
 
 export interface SkillPatch {
   status?: SkillStatus;
+  attempts?: number;
   sessionsAtLevel?: number;
   lastPracticed?: string | null;
   levelUpDeferred?: string | null;

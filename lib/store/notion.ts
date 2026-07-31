@@ -129,6 +129,13 @@ function toSkill(page: NotionPage): Skill {
     lastPracticed: rDate(p['Last practiced']),
     levelUpDeferred: rDate(p['Level up deferred']),
     durationSeconds: rNum(p['Duration seconds']),
+    skillId: rText(p['Skill id']),
+    family: rText(p['Family']),
+    prereqs: rText(p['Prereqs'])
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean),
+    attempts: rNum(p['Attempts']) ?? 0,
   };
 }
 
@@ -252,6 +259,7 @@ export class NotionStore implements Store {
   async updateSkill(id: string, patch: SkillPatch): Promise<void> {
     const properties: Record<string, any> = {};
     if (patch.status !== undefined) properties['Status'] = wSelect(patch.status);
+    if (patch.attempts !== undefined) properties['Attempts'] = wNum(patch.attempts);
     if (patch.sessionsAtLevel !== undefined) properties['Sessions at level'] = wNum(patch.sessionsAtLevel);
     if (patch.lastPracticed !== undefined) properties['Last practiced'] = wDate(patch.lastPracticed);
     if (patch.levelUpDeferred !== undefined) properties['Level up deferred'] = wDate(patch.levelUpDeferred);

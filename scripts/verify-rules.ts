@@ -3,8 +3,9 @@
  * Not part of the app. Run with: npx tsx scripts/verify-rules.ts
  */
 import { readFileSync } from 'node:fs';
-import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress } from '../lib/rules';
+import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks } from '../lib/rules';
 import { weekStart } from '../lib/dates';
+import { parse, applyBaseline, SOURCE } from './skate-migration';
 import type { Micro, MicroLogEntry, SessionLog, Skill, Slot } from '../lib/types';
 
 const fixture = JSON.parse(readFileSync(new URL('./notion-snapshot.json', import.meta.url), 'utf8')) as {
@@ -109,6 +110,55 @@ check('Retirement engages once history is long enough', rot2.retire.length > 0, 
 // --- micro progress ---
 const progress = microProgress(micros, microLog, week);
 check('Micro progress covers only active micros', progress.every((p) => micros.find((m) => m.name === p.name)?.active === true), `${progress.length} rows`);
+
+
+// --- the skate graph, against the real 190 tricks ---------------------------
+{
+  const raw = applyBaseline(parse(readFileSync(SOURCE, 'utf8')));
+  const asSkills: Skill[] = raw.map((r) => ({
+    id: `t-${r.skillId}`, name: r.name, domain: 'skate', slot: null, level: r.level,
+    status: r.status, cues: '', referenceTerm: '', entryPosition: '', exitPosition: '',
+    whyBuilds: '', whyUnlocks: '', sessionsAtLevel: 0, lastPracticed: null,
+    levelUpDeferred: null, durationSeconds: null, skillId: r.skillId, family: r.family,
+    prereqs: r.prereqs, attempts: 0,
+  }));
+
+  console.log(`\nSkate graph: ${asSkills.length} tricks, all ${asSkills[0].status}`);
+
+  // From an all-locked start only the roots are reachable.
+  const rootsOnly = unlockableTricks(asSkills);
+  const roots = asSkills.filter((t) => t.prereqs.length === 0);
+  check('From all-locked, only prerequisite-free tricks are unlockable', rootsOnly.size === roots.length, `${rootsOnly.size} unlockable, ${roots.length} roots`);
+  check('Every trick is reachable by mastering its prerequisites', asSkills.every((t) => t.prereqs.every((p) => asSkills.some((x) => x.skillId === p))), '');
+
+  // Master the roots and the frontier must grow.
+  const afterRoots = asSkills.map((t) => (t.prereqs.length === 0 ? { ...t, status: 'mastered' as const } : t));
+  check('Mastering the roots opens new tricks', unlockableTricks(afterRoots).size > rootsOnly.size, `${unlockableTricks(afterRoots).size} unlockable`);
+
+  // Focus card on a plausible mid-game state.
+  const mid = asSkills.map((t) => {
+    if (['stance_discovery', 'static_balance', 'safe_bail_reflex', 'foot_placement_reset', 'one_push_glide', 'straight_roll_20m', 'repeated_pushing', 'fakie_roll_comfort'].includes(t.skillId))
+      return { ...t, status: 'mastered' as const, lastPracticed: '2026-06-01' };
+    if (['switch_push_intro', 'carve_turns'].includes(t.skillId)) return { ...t, status: 'current' as const };
+    return t;
+  });
+  const focus = skateFocus(mid, today);
+  console.log('Focus card:');
+  focus.forEach((f) => console.log(`  ${f.name} — ${f.reason}`));
+  check('Focus card is not empty', focus.length > 0, `${focus.length} items`);
+  check('Focus card has no duplicates', new Set(focus.map((f) => f.id)).size === focus.length, '');
+  check('Focus card includes rusty tricks', focus.some((f) => f.reason === 'rusty'), '');
+  check('Focus card includes a live project', focus.some((f) => f.reason === 'project'), '');
+  check('Rusty picks are all mastered', focus.filter((f) => f.reason === 'rusty').every((f) => f.status === 'mastered'), '');
+  check('Stretch pick has every prerequisite mastered', focus.filter((f) => f.reason === 'stretch').every((f) => {
+    const t = mid.find((x) => x.id === f.id)!;
+    return t.prereqs.every((p) => mid.find((x) => x.skillId === p)?.status === 'mastered');
+  }), '');
+
+  // Freshly touched tricks must not read as rusty.
+  const fresh = mid.map((t) => (t.status === 'mastered' ? { ...t, lastPracticed: today } : t));
+  check('Nothing is rusty right after being confirmed', skateFocus(fresh, today).every((f) => f.reason !== 'rusty'), '');
+}
 
 console.log(`\n${failures === 0 ? 'All checks passed.' : `${failures} FAILED`}`);
 process.exit(failures === 0 ? 0 : 1);

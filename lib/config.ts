@@ -71,6 +71,24 @@ export const SKATE_BASELINE: 'none' | 'graph' = 'none';
 export const SKATE_BASELINE_CURRENT = ['rolling_ollie', 'frontside_180', 'switch_roll_10m'];
 
 /**
+ * The skate session focus card, section 9: two or three rusty tricks, one or
+ * two current projects, one stretch attempt, one switch or fakie item.
+ *
+ * Rust is the retention mechanic carried over from SkateQuest: a trick you
+ * have mastered but not touched for three weeks needs confirming again.
+ */
+export const SKATE_FOCUS = {
+  rusty: 3,
+  projects: 2,
+  stretch: 1,
+  switchOrFakie: 1,
+  rustAfterDays: 21,
+};
+
+/** A trick counts as switch or fakie work if its id contains one of these. */
+export const SWITCH_FAKIE_MARKERS = ['switch', 'fakie', 'nollie'];
+
+/**
  * Micro rotation, section 6. Only a few micros carry a weekly goal at a time,
  * and anything ignored for three weeks is retired rather than re-offered —
  * that last rule is what stops a graveyard of dead targets accumulating.

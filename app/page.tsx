@@ -188,15 +188,18 @@ export default function TodayPage() {
         <Rolling rolling={rolling} />
 
         {!adjusting ? (
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn btn-quiet" onClick={() => setAdjusting(true)}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            <button className="btn btn-quiet" style={{ flex: '1 1 45%' }} onClick={() => setAdjusting(true)}>
               Adjust
             </button>
-            <button className="btn btn-quiet" onClick={() => router.push('/form')}>
+            <button className="btn btn-quiet" style={{ flex: '1 1 45%' }} onClick={() => router.push('/form')}>
               Form
             </button>
-            <button className="btn btn-quiet" onClick={() => router.push('/micros')}>
+            <button className="btn btn-quiet" style={{ flex: '1 1 45%' }} onClick={() => router.push('/micros')}>
               Micros
+            </button>
+            <button className="btn btn-quiet" style={{ flex: '1 1 45%' }} onClick={() => router.push('/skate')}>
+              Skate
             </button>
           </div>
         ) : (
