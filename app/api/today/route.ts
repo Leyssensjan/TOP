@@ -1,6 +1,7 @@
 import { handle } from '@/lib/api';
 import { addDays, isValidDate, today as todayDate } from '@/lib/dates';
 import { countFlowSessions, levelUpProposals, planSession, rollingStatus } from '@/lib/rules';
+import { suggestNext } from '@/lib/planner';
 import { getStore } from '@/lib/store';
 import type { SessionType } from '@/lib/types';
 
@@ -22,10 +23,14 @@ export async function GET(req: Request) {
       store.getSessionsSince(addDays(date, -120)),
     ]);
 
-    // The week is not generated yet, so an unplanned morning defaults to Flow.
+    // A planned day wins. Otherwise the suggestion decides, so the big number
+    // and the suggestion line can never contradict each other.
     const planned = planEntry?.sessionType;
+    const suggestion = suggestNext(sessions, date);
     const type: SessionType =
-      planned && planned !== 'rest' ? (planned as SessionType) : 'flow';
+      planned && planned !== 'rest'
+        ? (planned as SessionType)
+        : ((suggestion.type === 'rest' ? 'flow' : suggestion.type) as SessionType);
     const source = planEntry ? 'plan' : 'default';
 
     const skills = [...movementSkills, ...strengthSkills];
@@ -49,6 +54,7 @@ export async function GET(req: Request) {
       alreadyLogged: loggedToday.length > 0,
       loggedToday: loggedToday.map((s) => ({ id: s.id, type: s.type, actualMinutes: s.actualMinutes })),
       rolling: rollingStatus(sessions, date),
+      suggestion,
       flowSessionsCompleted: flowsDone,
       proposals: levelUpProposals(slots, skills, sessions, date),
       store: store.name,

@@ -5,10 +5,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Stubbed on purpose. The Routes table stays empty until three runs from
- * Berouw are scouted at roughly 3, 5 and 8 km, and section 12 is explicit that
- * they get hardcoded rather than generated. This reads whatever is there and
- * says plainly when there is nothing.
+ * Reads the scouted routes. Section 12 is explicit that these are hardcoded in
+ * Notion rather than generated, so this endpoint only ever reads.
  */
 export async function GET(req: Request) {
   return handle(req, async () => {
@@ -19,7 +17,7 @@ export async function GET(req: Request) {
       scouted: routes.length > 0,
       note: routes.length
         ? null
-        : 'No routes scouted yet. Engine sessions have no route until Coupure, Bourgoyen-Ossemeersen and the ring canal towpaths are walked and added to Notion.',
+        : 'No routes scouted yet. Add them to the Routes database in Notion.',
       store: store.name,
     };
   });

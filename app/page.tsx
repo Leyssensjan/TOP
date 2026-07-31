@@ -190,6 +190,10 @@ export default function TodayPage() {
           <Proposal key={p.slot} proposal={p} onDone={() => void load()} />
         ))}
 
+        {payload.suggestion && (
+          <p style={{ margin: 0, color: 'var(--muted)', fontSize: 15 }}>{payload.suggestion.line}</p>
+        )}
+
         <Rolling rolling={rolling} />
 
         {!adjusting ? (
@@ -208,6 +212,9 @@ export default function TodayPage() {
             </button>
             <button className="btn btn-quiet" style={{ flex: '1 1 45%' }} onClick={() => router.push('/week')}>
               Week
+            </button>
+            <button className="btn btn-quiet" style={{ flex: '1 1 45%' }} onClick={() => router.push('/routes')}>
+              Routes
             </button>
           </div>
         ) : (

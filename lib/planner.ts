@@ -9,9 +9,10 @@
  * make the planner untestable.
  */
 
-import { PLANNER, TARGET_MINUTES } from '@/lib/config';
-import { addDays, weekStart } from '@/lib/dates';
-import type { NewPlanEntry, PlanSessionType } from '@/lib/types';
+import { PLANNER, SUGGESTION, TARGET_MINUTES } from '@/lib/config';
+import { addDays, daysBetween, weekStart } from '@/lib/dates';
+import { rollingStatus } from '@/lib/rules';
+import type { NewPlanEntry, PlanSessionType, SessionLog } from '@/lib/types';
 
 export interface PlannerInput {
   weekStart: string;
@@ -153,4 +154,78 @@ export function generateWeek(input: PlannerInput): PlannedWeek {
   });
 
   return { weekStart: start, entries, rationale };
+}
+
+/**
+ * The Today suggestion. This replaces week generation: no form, no inputs Jan
+ * has to type, just a read of what the app already knows. The constraint logic
+ * above is not deleted — it becomes the rule set behind this one line.
+ */
+export interface Suggestion {
+  type: PlanSessionType;
+  line: string;
+  reasons: string[];
+}
+
+export function suggestNext(sessions: SessionLog[], today: string): Suggestion {
+  const cfg = SUGGESTION;
+  const done = sessions
+    .filter((s) => s.completed)
+    .sort((a, b) => (a.date < b.date ? 1 : -1));
+
+  const rolling = rollingStatus(done, today);
+  const last = done[0];
+  const reasons: string[] = [];
+
+  if (!last) {
+    return {
+      type: cfg.whenNoHistory as PlanSessionType,
+      line: `Nothing logged yet. Suggest ${titleOf(cfg.whenNoHistory)}.`,
+      reasons: ['no history'],
+    };
+  }
+
+  // Constraints carried over from the planner, applied to a single choice.
+  const strengthInWindow = done.filter(
+    (s) => s.type === 'strength' && s.date >= rolling.windowStart,
+  ).length;
+  const strengthYesterday =
+    PLANNER.strengthNeverConsecutive &&
+    done.some((s) => s.type === 'strength' && daysBetween(s.date, today) <= 1);
+
+  const blocked = (type: string) => {
+    if (type !== 'strength') return false;
+    if (strengthYesterday) {
+      reasons.push('strength was yesterday');
+      return true;
+    }
+    if (strengthInWindow >= PLANNER.maxStrength) {
+      reasons.push('two strength sessions already this week');
+      return true;
+    }
+    return false;
+  };
+
+  // Target already met: the gentler option, never a push for more.
+  if (rolling.count >= rolling.target) {
+    reasons.push('weekly target already met');
+    return {
+      type: cfg.whenTargetMet as PlanSessionType,
+      line: `${rolling.count} of ${rolling.target} this week. Last was ${titleOf(last.type)}. Suggest ${titleOf(cfg.whenTargetMet)}.`,
+      reasons,
+    };
+  }
+
+  const candidates = cfg.after[last.type] ?? cfg.after.flow;
+  const pick = (candidates.find((c) => !blocked(c)) ?? cfg.whenNoHistory) as PlanSessionType;
+
+  return {
+    type: pick,
+    line: `${rolling.count} of ${rolling.target} this week. Last was ${titleOf(last.type)}. Suggest ${titleOf(pick)}.`,
+    reasons,
+  };
+}
+
+function titleOf(type: string): string {
+  return type.replace(/\b\w/g, (c) => c.toUpperCase());
 }

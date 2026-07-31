@@ -24,6 +24,7 @@ export interface TodayPayload {
     short: number;
     streakWeeks: number;
   };
+  suggestion?: { type: string; line: string; reasons: string[] };
   proposals: Array<{
     slot: number;
     slotName: string;

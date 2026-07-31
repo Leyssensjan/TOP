@@ -336,8 +336,43 @@ export class MemoryStore implements Store {
     if (entry) Object.assign(entry, patch);
   }
 
+  // The three scouted routes, so the Routes screen can be exercised locally.
   async getRoutes(): Promise<Route[]> {
-    return [];
+    return [
+      {
+        id: 'route-1',
+        name: 'Oude Dokken loop',
+        distanceKm: 3.5,
+        startPoint: 'Berouw',
+        description:
+          'North up Dok Noord to the Houtdok, round Kapitein Zeppospark, back down the west quay of the Handelsdok. Almost entirely car-free promenade.',
+        mapLink: 'https://www.google.com/maps/dir/?api=1&origin=Berouw,Gent&destination=Berouw,Gent',
+        surface: 'Paved promenade and quay',
+        quietRating: 4,
+      },
+      {
+        id: 'route-2',
+        name: 'Dampoort and Ganda',
+        distanceKm: 5.5,
+        startPoint: 'Berouw',
+        description:
+          'East along the Handelsdok past the Nieuwe Dokken, through Dampoort, down to Portus Ganda, then back north along the Visserij.',
+        mapLink: 'https://www.google.com/maps/dir/?api=1&origin=Berouw,Gent&destination=Berouw,Gent',
+        surface: 'Paved, one busy junction',
+        quietRating: 3,
+      },
+      {
+        id: 'route-3',
+        name: 'Voorhaven out and back',
+        distanceKm: 8,
+        startPoint: 'Berouw',
+        description:
+          'North through Muide onto the Voorhaven quays, up to the Meulestede tip and back. Water the whole distance, virtually no cars at any hour.',
+        mapLink: 'https://www.google.com/maps/dir/?api=1&origin=Berouw,Gent&destination=Berouw,Gent',
+        surface: 'Paved quay, some cobbles near Muide',
+        quietRating: 5,
+      },
+    ];
   }
 
   async getMicros(): Promise<Micro[]> {

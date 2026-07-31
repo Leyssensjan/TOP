@@ -38,7 +38,6 @@ export default function WeekPage() {
   const router = useRouter();
   const [data, setData] = useState<WeekPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!getKey()) {
@@ -58,19 +57,6 @@ export default function WeekPage() {
     void load();
   }, [load]);
 
-  const generate = async (replace: boolean) => {
-    setBusy(true);
-    try {
-      const res = await api<WeekPayload>('/week', { method: 'POST', body: { generate: true, replace } });
-      setData({ ...res, locked: true });
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not generate');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
     <main className="screen" style={{ gap: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -88,11 +74,9 @@ export default function WeekPage() {
           <p style={{ margin: 0, color: 'var(--muted)' }}>Week of {data.weekStart}</p>
 
           {data.entries.length === 0 ? (
-            <div className="stack">
-              <div className="banner">No plan for this week yet.</div>
-              <button className="btn btn-primary" disabled={busy} onClick={() => void generate(false)}>
-                {busy ? 'Planning' : 'Generate the week'}
-              </button>
+            <div className="banner">
+              No plan for this week. Today suggests the next session from what you have logged; there is
+              nothing to fill in here.
             </div>
           ) : (
             <div className="stack">
@@ -147,16 +131,7 @@ export default function WeekPage() {
             </div>
           ) : null}
 
-          {data.entries.length > 0 && (
-            <button
-              className="btn btn-quiet"
-              disabled={busy}
-              style={{ marginTop: 'auto' }}
-              onClick={() => void generate(true)}
-            >
-              {busy ? 'Planning' : 'Plan again'}
-            </button>
-          )}
+
         </>
       )}
     </main>

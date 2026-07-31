@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError, api, getKey } from '@/lib/client/store';
+import { SKATE_FIRST_RUN_TIERS } from '@/lib/config';
+
+const FIRST_RUN_KEY = 'fq.skateFirstRun';
 
 type Status = 'locked' | 'current' | 'mastered';
 
@@ -47,6 +50,7 @@ export default function SkatePage() {
   const [error, setError] = useState<string | null>(null);
   const [level, setLevel] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
+  const [firstRun, setFirstRun] = useState(false);
 
   const load = useCallback(async () => {
     if (!getKey()) {
@@ -54,7 +58,12 @@ export default function SkatePage() {
       return;
     }
     try {
-      setData(await api<SkatePayload>('/skate'));
+      const res = await api<SkatePayload>('/skate');
+      setData(res);
+      // Offered once, on a graph that is still entirely locked. After that the
+      // tracker behaves normally and any trick can still be set by hand.
+      const seen = typeof window !== 'undefined' && window.localStorage.getItem(FIRST_RUN_KEY) === 'done';
+      setFirstRun(!seen && res.counts.mastered === 0 && res.counts.current === 0);
       setError(null);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) router.replace('/');
@@ -67,10 +76,22 @@ export default function SkatePage() {
   }, [load]);
 
   const levels = useMemo(
-    () => [...new Set(data?.tricks.map((t) => t.level) ?? [])].sort((a, b) => a - b),
-    [data],
+    () =>
+      [...new Set(data?.tricks.map((t) => t.level) ?? [])]
+        .filter((l) => !firstRun || l < SKATE_FIRST_RUN_TIERS)
+        .sort((a, b) => a - b),
+    [data, firstRun],
   );
   const shown = data?.tricks.filter((t) => t.level === level) ?? [];
+
+  const endFirstRun = () => {
+    try {
+      window.localStorage.setItem(FIRST_RUN_KEY, 'done');
+    } catch {
+      // A blocked localStorage only means the offer appears again.
+    }
+    setFirstRun(false);
+  };
 
   const cycle = async (trick: Trick) => {
     const next = NEXT[trick.status];
@@ -134,7 +155,20 @@ export default function SkatePage() {
             </span>
           </div>
 
-          {data.focus.length > 0 && (
+          {firstRun && (
+            <div className="banner" style={{ color: 'var(--text)' }}>
+              <p style={{ margin: '0 0 8px' }}>Everything starts locked.</p>
+              <p style={{ margin: '0 0 12px', color: 'var(--muted)', fontSize: 15 }}>
+                Go through the first {SKATE_FIRST_RUN_TIERS} tiers and tap anything you can already do until it
+                reads mastered. Skip it and set them later if you would rather.
+              </p>
+              <button className="btn" onClick={endFirstRun}>
+                Done, show everything
+              </button>
+            </div>
+          )}
+
+          {!firstRun && data.focus.length > 0 && (
             <div className="banner" style={{ color: 'var(--text)' }}>
               <p className="label" style={{ margin: '0 0 10px' }}>
                 Session focus
