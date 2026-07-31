@@ -3,7 +3,7 @@
  * Not part of the app. Run with: npx tsx scripts/verify-rules.ts
  */
 import { readFileSync } from 'node:fs';
-import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks } from '../lib/rules';
+import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow, buildStrength } from '../lib/rules';
 import { weekStart } from '../lib/dates';
 import { parse, applyBaseline, SOURCE } from './skate-migration';
 import type { Micro, MicroLogEntry, SessionLog, Skill, Slot } from '../lib/types';
@@ -38,7 +38,31 @@ console.log('Flow Short:', `${short.movements.length} movements`, `${short.round
 console.log('Round length:', `${Math.floor(roundSeconds / 60)}:${String(roundSeconds % 60).padStart(2, '0')}\n`);
 
 check('Flow uses only active slots', flow.movements.every((m) => slots.find((s) => s.sequence === m.slot)?.active === true), '');
-check('Flow lands in the 15-20 min band', flow.totalSeconds >= 15 * 60 && flow.totalSeconds <= 21 * 60, `${Math.round(flow.totalSeconds / 60)} min`);
+// The ramp starts short on purpose and only reaches the brief's 15-20 minute
+// band once the habit is established.
+const rampBands: Array<[number, number]> = [[1, 2], [6, 2], [7, 3], [14, 3], [15, 4], [99, 4]];
+check(
+  'Round ramp: 1-6 two rounds, 7-14 three, 15+ four',
+  rampBands.every(([sessionNumber, rounds]) => roundsForFlow(sessionNumber - 1) === rounds),
+  '',
+);
+const rampedFlow = planSession(slots, skills, 'flow', today, 'default', null, 20);
+check(
+  'A ramped Flow lands in the 15-20 min band',
+  rampedFlow.totalSeconds >= 15 * 60 && rampedFlow.totalSeconds <= 21 * 60,
+  `${Math.round(rampedFlow.totalSeconds / 60)} min at 4 rounds`,
+);
+check(
+  'Flow Short never ramps',
+  planSession(slots, skills, 'flow short', today, 'default', null, 50).rounds === 1,
+  '',
+);
+check(
+  'An empty Slot id falls back to Sequence rather than emptying the Form',
+  planSession(slots.map((s) => ({ ...s, slotId: 0 })), skills, 'flow', today, 'default', null, 0).movements.length ===
+    flow.movements.length,
+  '',
+);
 check('Flow Short is one round', short.rounds === 1, `${short.rounds}`);
 check('Every movement has a duration', flow.movements.every((m) => m.seconds > 0), '');
 
