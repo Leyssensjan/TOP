@@ -3,8 +3,9 @@
 A private, single-user training app. Phone-first, Notion as the datastore,
 Vercel as the host and API layer.
 
-This repo covers steps 1 and 2 of the build order: the Notion module, the
-endpoints, and the Today / Runner / Close screens.
+All seven steps of the build order are in: the Notion module, the endpoints,
+the Today / Runner / Close screens, Micros, the Form, the skate migration and
+Skate screen, the weekly planner and Week screen, and Routes stubbed.
 
 ## Setup
 
@@ -123,9 +124,6 @@ Add `--import` with `NOTION_TOKEN` set to write it.
 
 ## Notes
 
-- One field was added to the **Skills** database: `Level up deferred` (date).
-  Deferring a level-up needs somewhere to persist, and no existing field fit.
-  A deferred slot goes quiet for 14 days.
 - Notion API version `2025-09-03`, required for data source IDs.
 - Three fields were added to Notion that the brief did not specify, each
   because a required behaviour had nowhere to persist: `Level up deferred`
