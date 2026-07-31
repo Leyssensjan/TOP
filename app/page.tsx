@@ -192,6 +192,9 @@ export default function TodayPage() {
             <button className="btn btn-quiet" onClick={() => setAdjusting(true)}>
               Adjust
             </button>
+            <button className="btn btn-quiet" onClick={() => router.push('/form')}>
+              Form
+            </button>
             <button className="btn btn-quiet" onClick={() => router.push('/micros')}>
               Micros
             </button>

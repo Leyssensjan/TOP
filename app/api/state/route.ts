@@ -43,10 +43,21 @@ export async function GET(req: Request) {
           level: current.level,
           cues: current.cues,
           referenceTerm: current.referenceTerm,
+          whyBuilds: current.whyBuilds,
+          whyUnlocks: current.whyUnlocks,
           sessionsAtLevel: current.sessionsAtLevel,
           lastPracticed: current.lastPracticed,
+          durationSeconds: current.durationSeconds,
         },
-        next: next && { id: next.id, name: next.name, level: next.level },
+        next: next && { id: next.id, name: next.name, level: next.level, cues: next.cues },
+        // The whole ladder, so the detail view can show what comes after next.
+        ladder: ladder.map((s) => ({
+          id: s.id,
+          name: s.name,
+          level: s.level,
+          status: s.status,
+          referenceTerm: s.referenceTerm,
+        })),
       };
     });
 
