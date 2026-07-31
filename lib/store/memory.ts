@@ -9,6 +9,7 @@ import type {
   MicroPatch,
   NewPlanEntry,
   NewSession,
+  NewSkill,
   PlanEntry,
   SessionLog,
   Skill,
@@ -177,6 +178,29 @@ export class MemoryStore implements Store {
 
   async getSkills(domain?: Domain): Promise<Skill[]> {
     return this.skills.filter((s) => !domain || s.domain === domain).map((s) => ({ ...s }));
+  }
+
+  async createSkill(input: NewSkill): Promise<Skill> {
+    const skill: Skill = {
+      id: this.nextId('skill'),
+      name: input.name,
+      domain: input.domain,
+      slot: null,
+      level: input.level,
+      status: input.status,
+      cues: '',
+      referenceTerm: '',
+      entryPosition: '',
+      exitPosition: '',
+      whyBuilds: '',
+      whyUnlocks: '',
+      sessionsAtLevel: 0,
+      lastPracticed: null,
+      levelUpDeferred: null,
+      durationSeconds: null,
+    };
+    this.skills.push(skill);
+    return { ...skill };
   }
 
   async updateSkill(id: string, patch: SkillPatch): Promise<void> {

@@ -119,6 +119,16 @@ export interface MicroLogEntry {
   weekStart: string | null;
 }
 
+export interface NewSkill {
+  name: string;
+  domain: Domain;
+  skillId: string;
+  level: number;
+  family: string;
+  prereqs: string;
+  status: SkillStatus;
+}
+
 export interface SkillPatch {
   status?: SkillStatus;
   sessionsAtLevel?: number;
@@ -141,6 +151,7 @@ export interface Store {
 
   getSlots(): Promise<Slot[]>;
   getSkills(domain?: Domain): Promise<Skill[]>;
+  createSkill(input: NewSkill): Promise<Skill>;
   updateSkill(id: string, patch: SkillPatch): Promise<void>;
   updateSlot(id: string, patch: SlotPatch): Promise<void>;
 

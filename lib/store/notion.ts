@@ -9,6 +9,7 @@ import type {
   MicroPatch,
   NewPlanEntry,
   NewSession,
+  NewSkill,
   PlanEntry,
   SessionLog,
   Skill,
@@ -227,6 +228,25 @@ export class NotionStore implements Store {
       ...(domain ? { filter: { property: 'Domain', select: { equals: domain } } } : {}),
     });
     return pages.map(toSkill);
+  }
+
+  async createSkill(input: NewSkill): Promise<Skill> {
+    const page = await notionFetch('/pages', {
+      method: 'POST',
+      body: {
+        parent: { type: 'data_source_id', data_source_id: DATA_SOURCES.skills },
+        properties: {
+          Name: wTitle(input.name),
+          Domain: wSelect(input.domain),
+          'Skill id': wText(input.skillId),
+          Level: wNum(input.level),
+          Family: wText(input.family),
+          Prereqs: wText(input.prereqs),
+          Status: wSelect(input.status),
+        },
+      },
+    });
+    return toSkill(page);
   }
 
   async updateSkill(id: string, patch: SkillPatch): Promise<void> {
