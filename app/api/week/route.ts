@@ -1,5 +1,8 @@
 import { BadRequest, handle } from '@/lib/api';
-import { isValidDate, today as todayDate, weekStart } from '@/lib/dates';
+import { MICRO_ROTATION } from '@/lib/config';
+import { addDays, isValidDate, today as todayDate, weekStart } from '@/lib/dates';
+import { generateWeek } from '@/lib/planner';
+import { rotateMicros } from '@/lib/rules';
 import { getStore } from '@/lib/store';
 import type { NewPlanEntry, PlanSessionType } from '@/lib/types';
 
@@ -21,18 +24,78 @@ export async function GET(req: Request) {
 }
 
 /**
- * Writes the week. Generation (calendar and forecast) is step 6 of the build
- * order, so this endpoint takes the entries it is given and stores them.
+ * Writes the week, either by generating it (generate: true) or by storing the
+ * entries it is handed. Generating a week that already exists needs
+ * replace: true, because the week is meant to lock once made.
  */
 export async function POST(req: Request) {
   return handle(req, async (body) => {
     const week = isValidDate(body?.weekStart) ? weekStart(body.weekStart) : weekStart(todayDate());
-    const input = Array.isArray(body?.entries) ? body.entries : null;
-    if (!input) throw new BadRequest('entries must be an array');
-
     const store = getStore();
-    const existing = await store.getPlanForWeek(week);
-    const byDay = new Map(existing.filter((e) => e.day).map((e) => [e.day as string, e]));
+
+    // Generation reads the calendar and the forecast, which the server has no
+    // credentials for, so they arrive as inputs. The week generates once and
+    // then locks; it is never re-planned by the daily check-in.
+    if (body?.generate === true) {
+      const dates = (v: unknown) => (Array.isArray(v) ? v.filter(isValidDate) : []);
+      const planned = generateWeek({
+        weekStart: week,
+        busyDays: dates(body?.busyDays),
+        skateWindows: dates(body?.skateWindows),
+        blockedDays: dates(body?.blockedDays),
+      });
+
+      const existing = await store.getPlanForWeek(week);
+      if (existing.length && body?.replace !== true) {
+        throw new BadRequest('This week is already planned. Send replace: true to overwrite it.');
+      }
+      const priorByDay = new Map(existing.filter((e) => e.day).map((e) => [e.day as string, e]));
+
+      const written = [];
+      for (const entry of planned.entries) {
+        const prior = priorByDay.get(entry.day);
+        if (prior) {
+          await store.updatePlanEntry(prior.id, entry);
+          written.push({ ...prior, ...entry });
+        } else {
+          written.push(await store.createPlanEntry(entry));
+        }
+      }
+
+      // Section 6: weekly plan generation is what selects the active micros.
+      const [micros, microLog, slots, skills] = await Promise.all([
+        store.getMicros(),
+        store.getMicroLogSince(addDays(week, -MICRO_ROTATION.retireAfterUntouchedWeeks * 7)),
+        store.getSlots(),
+        store.getSkills('movement'),
+      ]);
+      const hasSkateProject = planned.entries.some((e) => e.sessionType === 'skate');
+      const rotation = rotateMicros(micros, microLog, slots, skills, week, hasSkateProject);
+      await Promise.all([
+        ...rotation.activate.map((m) => store.updateMicro(m.id, { active: true })),
+        ...rotation.deactivate.map((m) => store.updateMicro(m.id, { active: false })),
+        ...rotation.retire.map((m) => store.updateMicro(m.id, { active: false, retired: true })),
+      ]);
+
+      return {
+        weekStart: week,
+        entries: written,
+        rationale: planned.rationale,
+        micros: {
+          activated: rotation.activate.map((m) => m.name),
+          deactivated: rotation.deactivate.length,
+          retired: rotation.retire.map((m) => m.name),
+          reasons: rotation.reasons,
+        },
+        store: store.name,
+      };
+    }
+
+    const input = Array.isArray(body?.entries) ? body.entries : null;
+    if (!input) throw new BadRequest('entries must be an array, or send generate: true');
+
+    const existingManual = await store.getPlanForWeek(week);
+    const byDay = new Map(existingManual.filter((e) => e.day).map((e) => [e.day as string, e]));
 
     const written = [];
     for (const raw of input) {

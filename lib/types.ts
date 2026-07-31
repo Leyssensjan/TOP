@@ -124,6 +124,17 @@ export interface MicroLogEntry {
   weekStart: string | null;
 }
 
+export interface Route {
+  id: string;
+  name: string;
+  distanceKm: number | null;
+  startPoint: string;
+  description: string;
+  mapLink: string;
+  surface: string;
+  quietRating: number | null;
+}
+
 export interface NewSkill {
   name: string;
   domain: Domain;
@@ -169,6 +180,9 @@ export interface Store {
   getPlanForWeek(weekStart: string): Promise<PlanEntry[]>;
   createPlanEntry(entry: NewPlanEntry): Promise<PlanEntry>;
   updatePlanEntry(id: string, patch: Partial<NewPlanEntry>): Promise<void>;
+
+  /** Stubbed: the Routes table is empty until Jan scouts them. */
+  getRoutes(): Promise<Route[]>;
 
   getMicros(): Promise<Micro[]>;
   updateMicro(id: string, patch: MicroPatch): Promise<void>;

@@ -201,6 +201,9 @@ export default function TodayPage() {
             <button className="btn btn-quiet" style={{ flex: '1 1 45%' }} onClick={() => router.push('/skate')}>
               Skate
             </button>
+            <button className="btn btn-quiet" style={{ flex: '1 1 45%' }} onClick={() => router.push('/week')}>
+              Week
+            </button>
           </div>
         ) : (
           <Checkin

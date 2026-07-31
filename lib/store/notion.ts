@@ -11,6 +11,7 @@ import type {
   NewSession,
   NewSkill,
   PlanEntry,
+  Route,
   SessionLog,
   Skill,
   SkillPatch,
@@ -189,6 +190,20 @@ function toPlanEntry(page: NotionPage): PlanEntry {
   };
 }
 
+function toRoute(page: NotionPage): Route {
+  const p = page.properties;
+  return {
+    id: page.id,
+    name: rTitle(p['Name']),
+    distanceKm: rNum(p['Distance km']),
+    startPoint: rText(p['Start point']),
+    description: rText(p['Description']),
+    mapLink: rText(p['Map link']),
+    surface: rText(p['Surface']),
+    quietRating: rNum(p['Quiet rating']),
+  };
+}
+
 function toMicro(page: NotionPage): Micro {
   const p = page.properties;
   return {
@@ -356,6 +371,11 @@ export class NotionStore implements Store {
     if (patch.reasonNote !== undefined) properties['Reason note'] = wText(patch.reasonNote);
     if (!Object.keys(properties).length) return;
     await notionFetch(`/pages/${id}`, { method: 'PATCH', body: { properties } });
+  }
+
+  async getRoutes(): Promise<Route[]> {
+    const pages = await queryAll(DATA_SOURCES.routes);
+    return pages.map(toRoute);
   }
 
   async getMicros(): Promise<Micro[]> {

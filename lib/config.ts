@@ -71,6 +71,35 @@ export const SKATE_BASELINE: 'none' | 'graph' = 'none';
 export const SKATE_BASELINE_CURRENT = ['rolling_ollie', 'frontside_180', 'switch_roll_10m'];
 
 /**
+ * Weekly planning. The brief calls this the most speculative part, so it is a
+ * deterministic scheduler with every number here and no cleverness anywhere.
+ * Replacing it should mean rewriting one file.
+ */
+export const PLANNER = {
+  /** Aim for this many sessions, never exceed the maximum. */
+  sessions: 3,
+  maxSessions: 4,
+  strength: 1,
+  maxStrength: 2,
+  engine: 1,
+  minRestDays: 1,
+  /** Strength carries the plyometric work, so it never runs on back-to-back days. */
+  strengthNeverConsecutive: true,
+  /** A light morning before any planned skate window, so the legs are fresh. */
+  lightBeforeSkate: true,
+  /** Preferred weekday for each type, Monday = 0. First workable day wins. */
+  strengthDays: [1, 4],
+  engineDays: [5, 2],
+  /** Rabotpark works April to October. Winter is unsolved and says so. */
+  outdoorMonths: [4, 5, 6, 7, 8, 9, 10],
+  outdoorLocation: 'Rabotpark',
+  winterLocation: 'indoor, unsolved',
+  homeLocation: 'home',
+  /** A day with little time gets the fallback that still counts as a session. */
+  busyDayType: 'flow short' as const,
+};
+
+/**
  * The skate session focus card, section 9: two or three rusty tricks, one or
  * two current projects, one stretch attempt, one switch or fakie item.
  *

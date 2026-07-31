@@ -11,6 +11,7 @@ import type {
   NewSession,
   NewSkill,
   PlanEntry,
+  Route,
   SessionLog,
   Skill,
   SkillPatch,
@@ -332,6 +333,10 @@ export class MemoryStore implements Store {
   async updatePlanEntry(id: string, patch: Partial<NewPlanEntry>): Promise<void> {
     const entry = this.plan.find((p) => p.id === id);
     if (entry) Object.assign(entry, patch);
+  }
+
+  async getRoutes(): Promise<Route[]> {
+    return [];
   }
 
   async getMicros(): Promise<Micro[]> {
