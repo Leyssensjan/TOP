@@ -67,7 +67,13 @@ All require the key, as `x-flowquest-key` or `?k=`.
 | `POST /api/session` | logs a session, bumps `Sessions at level` on the movements done |
 | `POST /api/micro` | logs a micro, with an optional count |
 | `POST /api/levelup` | accepts or defers a proposed level-up |
-| `GET`/`POST /api/week` | reads and writes the weekly plan |
+| `GET`/`POST /api/week` | reads the plan; writes it, or generates it with `generate: true` |
+| `GET /api/skate` | the 190 tricks and the session focus card |
+| `POST /api/trick` | sets a trick's status |
+| `GET /api/routes` | stubbed; the Routes table is empty until routes are scouted |
+
+The last three are not in section 8 of the brief, which was written before
+the Skate screen and the planner existed.
 
 ## How it is put together
 
@@ -76,7 +82,8 @@ lib/types.ts        the Store interface: the whole persistence surface
 lib/store/notion.ts the only file that knows Notion exists
 lib/store/memory.ts the same interface over seeded fake data, for testing
 lib/store/index.ts  the one line that picks between them
-lib/rules.ts        session composition, rolling window, level-up rules
+lib/rules.ts        session composition, rolling window, level-up, micros, skate
+lib/planner.ts      weekly plan generation, deliberately simple and replaceable
 ```
 
 Swapping Notion for a real database means writing one file and changing one
@@ -101,14 +108,35 @@ row. Today says plainly when a write has not reached Notion.
 
 Local storage is a cache and an outbox. Notion is the source of truth.
 
+## Screens
+
+Today, Runner, Close, Form, Micros, Skate, Week.
+
+## Verifying
+
+`npm run verify` runs the rules against a snapshot of the real Notion rows and
+the real 190-trick graph: session composition, the rolling window, level-up
+proposals, micro rotation and retirement, and the skate focus card.
+
+`npx tsx scripts/skate-migration.ts` parses and validates the trick graph.
+Add `--import` with `NOTION_TOKEN` set to write it.
+
 ## Notes
 
 - One field was added to the **Skills** database: `Level up deferred` (date).
   Deferring a level-up needs somewhere to persist, and no existing field fit.
   A deferred slot goes quiet for 14 days.
 - Notion API version `2025-09-03`, required for data source IDs.
-- Not built yet: the planner, the Form screen, the Micros screen, the skate
-  migration. The `/api/micro` and `/api/week` endpoints exist and are tested,
-  but nothing in the UI calls them.
+- Three fields were added to Notion that the brief did not specify, each
+  because a required behaviour had nowhere to persist: `Level up deferred`
+  (date) and `Duration seconds` (number) on Skills, and `Retired` (checkbox)
+  on Micros.
+- The 190 skate tricks all start `locked`. `SKATE_BASELINE` in config switches
+  between that and the section 7 graph baseline.
+- The planner takes the calendar and forecast as inputs rather than fetching
+  them; the server holds no credentials for either.
 - The Strength template is not written, so a planned Strength day shows a plain
   note rather than a movement list.
+- Winter is not solved. Strength from November to March is located
+  "indoor, unsolved" and says so in the plan.
+- Routes are stubbed. Nothing is scouted yet.
