@@ -58,6 +58,19 @@ export const SESSIONS_PER_WINDOW = 3;
 export const MAX_LEVEL = 4;
 
 /**
+ * How the skate migration sets initial trick status.
+ *
+ * 'none'  — everything starts locked and Jan promotes tricks himself.
+ * 'graph' — the section 7 rule: SKATE_BASELINE_CURRENT are current and the
+ *           transitive closure of their prerequisites is mastered.
+ *
+ * Jan chose 'none': the graph baseline computed 3 current and 14 mastered,
+ * which understated what he can already do, and he preferred a clean zero.
+ */
+export const SKATE_BASELINE: 'none' | 'graph' = 'none';
+export const SKATE_BASELINE_CURRENT = ['rolling_ollie', 'frontside_180', 'switch_roll_10m'];
+
+/**
  * Micro rotation, section 6. Only a few micros carry a weekly goal at a time,
  * and anything ignored for three weeks is retired rather than re-offered —
  * that last rule is what stops a graveyard of dead targets accumulating.

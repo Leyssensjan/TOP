@@ -4,9 +4,10 @@
  *   Domain = skate, level -> Level, family -> Family, prereqs -> Prereqs,
  *   id -> Skill id, name -> Name. Slot stays empty.
  *
- * Baseline: rolling_ollie, frontside_180 and switch_roll_10m are `current`.
- * Everything transitively reachable by walking the prerequisite graph backward
- * from those three is `mastered`. Everything else stays `locked`.
+ * Initial status is set by SKATE_BASELINE in config. Jan chose 'none', so
+ * every trick starts locked and he promotes them himself. The section 7 rule
+ * is still implemented under 'graph': the three seed tricks become `current`
+ * and the transitive closure of their prerequisites becomes `mastered`.
  *
  * Run with:
  *   npx tsx scripts/skate-migration.ts               parse, validate, report
@@ -18,9 +19,10 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { getStore } from '../lib/store';
+import { SKATE_BASELINE, SKATE_BASELINE_CURRENT } from '../lib/config';
 
 export const SOURCE = '/root/.claude/skills/skatequest-coach/references/skill_ids.md';
-export const BASELINE_CURRENT = ['rolling_ollie', 'frontside_180', 'switch_roll_10m'];
+export const BASELINE_CURRENT = SKATE_BASELINE_CURRENT;
 
 export interface SkateSkill {
   skillId: string;
@@ -97,6 +99,9 @@ export function ancestorsOf(rows: SkateSkill[], seeds: string[]): Set<string> {
 }
 
 export function applyBaseline(rows: SkateSkill[]): SkateSkill[] {
+  // 'none' means Jan starts from zero and promotes tricks himself.
+  if (SKATE_BASELINE === 'none') return rows.map((r) => ({ ...r, status: 'locked' as const }));
+
   const current = new Set(BASELINE_CURRENT);
   const mastered = ancestorsOf(rows, BASELINE_CURRENT);
   return rows.map((r) => ({
@@ -113,8 +118,14 @@ if (process.argv[1]?.endsWith('skate-migration.ts')) {
   console.log(`Dangling or cyclic references: ${problems.length}`);
   problems.forEach((p) => console.log(`  ${p}`));
 
-  const missingSeeds = BASELINE_CURRENT.filter((s) => !rows.some((r) => r.skillId === s));
-  console.log(`Baseline seeds present: ${missingSeeds.length === 0 ? 'all three' : `MISSING ${missingSeeds.join(', ')}`}`);
+  const missingSeeds =
+    SKATE_BASELINE === 'graph'
+      ? BASELINE_CURRENT.filter((s) => !rows.some((r) => r.skillId === s))
+      : [];
+  console.log(`Baseline mode: ${SKATE_BASELINE}`);
+  if (SKATE_BASELINE === 'graph') {
+    console.log(`Baseline seeds present: ${missingSeeds.length === 0 ? 'all three' : `MISSING ${missingSeeds.join(', ')}`}`);
+  }
 
   const by = (s: string) => rows.filter((r) => r.status === s);
   console.log(`\ncurrent  ${by('current').length}: ${by('current').map((r) => r.skillId).join(', ')}`);
