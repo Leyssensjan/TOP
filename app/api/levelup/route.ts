@@ -12,6 +12,8 @@ export async function POST(req: Request) {
     const action = body?.action === 'defer' ? 'defer' : body?.action === 'accept' ? 'accept' : null;
     if (!action) throw new BadRequest('action must be "accept" or "defer"');
 
+    // This is the stable Slot id, which is what levelUpProposals emits. It is
+    // deliberately not the Sequence: the Form can be reordered at any time.
     const slotNumber = typeof body?.slot === 'number' ? body.slot : null;
     if (slotNumber === null) throw new BadRequest('slot must be a number');
 
@@ -19,20 +21,21 @@ export async function POST(req: Request) {
     const store = getStore();
     const [slots, skills] = await Promise.all([store.getSlots(), store.getSkills('movement')]);
 
-    const slot = slots.find((s) => s.sequence === slotNumber);
-    if (!slot) throw new BadRequest(`No slot with sequence ${slotNumber}`);
+    const slot = slots.find((s) => (s.slotId || s.sequence) === slotNumber);
+    if (!slot) throw new BadRequest(`No slot with id ${slotNumber}`);
+    const slotId = slot.slotId || slot.sequence;
 
-    const current = skills.find((s) => s.slot === slot.sequence && s.level === slot.currentLevel);
+    const current = skills.find((s) => s.slot === slotId && s.level === slot.currentLevel);
     if (!current) throw new BadRequest(`No movement at slot ${slotNumber} level ${slot.currentLevel}`);
 
     if (action === 'defer') {
       await store.updateSkill(current.id, { levelUpDeferred: date });
-      return { action, slot: slot.sequence, level: slot.currentLevel, deferredOn: date };
+      return { action, slot: slotId, level: slot.currentLevel, deferredOn: date };
     }
 
     if (slot.currentLevel >= MAX_LEVEL) throw new BadRequest(`Slot ${slotNumber} is already at the top level`);
 
-    const next = skills.find((s) => s.slot === slot.sequence && s.level === slot.currentLevel + 1);
+    const next = skills.find((s) => s.slot === slotId && s.level === slot.currentLevel + 1);
     if (!next) throw new BadRequest(`No movement at slot ${slotNumber} level ${slot.currentLevel + 1}`);
 
     await store.updateSkill(current.id, { status: 'mastered', levelUpDeferred: null });
@@ -41,7 +44,7 @@ export async function POST(req: Request) {
 
     return {
       action,
-      slot: slot.sequence,
+      slot: slotId,
       slotName: slot.name,
       fromLevel: slot.currentLevel,
       toLevel: next.level,

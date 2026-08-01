@@ -37,7 +37,43 @@ console.log('Flow:', `${flow.movements.length} movements`, `${flow.rounds} round
 console.log('Flow Short:', `${short.movements.length} movements`, `${short.rounds} rounds`, `${Math.round(short.totalSeconds / 60)} min`);
 console.log('Round length:', `${Math.floor(roundSeconds / 60)}:${String(roundSeconds % 60).padStart(2, '0')}\n`);
 
-check('Flow uses only active slots', flow.movements.every((m) => slots.find((s) => s.sequence === m.slot)?.active === true), '');
+check(
+  'Flow uses only active slots',
+  flow.movements.every((m) => slots.find((s) => (s.slotId || s.sequence) === m.slot)?.active === true),
+  '',
+);
+
+// Sequence is position, Slot id is identity. They no longer agree, and every
+// lookup must key on identity or a reorder silently repoints the movements.
+const armBalance = slots.find((s) => s.name === 'Arm balance')!;
+check(
+  'Sequence and Slot id have genuinely diverged in the snapshot',
+  armBalance.sequence !== armBalance.slotId,
+  `Arm balance is sequence ${armBalance.sequence}, slot id ${armBalance.slotId}`,
+);
+const allTwelve = planSession(
+  slots.map((s) => ({ ...s, active: true })),
+  skills,
+  'flow',
+  today,
+  'default',
+  null,
+  0,
+);
+check(
+  'A reordered slot still resolves its own movements',
+  allTwelve.movements[4]?.name === skills.find((s) => s.slot === 11 && s.level === 1)?.name,
+  `position 5 is "${allTwelve.movements[4]?.name}"`,
+);
+check(
+  'Movement order follows Sequence, not Slot id',
+  allTwelve.movements.map((m) => m.slot).join(',') === '1,2,3,4,11,5,6,7,8,9,10,12',
+  allTwelve.movements.map((m) => m.slot).join(','),
+);
+
+// The full twelve-slot chain should now close on itself with no seams.
+const fullSeams = allTwelve.movements.filter((m, i, arr) => m.exitPosition !== arr[(i + 1) % arr.length].entryPosition);
+check('The full twelve-slot Form is an unbroken loop', fullSeams.length === 0, `${fullSeams.length} seams`);
 // The ramp starts short on purpose and only reaches the brief's 15-20 minute
 // band once the habit is established.
 const rampBands: Array<[number, number]> = [[1, 2], [6, 2], [7, 3], [14, 3], [15, 4], [99, 4]];

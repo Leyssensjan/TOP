@@ -22,13 +22,16 @@ export async function GET(req: Request) {
 
     // The Form: twelve slots, the movement at each current level, locked ones flagged.
     const form = slots.map((slot) => {
+      // Resolved by the stable slot id, displayed by Sequence.
+      const slotId = slot.slotId || slot.sequence;
       const ladder = skills
-        .filter((s) => s.slot === slot.sequence)
+        .filter((s) => s.slot === slotId)
         .sort((a, b) => (a.level ?? 0) - (b.level ?? 0));
       const current = ladder.find((s) => s.level === slot.currentLevel) ?? ladder[0] ?? null;
       const next = ladder.find((s) => s.level === slot.currentLevel + 1) ?? null;
       return {
         slot: slot.sequence,
+        slotId,
         name: slot.name,
         active: slot.active,
         inShortForm: slot.inShortForm,
