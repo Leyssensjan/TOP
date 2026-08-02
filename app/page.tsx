@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Detail from '@/components/Detail';
+import { unlockSound } from '@/lib/client/sound';
 import type { SessionPlan } from '@/lib/rules';
 import { minutes, titleCase } from '@/lib/format';
 import {
@@ -100,6 +101,10 @@ export default function TodayPage() {
   }, [refresh]);
 
   const begin = (plan: SessionPlan, date: string) => {
+    // iOS only lets audio start from inside a user gesture, and this tap is the
+    // last one before the Runner exists. Unlocking here is what makes the first
+    // cue of the session audible.
+    unlockSound();
     startSession(plan, date);
     router.push('/runner');
   };

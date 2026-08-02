@@ -116,6 +116,32 @@ export const SUGGESTION = {
   whenNoHistory: 'flow',
 };
 
+/**
+ * Pacing cues in the Runner. The phone is propped up and the eyes are often
+ * shut, so a movement ending needs to be audible. Soft sines, no alarms, and
+ * nothing outside a running session.
+ */
+export const SOUND = {
+  /** Master level. Quiet enough for a dim room at 6am. */
+  volume: 0.16,
+  /** Spacing between the tones of a two-tone cue. */
+  gapMs: 130,
+  /** Seconds of warning before a movement ends, so the change is not a surprise. */
+  warnSeconds: 3,
+  cues: {
+    /** A quiet tick, three seconds out. */
+    warn: { tones: [{ hz: 660, ms: 55, gain: 0.5 }] },
+    /** Move on. */
+    next: { tones: [{ hz: 880, ms: 110, gain: 1 }] },
+    /** Back to the top of the Form. */
+    round: { tones: [{ hz: 660, ms: 100, gain: 1 }, { hz: 990, ms: 140, gain: 1 }] },
+    /** Rest is over, back on the bar. */
+    rest: { tones: [{ hz: 780, ms: 90, gain: 0.8 }] },
+    /** The session is finished. */
+    done: { tones: [{ hz: 880, ms: 120, gain: 1 }, { hz: 587, ms: 260, gain: 1 }] },
+  } as Record<string, { tones: Array<{ hz: number; ms: number; gain: number }> }>,
+};
+
 /** How many trick tiers the first run of the Skate screen offers. */
 export const SKATE_FIRST_RUN_TIERS = 3;
 

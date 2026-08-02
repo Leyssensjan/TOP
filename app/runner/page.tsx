@@ -6,7 +6,8 @@ import Thread, { type ThreadNode } from '@/components/Thread';
 import { mmss, titleCase } from '@/lib/format';
 import type { Movement, SkateBlock, SkateTrickCard, StrengthBlock } from '@/lib/rules';
 import { getActive, saveActive, type ActiveSession, type LoggedSet, type LoggedTrick } from '@/lib/client/store';
-import { SKATE_SESSION, STRENGTH } from '@/lib/config';
+import { SKATE_SESSION, SOUND, STRENGTH } from '@/lib/config';
+import { cue, isMuted, setMuted } from '@/lib/client/sound';
 
 interface Step extends Movement {
   round: number;
@@ -73,6 +74,27 @@ function useWakeLock() {
   }, []);
 }
 
+/** Sound is on by default and switched off from the Runner header. */
+function SoundToggle() {
+  const [muted, setLocal] = useState(false);
+  useEffect(() => setLocal(isMuted()), []);
+  return (
+    <button
+      className="label"
+      aria-pressed={!muted}
+      onClick={() => {
+        const next = !muted;
+        setMuted(next);
+        setLocal(next);
+        if (!next) cue('next');
+      }}
+      style={{ padding: '8px 12px', color: muted ? 'var(--muted)' : 'var(--amber)' }}
+    >
+      {muted ? 'Sound off' : 'Sound on'}
+    </button>
+  );
+}
+
 function Runner({ active }: { active: ActiveSession }) {
   const router = useRouter();
 
@@ -88,6 +110,8 @@ function Runner({ active }: { active: ActiveSession }) {
   const [running, setRunning] = useState(true);
   const [remaining, setRemaining] = useState(() => (timeline[Math.min(active.step, timeline.length - 1)]?.seconds ?? 0) * 1000);
   const endAtRef = useRef(0);
+  // One warning per movement, so pausing and resuming does not re-tick.
+  const warnedRef = useRef(-1);
 
   // Elapsed comes from the stored start time, not from mount, so reloading
   // mid-session does not reset the session length that gets logged.
@@ -108,6 +132,11 @@ function Runner({ active }: { active: ActiveSession }) {
         window.clearInterval(id);
         advance();
       } else {
+        // A cue three seconds out, so the change is not a surprise.
+        if (left <= SOUND.warnSeconds * 1000 && warnedRef.current !== index) {
+          warnedRef.current = index;
+          cue('warn');
+        }
         setRemaining(left);
       }
     }, 200);
@@ -125,12 +154,16 @@ function Runner({ active }: { active: ActiveSession }) {
       finish();
       return;
     }
+    // A different cue for coming back to the top of the Form, because a round
+    // boundary is worth noticing and a movement boundary is not.
+    cue(timeline[next].round !== timeline[index].round ? 'round' : 'next');
     setIndex(next);
     setRemaining(timeline[next].seconds * 1000);
     persist(next);
   };
 
   const finish = () => {
+    cue('done');
     saveActive({ ...active, step: timeline.length, elapsedMs: elapsed() });
     router.replace('/close');
   };
@@ -167,9 +200,12 @@ function Runner({ active }: { active: ActiveSession }) {
           {titleCase(active.plan.type)}
           {active.plan.rounds > 1 && ` · round ${step.round} of ${active.plan.rounds}`}
         </span>
-        <button className="label" onClick={finish} style={{ padding: '8px 0 8px 16px' }}>
-          End
-        </button>
+        <span style={{ display: 'flex', alignItems: 'center' }}>
+          <SoundToggle />
+          <button className="label" onClick={finish} style={{ padding: '8px 0 8px 12px' }}>
+            End
+          </button>
+        </span>
       </div>
 
       <div style={{ flex: 1, display: 'flex', gap: 18, minHeight: 0 }}>
@@ -268,6 +304,7 @@ function StrengthRunner({ active }: { active: ActiveSession }) {
   }, [running, index]);
 
   const finish = () => {
+    cue('done');
     saveActive({ ...active, step: blocks.length, elapsedMs: elapsed(), sets });
     router.replace('/close');
   };
@@ -278,6 +315,7 @@ function StrengthRunner({ active }: { active: ActiveSession }) {
       finish();
       return;
     }
+    cue('round');
     setIndex(next);
     setRemaining(seconds(blocks[next]) * 1000);
     saveActive({ ...active, step: next, elapsedMs: elapsed(), sets });
@@ -308,9 +346,12 @@ function StrengthRunner({ active }: { active: ActiveSession }) {
         <span className="label">
           {titleCase(active.plan.type)} · block {index + 1} of {blocks.length}
         </span>
-        <button className="label" onClick={finish} style={{ padding: '8px 0 8px 16px' }}>
-          End
-        </button>
+        <span style={{ display: 'flex', alignItems: 'center' }}>
+          <SoundToggle />
+          <button className="label" onClick={finish} style={{ padding: '8px 0 8px 12px' }}>
+            End
+          </button>
+        </span>
       </div>
 
       {/* One bar per block, so the shape of the session is visible at a glance. */}
@@ -448,7 +489,10 @@ function Lift({
     const tick = () => {
       const left = Math.max(0, restUntil - Date.now());
       setRestLeft(left);
-      if (left <= 0) setRestUntil(0);
+      if (left <= 0) {
+        setRestUntil(0);
+        cue('rest');
+      }
     };
     tick();
     const id = window.setInterval(tick, 250);
@@ -588,9 +632,12 @@ function OpenRunner({ active }: { active: ActiveSession }) {
         <span className="label">
           {titleCase(active.plan.type)} · target {active.plan.targetMinutes} min
         </span>
-        <button className="label" onClick={finish} style={{ padding: '8px 0 8px 16px' }}>
-          End
-        </button>
+        <span style={{ display: 'flex', alignItems: 'center' }}>
+          <SoundToggle />
+          <button className="label" onClick={finish} style={{ padding: '8px 0 8px 12px' }}>
+            End
+          </button>
+        </span>
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0, gap: 18 }}>
@@ -694,6 +741,7 @@ function SkateRunner({ active }: { active: ActiveSession }) {
   };
 
   const finish = () => {
+    cue('done');
     persist(blocks.length, tricks);
     router.replace('/close');
   };
@@ -704,6 +752,7 @@ function SkateRunner({ active }: { active: ActiveSession }) {
       finish();
       return;
     }
+    cue('round');
     setIndex(next);
     setRemaining(seconds(blocks[next]) * 1000);
     persist(next, tricks);
@@ -731,9 +780,12 @@ function SkateRunner({ active }: { active: ActiveSession }) {
         <span className="label">
           Skate · block {index + 1} of {blocks.length}
         </span>
-        <button className="label" onClick={finish} style={{ padding: '8px 0 8px 16px' }}>
-          End
-        </button>
+        <span style={{ display: 'flex', alignItems: 'center' }}>
+          <SoundToggle />
+          <button className="label" onClick={finish} style={{ padding: '8px 0 8px 12px' }}>
+            End
+          </button>
+        </span>
       </div>
 
       <div style={{ display: 'flex', gap: 6 }}>
