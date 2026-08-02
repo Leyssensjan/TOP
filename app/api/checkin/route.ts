@@ -1,6 +1,7 @@
 import { handle } from '@/lib/api';
 import { addDays, isValidDate, today as todayDate } from '@/lib/dates';
 import { adjustForCheckin, countFlowSessions, planSession, rollingStatus } from '@/lib/rules';
+import { suggestNext } from '@/lib/planner';
 import { getStore } from '@/lib/store';
 import type { SessionType } from '@/lib/types';
 
@@ -26,8 +27,14 @@ export async function POST(req: Request) {
       store.getSessionsSince(addDays(date, -120)),
     ]);
 
+    // Same resolution as Today, so tapping Adjust cannot silently turn a
+    // suggested Strength day into a Flow day.
     const planned = planEntry?.sessionType;
-    const type: SessionType = planned && planned !== 'rest' ? (planned as SessionType) : 'flow';
+    const suggestion = suggestNext(sessions, date);
+    const type: SessionType =
+      planned && planned !== 'rest'
+        ? (planned as SessionType)
+        : ((suggestion.type === 'rest' ? 'flow' : suggestion.type) as SessionType);
 
     const skills = [...movementSkills, ...strengthSkills];
     const flowsDone = countFlowSessions(sessions);

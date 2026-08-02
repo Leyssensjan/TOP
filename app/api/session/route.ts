@@ -32,11 +32,15 @@ export async function POST(req: Request) {
       typeof body?.clientId === 'string' ? body.clientId.replace(/[^a-zA-Z0-9-]/g, '').slice(0, 24) : '';
 
     const store = getStore();
-    const [slots, skills, recent] = await Promise.all([
+    // Both domains: a Strength session practises ladder movements, which live
+    // outside the Form, and its skill ids would otherwise match nothing here.
+    const [slots, movementSkills, strengthSkills, recent] = await Promise.all([
       store.getSlots(),
       store.getSkills('movement'),
+      store.getSkills('strength'),
       store.getSessionsSince(addDays(date, -120)),
     ]);
+    const skills = [...movementSkills, ...strengthSkills];
 
     if (clientId) {
       const existing = recent.find((s) => s.name.includes(`[${clientId}]`));
@@ -53,7 +57,7 @@ export async function POST(req: Request) {
 
     const practiced = skills.filter((s) => skillIds.includes(s.id));
     if (skillIds.length && !practiced.length) {
-      throw new BadRequest('None of the given skillIds matched a movement');
+      throw new BadRequest('None of the given skillIds matched a skill');
     }
 
     const session = await store.createSession({
