@@ -78,7 +78,7 @@ Browser (PWA on the home screen)      │  over plain data — Notion never leak
 
 ## 4. The data model
 
-Seven Notion databases. The app reads all of them and writes to four.
+Eight Notion databases. The app reads all of them and writes to five.
 
 **Slots** (12 rows) — the twelve parts of the Form.
 `Name`, `Slot id` (stable identity), `Sequence` (position in the loop, freely
@@ -93,12 +93,12 @@ sequence 5.
 `Name`, `Domain` (movement / strength / skate), `Slot`, `Level`, `Family`,
 `Status` (locked / current / mastered), `Cues`, `Reference term`, `Why builds`,
 `Why unlocks`, `Sessions at level`, `Last practiced`, `Level up deferred`,
-`Duration seconds`, `Entry position`, `Exit position`, `Prereqs`, `Attempts`,
-`Skill id`.
+`Duration seconds`, `Unit` (reps or seconds, strength only), `Entry position`,
+`Exit position`, `Prereqs`, `Attempts`, `Skill id`.
 
 **Sessions** — one row per completed session. `Date`, `Type`, `Planned minutes`,
 `Actual minutes`, `Completed`, `Difficulty`, `Soreness`, `Skills practised`,
-`Notes`.
+`Notes`, `Distance km` and `Route` (Engine only).
 
 **Plan** — an optional weekly plan, one row per day. Read-only on the phone.
 
@@ -106,6 +106,10 @@ sequence 5.
 `Weekly target`, `Active`.
 
 **Micro log** — one row per logged micro, with a count.
+
+**Strength log** — one row per set: `Date`, `Skill`, `Set`, `Reps`, `Seconds`,
+`Session`. Written by the app during a Strength session. The `Session` column
+holds the client id, so an offline retry cannot double-log.
 
 **Routes** (3 rows) — hand-scouted running routes. `Name`, `Distance km`,
 `Start point`, `Description`, `Map link`, `Surface`, `Quiet rating`.
@@ -190,9 +194,13 @@ Prescription shown on the card: *3 to 4 sets of 5 to 8, stopping two short of
 failure*; holds *build to 30–60 seconds*; negatives *5 reps at 4–5 seconds
 down*.
 
-Strength level-up is "three sets of eight clean" — that threshold is in config
-but **not automated**, because nothing in the app records sets and reps. See
-section 10.
+**Strength level-up is "three sets of eight clean"**, and it is driven by sets
+logged in the Runner. Three sets at eight or more reps of the same lift, inside
+one session, where that session was closed as `easy` or `right`. Holds use
+seconds instead — three sets of 45 or more. Deliberately strict: three good sets
+spread over three sessions do not add up, because that is not what the rule
+means. "Clean" costs no extra taps; it reads the difficulty already answered at
+Close.
 
 ### The rolling window
 
@@ -361,8 +369,19 @@ express. So Strength walks **blocks**.
 
 The warm-up block has no movements and reads `Run the short Form to warm up.`
 
-The sets inside a block are **read off the card, not counted for him**. Nothing
-in the app asks him to tap per rep.
+**Each lift carries its own set logger.** Under the movement name is a row of
+banked sets — sage numerals in outlined chips — followed by small hollow circles
+for the sets still owed, and a `Log a set` link on the right. Tapping it opens a
+row of quick-pick numbers (3 / 5 / 6 / 8 / 10 / 12 for reps, 15 / 20 / 30 / 45 /
+60 / 90 for holds) plus `Undo`. One tap banks a set. That is the whole
+interaction: no steppers, no keyboards, no per-rep tapping.
+
+Which unit a movement uses comes from Notion, per movement. Dead hang and Bar
+support hold are counted in seconds; the other nineteen in reps.
+
+Sets are written to localStorage the instant they are tapped, so closing the app
+between the last set and the Close screen loses nothing. They travel to Notion
+as part of the single session write at Close.
 
 ### 6.4 Runner — nothing to run
 
@@ -372,7 +391,21 @@ reason (`No active slots. Tick Active on at least one slot in Notion.`), and a
 
 ---
 
-### 6.5 Close — the log
+### 6.5 Runner — Engine and Skate
+
+Neither has prescribed steps, so the clock **counts up** rather than down and the
+screen carries only the reference card that is actually useful.
+
+- **Header**: `ENGINE · TARGET 30 MIN`, `END`.
+- **The stopwatch**, tap to pause, same treatment as everywhere else.
+- **Engine**: the three routes as a list, distance in condensed numerals then the
+  name. Tapping one selects it, which seeds the distance on the Close screen.
+  Selecting nothing is fine.
+- **Skate**: the session focus card — the same rusty / project / stretch /
+  switch-or-fakie list the Skate screen shows.
+- **Finish** at the bottom.
+
+### 6.6 Close — the log
 
 Three taps, under ten seconds. Any longer and it will not get done.
 
@@ -381,6 +414,9 @@ Three taps, under ten seconds. Any longer and it will not get done.
   one takes an amber border. This one field drives the entire level-up
   mechanic — eight sessions with "easy" on the last three is what triggers a
   proposal.
+- **Distance** (Engine only): six quick picks in km — 3 / 3.5 / 5 / 5.5 / 8 / 10
+  — pre-selected from the route picked in the Runner, with the route name
+  underneath. Usually already correct and needs no tap.
 - **Anything sore**: six wrapping chips — wrists, shoulders, back, hips, knees,
   ankles. Multi-select.
 - **Done** at the bottom.
@@ -394,13 +430,14 @@ shows the minutes in large sage numerals and one of two lines:
 Then `Done` returns to Today.
 
 The log records: date, type, planned and actual minutes, difficulty, soreness,
-and the ids of every skill practised — movements for Flow, ladder lifts for
+distance and route for Engine, every set logged during a Strength session, and
+the ids of every skill practised — movements for Flow, ladder lifts for
 Strength. Practising a skill increments its `Sessions at level` and stamps `Last
 practiced` in Notion.
 
 ---
 
-### 6.6 Form — the twelve slots
+### 6.7 Form — the twelve slots
 
 The screen that shows years of progress at a glance. It stays quiet and does not
 animate.
@@ -429,7 +466,7 @@ Tapping a row expands a detail panel in place:
 
 ---
 
-### 6.7 Micros — tap to count
+### 6.8 Micros — tap to count
 
 - **Header**: `MICROS`, `TODAY`.
 - A stack of cards, one per active micro:
@@ -448,7 +485,7 @@ If nothing is active: `No micros are active. The weekly plan picks them.`
 
 ---
 
-### 6.8 Skate — 190 tricks
+### 6.9 Skate — 190 tricks
 
 - **Header**: `SKATE`, `TODAY`.
 - **The count**: `17` in 40px sage, then `mastered · 3 in progress · 190
@@ -475,7 +512,7 @@ focus card and unlockable edges refresh from the response.
 
 ---
 
-### 6.9 Week — the plan, read-only
+### 6.10 Week — the plan, read-only
 
 - **Header**: `WEEK`, `TODAY`. Then `Week of 2026-08-03`.
 - One row per day: the weekday in condensed muted type, the session type
@@ -493,7 +530,7 @@ plan if one exists in Notion and otherwise says so.
 
 ---
 
-### 6.10 Routes — read-only
+### 6.11 Routes — read-only
 
 - **Header**: `ROUTES`, `TODAY`.
 - One card per route, sorted by distance:
@@ -528,6 +565,32 @@ Ganda (5.5km), Voorhaven out and back (8km).
 9. Back on Today, the count reads `2 of 3 in the last 7 days`. If that was the
    eighth session at this level with the last three easy, a proposal card is
    now waiting: `Squat and ankle: Deep squat hold`.
+
+---
+
+## 7a. Nothing requires opening Notion
+
+Every action needed to run and record training is in the app:
+
+| Action | Where |
+| --- | --- |
+| Run and log a Flow or Flow Short session | Today → Runner → Close |
+| Run and log a Strength session, set by set | Runner, Strength mode |
+| Run and log an Engine session with route and distance | Runner → Close |
+| Run and log a Skate session | Runner, Skate mode |
+| Level up a Form movement | Today, proposal card |
+| Level up a strength ladder | Today, proposal card |
+| Move a skate trick between locked, in progress, mastered | Skate screen |
+| Log micros | Micros screen |
+| Shorten or soften today's session | Today → Adjust |
+
+Notion holds the content — movement names, cues, explanations, routes, micro
+definitions and the tuning numbers. Editing that is authoring, not logging, and
+is expected to be rare.
+
+**Still Notion-only**, both of them content decisions rather than logging:
+unlocking a new Form slot (ticking `Active` when a seventh slot is ready), and
+adding or rewording a micro, route or movement.
 
 ---
 
@@ -636,7 +699,7 @@ loading spinners — screens that are loading say `LOADING` and nothing more.
 Jan is travelling for a month and cannot test any of this, so this section is
 deliberately blunt.
 
-**Verified against real Notion rows.** 39 automated checks run against a
+**Verified against real Notion rows.** 48 automated checks run against a
 snapshot of the actual database contents — the twelve slots, 48 movement skills,
 21 strength movements, 16 micros, and the real 190-trick skate graph. They
 cover: Form ordering by Sequence, movement resolution by Slot id, the closed
@@ -651,10 +714,15 @@ back and checked link by link.
 
 **Not verified.**
 
-- **Nothing has been run against the live Notion API from this machine.** The
-  network policy here blocks every host except github.com, so the Notion driver
-  and the deployed app could not be exercised end to end. The rules are verified
-  against real data; the wire calls that fetch that data are not.
+- **The deployed app has written to Notion successfully** — one real Flow
+  session, logged from the phone, which landed correctly and was then deleted.
+  So the connection, the token, the shared secret and the session write are all
+  proven. What has *not* been exercised is everything built since: Strength,
+  set logging, Engine, Skate, and the level-up writes.
+- **Nothing can be run against Notion from the machine this was built on.** Its
+  network policy blocks every host except github.com, so the Notion driver could
+  not be exercised here. The rules are verified against real data; the wire calls
+  that fetch that data are covered only by the one proven session write.
 - **No real session has been run.** No one has held a phone at 6am and used
   this. Every duration, every threshold and the entire feel of the Runner are
   guesses until that happens.
@@ -664,29 +732,39 @@ back and checked link by link.
   the wake lock and the service worker are implemented and reasoned about, not
   observed.
 
-**Known gap, stated rather than hidden.** The strength level-up rule — "three
-sets of eight clean" — is in config but is not wired to anything, because
-nothing in the app records sets and reps. Strength ladders must be advanced by
-hand in Notion by changing a movement's Status from locked to current. Adding a
-set counter would fix it, but that is a new feature and was not in the brief.
+**Known gaps, stated rather than hidden.** Unlocking a seventh Form slot is
+still a tick in Notion; the app has no screen for it. Micro rotation is computed
+but not written back, so which micros are active is also set in Notion.
 
 ---
 
 ## 11. Notes for a mockup
 
-If you are designing from this:
+**Make your own decisions.** Section 9 describes what exists, not a brief you
+have to obey. Everything in it is one developer's first pass, built without a
+single real session to learn from. If a different navigation model, a different
+palette, or a different way of showing progress serves the actual conditions
+better, propose it — that is the point of the exercise.
+
+What follows is context for those decisions, not constraints:
 
 - **Today and the Runner are the app.** Everything else is consulted
-  occasionally. Spend the effort there.
-- The hierarchy on every screen is: one enormous number, one clear action,
-  everything else quiet. If a mockup has two things competing for attention,
-  it is wrong.
-- Do not add a bottom tab bar. Today is the hub and every screen returns to it
-  with one link.
-- Do not add charts, rings, badges, confetti, or a weekly calendar grid. They
-  were all considered and deliberately excluded.
-- Do not brighten the palette. It is read in a dark room by someone who has just
-  woken up.
-- The thread is the identity. If you improve one thing, improve that.
-- Extra screens worth mocking that do not exist yet and are not requested:
-  none. The scope is the screens above.
+  occasionally. That is where the effort is worth spending.
+- The current hierarchy on every screen is one enormous number, one clear
+  action, and everything else quiet. It is built for someone half awake with
+  the phone propped up and both hands busy.
+- There is no bottom tab bar today; Today is the hub and every screen returns to
+  it with one link. That was a 6am-simplicity call, not a considered
+  information-architecture decision.
+- Charts, rings, badges and confetti were left out deliberately — the user
+  explicitly does not want streak guilt or gamification. The underlying
+  preference is "quiet"; how you achieve it is open.
+- The palette is dark because the app is read in a dark room before dawn. That
+  constraint is real; the specific colours are not sacred.
+- The thread — the continuous twelve-node line — is the one element carrying any
+  identity. It is the most likely thing to be worth keeping and the most likely
+  thing to be worth improving.
+
+Two things are genuinely fixed, because they come from the user rather than from
+the design: it is dark-room, phone-first, one-handed; and it must not nag,
+score, or congratulate.
