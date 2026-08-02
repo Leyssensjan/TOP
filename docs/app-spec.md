@@ -78,12 +78,12 @@ Browser (PWA on the home screen)      │  over plain data — Notion never leak
 
 ## 4. The data model
 
-Eight Notion databases. The app reads all of them and writes to five.
+Nine Notion databases. The app reads all of them and writes to six.
 
 **Slots** (12 rows) — the twelve parts of the Form.
 `Name`, `Slot id` (stable identity), `Sequence` (position in the loop, freely
 reorderable), `Active`, `In short form`, `Current level`, `Unlock order`,
-`Entry position`, `Exit position`.
+`Unlocked on`, `Entry position`, `Exit position`.
 
 Slot id and Sequence are deliberately different numbers. Sequence decides order;
 Slot id decides which movements belong to a slot. Arm balance is slot id 11 but
@@ -93,8 +93,9 @@ sequence 5.
 `Name`, `Domain` (movement / strength / skate), `Slot`, `Level`, `Family`,
 `Status` (locked / current / mastered), `Cues`, `Reference term`, `Why builds`,
 `Why unlocks`, `Sessions at level`, `Last practiced`, `Level up deferred`,
-`Duration seconds`, `Unit` (reps or seconds, strength only), `Entry position`,
-`Exit position`, `Prereqs`, `Attempts`, `Skill id`.
+`Duration seconds`, `Unit` (reps or seconds, strength only), `Serves slot`
+(strength only), `Why skate`, `Entry position`, `Exit position`, `Prereqs`,
+`Attempts`, `Skill id`.
 
 **Sessions** — one row per completed session. `Date`, `Type`, `Planned minutes`,
 `Actual minutes`, `Completed`, `Difficulty`, `Soreness`, `Skills practised`,
@@ -103,13 +104,18 @@ sequence 5.
 **Plan** — an optional weekly plan, one row per day. Read-only on the phone.
 
 **Micros** (16 rows) — `Name`, `Trigger`, `Cue`, `Duration`, `Feeds slot`,
-`Weekly target`, `Active`.
+`Weekly target`, `Active`, `Retired`, `Assist streak weeks`.
 
 **Micro log** — one row per logged micro, with a count.
 
 **Strength log** — one row per set: `Date`, `Skill`, `Set`, `Reps`, `Seconds`,
 `Session`. Written by the app during a Strength session. The `Session` column
 holds the client id, so an offline retry cannot double-log.
+
+**Milestones** — the app's memory. One row per advancement: `Date`, `Kind`
+(level up / slot unlock / rounds up / trick mastered / strength level up),
+`Subject`, `Detail`, `Session`. Written by the app, never edited by hand. This
+is what makes a year of training legible.
 
 **Routes** (3 rows) — hand-scouted running routes. `Name`, `Distance km`,
 `Start point`, `Description`, `Map link`, `Surface`, `Quiet rating`.
@@ -156,14 +162,40 @@ exits `beast` and Rise enters `supine`. That is intentional and is bridged by a
 cue on Rise ("From beast, sit through and lie back"), not by reordering. The
 full twelve-slot loop has no gaps at all.
 
-**Rounds ramp with experience, not with the clock:**
+### The Form grows on three axes
+
+| Axis | What changes | Mechanic |
+| --- | --- | --- |
+| **Depth** | a slot's movement gets harder | level up, 1 to 4 |
+| **Breadth** | the sequence gets longer | slot unlock, 6 to 12 |
+| **Volume** | the session gets longer | round ramp, 1 to 4 |
+
+**Volume — the rounds ramp:**
 
 - Flow sessions 1–6 → 2 rounds
 - 7–14 → 3 rounds
 - 15+ → 4 rounds
 - Flow Short is always 1 round
 
-The count is of *completed Flow sessions*; Flow Short never advances the ramp.
+The count is of completed Flow sessions **since the last slot unlock**; Flow
+Short never advances the ramp. Counting since the unlock rather than lifetime is
+what makes the unlock's round reset real.
+
+**Breadth — the slot unlock.** The Form grows when you have stopped struggling
+with what you have, not on a schedule. All four must hold: 10 completed Flow
+sessions since the last unlock; no session rated `hard` in the last 5; rounds
+already at the top of the ramp, so volume is maxed before breadth increases; and
+at least half the active slots at level 2 or above.
+
+Accepting ticks `Active`, stamps `Unlocked on`, writes a milestone, and resets
+the round count to the bottom band — so a longer sequence at fewer rounds is the
+same session length. **That reset is the point: the Form gets longer without the
+morning getting longer.** Deferring silences it for 14 days.
+
+**One proposal, ever.** All three axes can come due at once, and three decisions
+on a dark morning is a chore list. Priority: slot unlock, then Form level-up,
+then strength level-up. Everything else waits. A round-ramp crossing is never a
+proposal — it just happens and is stated once.
 At six active slots one round is 4:50, so a beginner's Flow is ~10 minutes and a
 seasoned one ~19.
 
@@ -194,6 +226,11 @@ Prescription shown on the card: *3 to 4 sets of 5 to 8, stopping two short of
 failure*; holds *build to 30–60 seconds*; negatives *5 reps at 4–5 seconds
 down*.
 
+Each ladder names the Form slot it serves: Push → Ground push, Single leg →
+Rise, Hinge → Spinal extension, Hang → Compression core. **Pull serves nothing
+in the Form, and that is the point of it existing** — the Strength screen
+carries the line `Nothing on the floor trains this.` permanently on that row.
+
 **Strength level-up is "three sets of eight clean"**, and it is driven by sets
 logged in the Runner. Three sets at eight or more reps of the same lift, inside
 one session, where that session was closed as `easy` or `right`. Holds use
@@ -222,6 +259,16 @@ Only 3–5 micros are active at once. The rotation rule picks:
 Anything active but untouched for 3 consecutive weeks is retired rather than
 re-offered, so dead targets do not accumulate. Retirement only engages once the
 log is actually old enough to judge.
+
+The rotation is **reconciled every morning** from Today. It used to run only
+when a week was generated, and week generation was removed — so it had never run
+at all. It is deterministic for a given week, so running it daily converges and
+then writes nothing.
+
+**Micros lower the level-up bar.** A slot whose micros hit 80% of target for two
+consecutive weeks drops from 8 sessions to 6, and the proposal says why: *"Six
+sessions instead of eight. The micros did that."* That is the entire argument
+for micros, made concrete once rather than asserted in a footer.
 
 ### Skate
 
@@ -257,19 +304,31 @@ A row in the Plan database, if one exists, always wins over the suggestion.
 
 ## 6. The screens
 
-Eight screens. Navigation is deliberately flat: **Today is the hub**, and every
+Ten screens. Navigation is deliberately flat: **Today is the hub**, and every
 other screen has a single `TODAY` link in the top right. There is no tab bar and
 no back-stack to reason about at 6am.
 
 ```
 Today ──Start──▶ Runner ──Finish──▶ Close ──Done──▶ Today
   │
-  ├──▶ Form      (the twelve slots and their ladders)
-  ├──▶ Micros    (tap to count)
-  ├──▶ Skate     (190 tricks + focus card)
-  ├──▶ Week      (the plan, read-only)
-  └──▶ Routes    (running routes, read-only)
+  ├─ the four training domains, as buttons
+  │  ├──▶ Form      (the twelve slots and their ladders)
+  │  ├──▶ Strength  (the five ladders)
+  │  ├──▶ Micros    (tap to count)
+  │  └──▶ Skate     (190 tricks + focus card)
+  │
+  └─ the utilities, as a text strip
+     ├──▶ Progress  (the log: milestones and sessions)
+     ├──▶ Week      (the plan, read-only)
+     └──▶ Routes    (running routes)
 ```
+
+**Cross-links, not a tab bar.** Every reference to another node is a link: a
+micro card points at the slot it feeds, a Form movement at the micros feeding it
+and the strength family serving it, a strength ladder at the slot it serves, a
+skate trick at what builds it, a route at an Engine session with that route
+pre-selected. One tap out and back. That is what turns ten screens into one app,
+and it costs no new navigation model.
 
 ---
 
@@ -286,7 +345,10 @@ button.** Nothing else.
    150px)`, amber. A small muted `MIN` beside it. This is the loudest thing on
    any screen in the app.
 3. One muted line of detail: `6 movements · 2 rounds`, or for Strength `5 lifts
-   · 3 blocks`, or the reason there is nothing to run.
+   · 3 blocks`, or the reason there is nothing to run — **followed by the
+   horizon, in amber: `slot 7 in 4 sessions`.** This is the most important small
+   thing in the app. It is the only place the arc is stated every single
+   morning, and it turns a multi-year climb into something happening next week.
 4. **Start** — a 68px amber button, full width. Reads `Restart` if a session is
    already in progress, with a quiet `Resume` beneath it.
 
@@ -296,14 +358,25 @@ Below the fold, in a stack:
    - `Showing the last saved copy. Not refreshed yet.` (offline, serving cache)
    - `2 sessions have not reached Notion yet.` (outbox not drained — amber)
    - `Already logged today.`
-6. **Level-up proposals**, one card each: `Squat and ankle: Deep squat hold`,
-   then `Level 1 to 2. Eight sessions, last three easy.`, then two buttons —
-   `Level up` and `Not yet`. The app proposes; Jan decides.
+6. **One proposal**, never more. Three shapes, one card:
+   - *slot unlock* — `THE FORM IS READY TO GROW` / `Slot 3: Hip opener` / `Ten
+     sessions, nothing hard in the last five. Rounds go back to 2.` / `Add it` ·
+     `Not yet`
+   - *Form level-up* — `READY TO LEVEL UP` / `Squat and ankle: Deep squat hold`
+     / `Level 1 to 2. Eight sessions, last three easy.` — or, when micros
+     lowered the bar, `Six sessions instead of eight. The micros did that.`
+   - *strength level-up* — `Pull: Horizontal body row` / `Level 1 to 2. 3 clean
+     sets on Incline bar row.`
+
+   The app proposes; Jan decides. Deferring is always the second button.
 7. **The suggestion line**, one muted sentence.
 8. **The rolling count**: a 30px numeral then `of 3 in the last 7 days · 4d of
    slack · 2 weeks`.
-9. **Six quiet buttons**, two per row, wrapping: Adjust · Form · Micros · Skate
-   · Week · Routes.
+9. **Four domain buttons**, two per row: Form · Strength · Micros · Skate. At
+   6am the question is "which of my four kinds of training", not "which of my
+   ten screens". No icons — invented glyphs are more to decode, not less.
+10. **A utility strip** in small uppercase text, not buttons: Adjust · Progress
+    · Week · Routes.
 
 **Adjust** replaces the button grid in place with a check-in: `Minutes`
 (7/12/18/25) and `Energy` (low/ok/good), then Apply or Cancel. Low energy or ≤8
@@ -379,6 +452,13 @@ interaction: no steppers, no keyboards, no per-rep tapping.
 Which unit a movement uses comes from Notion, per movement. Dead hang and Bar
 support hold are counted in seconds; the other nineteen in reps.
 
+Logging a set **starts an inline rest countdown in that lift's card**, at the
+block's prescribed rest — 90s for the pull/push superset, 60s elsewhere. It sits
+where `Log a set` was, reads `rest 1:24`, does not take over the screen, does not
+interrupt the block clock and does not beep. At zero it reverts to `Log a set`.
+Holding a block clock and a mental rest timer at once, mid-superset, is exactly
+the friction that gets strength sessions skipped.
+
 Sets are written to localStorage the instant they are tapped, so closing the app
 between the last set and the Close screen loses nothing. They travel to Notion
 as part of the single session write at Close.
@@ -446,32 +526,71 @@ animate.
 - **The count**: `6` in 46px amber, then `of 12 slots · 6 levels deep`.
 - **The spine**: twelve rows on one unbroken vertical line, drawn behind them.
   Each row is:
-  - a node on the line — filled and amber-bordered for an active slot, with the
-    fill deepening as the slot levels up; a small faint dot for a slot that has
-    not unlocked
+  - a node on the line whose **mass** shows the level: hollow ring at 1, 35%
+    filled at 2, 75% at 3, solid with a faint halo at 4. A small flat dot for a
+    slot that has not unlocked. Mass rather than colour depth, because colour is
+    unreliable at low screen brightness — and because the Form screen after a
+    year is then visibly denser in a way that cannot be faked
   - the sequence number, condensed, muted
-  - the movement name (or the slot name if locked), with the slot name (or
-    `unlocks 7th`) underneath
+  - the movement name (or the slot name if locked), with the slot name
+    underneath. **The next slot to arrive is visually distinct from distant
+    ones**: it shows its real name and `unlocks next · 4 sessions away` in
+    amber-dim, where distant slots stay grey with `unlocks 9th`. It is the most
+    motivating row on the screen and must not look identical to the one arriving
+    in two years
   - the level, `2/4`, amber over muted
 
-Tapping a row expands a detail panel in place:
+Header: `6` amber, then `of 12 slots · 6 levels deep · slot 7 in 4 sessions`.
 
-- the cues
-- **Builds** — what the movement develops
-- **Unlocks** — what it leads to
-- **Look up** — the reference term, as an amber link to a YouTube search for it
-- `deep squat to beast · in the short form`
-- `3 of 8 sessions at this level · last 2026-07-28`
-- **Next** — the movement at the level above, or `Top of the ladder.`
+Tapping a row expands the unified detail panel (see 6.14).
 
 ---
 
-### 6.8 Micros — tap to count
+### 6.8 Strength — the five ladders
+
+Same shape as the Form screen, because a strength lift and a Form movement are
+the same kind of object.
+
+- **Header**: `STRENGTH`, `TODAY`. Then `5` in amber, `ladders · 5 levels deep`.
+- Five collapsed rows: a mass node showing the level, the current movement's
+  name, then `Pull · serves Ground push` underneath, and `1/5` on the right.
+- **The Pull row carries a permanent amber line, visible without expanding:
+  `Nothing on the floor trains this.`** That sentence is the entire
+  justification for Strength existing, and it belongs where it will be read on
+  the morning the session is about to be skipped.
+- Tapping a row expands the unified detail panel.
+
+### 6.9 Progress — the log
+
+Not a dashboard. No charts, no rings, no percentages, no streak graphics.
+
+- **Header**: `PROGRESS`, `TODAY`.
+- **The two numbers that matter**, side by side in condensed amber: total
+  sessions, and weeks at target. Nothing else above the log.
+- **Three filter chips**: `All` · `Milestones` · `Sessions`, default `All`.
+- **The log**, reverse chronological, on the same continuous vertical line as
+  everywhere else in the app:
+  - *milestones* stand out — amber node, the subject at full size, the kind in
+    amber-dim underneath (`slot unlock`, `level up`, `rounds up`), then one plain
+    detail line: `Added Hip opener. Rounds reset to 2.`
+  - *sessions* are quiet — a small muted node and one line: `Jul 26 · Flow · 10
+    min · easy`, with distance and soreness appended when logged
+
+Soreness on the session line matters more than it looks: a run of wrist entries
+next to the weeks slots 6 and 7 were being drilled is exactly the signal worth
+catching, and this is the only place that pattern will ever be visible.
+
+Scrolling back through a year should read as a story with events in it, not as a
+spreadsheet. The milestones are the events.
+
+### 6.10 Micros — tap to count
 
 - **Header**: `MICROS`, `TODAY`.
 - A stack of cards, one per active micro:
-  - the name, and its trigger underneath in muted text (`while the kettle
-    boils`)
+  - the name, its trigger underneath in muted text (`while the kettle boils`),
+    and a third line naming what it feeds: `feeds Squat and ankle`, tappable
+    through to that slot. When the assist rule is live it reads `feeds Squat and
+    ankle · assisting` in sage.
   - on the right, a 32px count over a smaller `/10` target. Amber below target,
     **sage once the target is met**.
 - Footer: `Tap to log one. Tap again for several. Micros never count as
@@ -481,11 +600,14 @@ Tapping increments immediately with no confirmation and no network wait. Taps
 within 1.2 seconds of each other collapse into a single write, so tapping five
 times is one row in Notion with a count of five, not five rows.
 
+Only 3 to 5 cards should ever be on this screen — that is what makes it a focus
+rather than a list.
+
 If nothing is active: `No micros are active. The weekly plan picks them.`
 
 ---
 
-### 6.9 Skate — 190 tricks
+### 6.11 Skate — 190 tricks
 
 - **Header**: `SKATE`, `TODAY`.
 - **The count**: `17` in 40px sage, then `mastered · 3 in progress · 190
@@ -512,7 +634,7 @@ focus card and unlockable edges refresh from the response.
 
 ---
 
-### 6.10 Week — the plan, read-only
+### 6.12 Week — the plan, read-only
 
 - **Header**: `WEEK`, `TODAY`. Then `Week of 2026-08-03`.
 - One row per day: the weekday in condensed muted type, the session type
@@ -530,7 +652,7 @@ plan if one exists in Notion and otherwise says so.
 
 ---
 
-### 6.11 Routes — read-only
+### 6.13 Routes — read-only
 
 - **Header**: `ROUTES`, `TODAY`.
 - One card per route, sorted by distance:
@@ -541,6 +663,43 @@ plan if one exists in Notion and otherwise says so.
 
 Three real routes, hand-scouted in Ghent: Oude Dokken loop (3.5km), Dampoort and
 Ganda (5.5km), Voorhaven out and back (8km).
+
+---
+
+### 6.14 The unified detail panel
+
+The visual expression of the one-grammar rule, and the single biggest thing that
+makes the app feel like one app. **Every node in every domain expands into the
+same panel, with the same rows in the same order.** A skate trick, a strength
+lift and a Form movement must be recognisably the same object.
+
+```
+CUES       Heels down. Pry the knees open. Breathe low.
+BUILDS     Ankle dorsiflexion and squat depth.
+OPENS      Beast hold, level 2
+MICROS     Deep squat while the kettle boils · Tempo twenty
+STRENGTH   Single leg
+SKATE      Landing depth on anything you pop.
+CHAIN      forward fold to deep squat · in the short form
+           ─────────────────────────────
+           3 of 8 sessions at this level · last 2026-07-28
+Look up →
+```
+
+Rules:
+
+- The label column is fixed-width, 13px uppercase, muted. The value column is
+  body text.
+- **Rows with no content are omitted entirely**, never shown empty. A Pull
+  ladder has no `Serves` row; it carries its one-line justification instead.
+- **Every value naming another node is a link**, rendered amber, opening that
+  node and returning.
+- Progress at the current level always sits directly above `Look up`, separated
+  by a hairline.
+
+Three properties, in the same order, for every trainable thing in the app:
+**where it sits** (its level or status), **what it serves** (the thing upstream
+it feeds), **what it opens** (the thing downstream it unlocks).
 
 ---
 
@@ -588,9 +747,11 @@ Notion holds the content — movement names, cues, explanations, routes, micro
 definitions and the tuning numbers. Editing that is authoring, not logging, and
 is expected to be rare.
 
-**Still Notion-only**, both of them content decisions rather than logging:
-unlocking a new Form slot (ticking `Active` when a seventh slot is ready), and
-adding or rewording a micro, route or movement.
+| Grow the Form by a slot | Today, proposal card |
+| Read the record of everything so far | Progress |
+
+**Still Notion-only**: adding or rewording a micro, route or movement. That is
+authoring, not logging.
 
 ---
 
@@ -647,22 +808,48 @@ not yet**. There is no red, no green, no semantic colour beyond those three. A
 
 ### 9.3 The thread
 
-The one place worth spending effort. The Form is drawn as a single continuous
-vertical line with twelve nodes — **unbroken, because the sequence itself is
-unbroken**: slot 12 exits standing and slot 1 enters standing, so it closes into
-a loop.
+The one place worth spending effort. **The thread always shows twelve nodes** —
+not six, not the number in today's session. Twelve, always, because the point is
+that a short session visibly sits inside the same structure as a long one, and
+that the structure is a closed loop: slot 12 exits standing and slot 1 enters
+standing.
 
-- In the **Runner** it is a 22px column on the left. A gradient fill rises
-  through it as the session runs. The current node is a 15px amber dot;
-  completed nodes are sage; slots not in today's session are 5px faint dots on
-  the same line, so a short session visibly sits inside the same structure as a
-  long one.
-- On the **Form screen** it is the same thread laid out as a spine behind twelve
-  rows. Each node's fill deepens with the slot's level — `color-mix(amber,
-  level × 25%)` — so years of progress read as the line getting warmer.
+Five states, told apart by **size and weight, not by colour alone**:
 
-It is the only element that carries the app's identity. It should not be
-decorated, and it should not be turned into a progress bar with a percentage.
+| State | Rendering |
+| --- | --- |
+| In today's session, current | 15px, solid amber |
+| In today's session, done | 11px, solid sage |
+| In today's session, ahead | 11px, ring in `--ink-line` |
+| Unlocked, sitting out today | 8px, ring in `--ink-line` |
+| Not yet unlocked | 5px, flat dot in `--ink-line` |
+
+In the Runner it is a 22px column on the left with a gradient fill rising as the
+session runs. On the Form screen it is the same thread laid out as a spine
+behind twelve rows.
+
+**Level reads as mass, not as colour.** Hollow ring at level 1, 35% filled at 2,
+75% at 3, solid with a 1px halo at 4. Colour depth is unreliable at low screen
+brightness; mass is not. The intent is that the Form screen after a year of work
+is visibly denser than on day one, and that the density is unmistakably earned.
+
+The line is continuous and unbroken through all twelve, always. It never renders
+as a bar with a percentage and it never gains a label. It is the only element
+carrying the app's identity.
+
+### 9.3a Making a slow thing feel like it is moving
+
+The sequence grows from six movements to twelve over roughly a year, then
+deepens for years after that. On most mornings, nothing observable happens. Three
+devices carry the arc without the gamification that is ruled out:
+
+1. **The horizon.** The next arrival is always a countable number of sessions,
+   never a date or a percentage. `slot 7 in 4 sessions`. A multi-year arc becomes
+   a thing happening next week.
+2. **Accumulated mass.** Levels are visual weight, not a score. After six months
+   the Form screen is visibly heavier, and that weight cannot be rushed.
+3. **The log.** Milestones sit on the same line as ordinary sessions, newest
+   first. Scrolling back is reading a record, not viewing a dashboard.
 
 ### 9.4 Layout
 
@@ -686,6 +873,19 @@ Failure states say what happened and what it means, never apologise:
 Numbers are stated, never celebrated. `2 of 3 in the last 7 days` — not "Great
 work!".
 
+### 9.5a Rejected, and why
+
+Recorded so they do not get reintroduced:
+
+| Proposal | Verdict |
+| --- | --- |
+| Warm the palette toward near-black | Rejected. Generic, and it collapses the card/border separation at low brightness. |
+| Icons on the Today buttons | Rejected. Invented glyphs at 6am are more decoding, not less. |
+| A bottom tab bar | Rejected. Invites accidental switches one-handed. Today as hub with push-and-return is right. |
+| Level shown as colour depth | Replaced by mass. Colour depth is unreliable at low brightness. |
+| A thread showing only the active slots | Rejected. Twelve always, so a short session sits inside the whole structure. |
+| Charts, rings, percentages, badges, streak graphics | Rejected permanently. The three devices in 9.3a do this job instead. |
+
 ### 9.6 Motion
 
 Almost none. The thread fill has a 400ms linear transition; nothing else
@@ -699,7 +899,7 @@ loading spinners — screens that are loading say `LOADING` and nothing more.
 Jan is travelling for a month and cannot test any of this, so this section is
 deliberately blunt.
 
-**Verified against real Notion rows.** 48 automated checks run against a
+**Verified against real Notion rows.** 67 automated checks run against a
 snapshot of the actual database contents — the twelve slots, 48 movement skills,
 21 strength movements, 16 micros, and the real 190-trick skate graph. They
 cover: Form ordering by Sequence, movement resolution by Slot id, the closed
@@ -732,9 +932,10 @@ back and checked link by link.
   the wake lock and the service worker are implemented and reasoned about, not
   observed.
 
-**Known gaps, stated rather than hidden.** Unlocking a seventh Form slot is
-still a tick in Notion; the app has no screen for it. Micro rotation is computed
-but not written back, so which micros are active is also set in Notion.
+**Known gap, stated rather than hidden.** The skate `Built by` mapping is
+family-level and lives in config, because the source data has no per-trick
+fitness mapping. It is the coarsest thing in the app and is expected to be
+wrong in places.
 
 ---
 
