@@ -402,23 +402,23 @@ Below the fold, in a stack:
 7. **The suggestion line**, one muted sentence.
 8. **The rolling count**: a 30px numeral then `of 3 in the last 7 days · 4d of
    slack · 2 weeks`.
-9. **Four domain buttons**, two per row: Form · Strength · Micros · Skate. At
-   6am the question is "which of my four kinds of training", not "which of my
-   ten screens". No icons — invented glyphs are more to decode, not less.
+9. **Three domain buttons** on one row: Form · Strength · Skate. Micros used to
+   sit here; they live on the screen itself now, so the button was a second way
+   to the same rows. No icons — invented glyphs are more to decode, not less.
 10. **A utility strip** in small uppercase text, not buttons: Adjust · Progress
     · Week · Routes.
 
 **Done for the day.** Once a session is logged the card does not gain a banner —
 it changes. The number shrinks to about a third, turns sage, and shows the
-minutes actually done; the line under it reads `Flow. But hey, done.` Everything
-else on the screen stays exactly where it was.
+minutes actually done; the line under it reads `Done!` Everything else on the
+screen stays exactly where it was.
 
 **This week's micros**, between the session and the rest. They are tapped
 through the day, and making that a trip to another screen is the friction that
 loses them:
 
 ```
-THIS WEEK'S MICROS
+THIS WEEK'S MICROS  ← the label is the link to the full screen
 1  Deep squat while the kettle boils          4/10
    while the kettle boils
 2  Doorway hip flexor stretch                 7/7
