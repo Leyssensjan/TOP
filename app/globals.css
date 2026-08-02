@@ -182,8 +182,10 @@ button {
   border: 2px solid var(--ink-line);
 }
 
-/* A slot that has not unlocked yet stays a faint dot on the same thread. */
-.thread-node[data-inplay='false'] {
+/* Five states, told apart by size and weight rather than by colour alone. */
+
+/* Not yet unlocked: a flat dot, still on the same thread. */
+.thread-node[data-inplay='false'][data-active='false'] {
   width: 5px;
   height: 5px;
   margin-left: -2.5px;
@@ -192,8 +194,22 @@ button {
   background: var(--ink-line);
 }
 
+/* Unlocked but sitting out today, as on a Flow Short. */
+.thread-node[data-inplay='false'][data-active='true'] {
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  margin-top: -4px;
+  border-color: var(--ink-line);
+}
+
+/* In today's session, still ahead. */
 .thread-node[data-inplay='true'] {
-  border-color: color-mix(in srgb, var(--amber) calc(30% + var(--level) * 17%), var(--ink-line));
+  width: 11px;
+  height: 11px;
+  margin-left: -5.5px;
+  margin-top: -5.5px;
+  border-color: var(--ink-line);
 }
 
 .thread-node[data-done='true'] {
@@ -269,10 +285,20 @@ button {
   background: var(--ink-line);
 }
 
-/* Colour deepens as the slot levels up. */
-.spine-row[data-active='true'] .spine-node {
-  background: color-mix(in srgb, var(--amber) calc(var(--level) * 25%), var(--ink));
-  border-color: var(--amber);
+/* Level reads as mass, not as colour depth: see the .mass rules below. */
+.spine-row[data-active='false'] .spine-node.mass {
+  border-width: 0;
+  background: var(--ink-line);
+}
+
+/* The next slot to arrive must not look like the one arriving in two years. */
+.spine-row[data-next='true'] .spine-node.mass {
+  border: 2px solid var(--amber-dim);
+  background: transparent;
+  width: 11px;
+  height: 11px;
+  left: -24px;
+  margin-top: -5.5px;
 }
 
 .spine-row[data-active='false'] .spine-name {
@@ -300,4 +326,95 @@ button {
 .detail strong {
   color: var(--text);
   font-weight: 600;
+}
+
+/* --- the unified detail panel --------------------------------------------- */
+/* One shape for every node in every domain. A skate trick, a strength lift and
+   a Form movement must be recognisably the same object. */
+
+.panel {
+  padding: 4px 12px 16px 12px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.panel-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.panel-label {
+  flex: none;
+  width: 74px;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-top: 3px;
+}
+
+.panel-value {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+}
+
+.panel-link {
+  color: var(--amber);
+  padding: 0;
+  font: inherit;
+  text-align: left;
+}
+
+.panel-note {
+  margin: 10px 0 0 86px;
+  color: var(--amber);
+  font-size: 15px;
+}
+
+.panel-rule {
+  height: 1px;
+  background: var(--ink-line);
+  margin: 14px 0 12px 86px;
+}
+
+.panel-lookup {
+  display: inline-block;
+  margin-left: 86px;
+  color: var(--amber);
+  font-size: 15px;
+  padding: 8px 0;
+}
+
+/* --- level as mass -------------------------------------------------------- */
+/* Colour depth is unreliable at low screen brightness; mass is not. A node gets
+   solid as its slot levels up, so a year of work is visibly denser. */
+
+.mass {
+  position: relative;
+  border-radius: 50%;
+  border: 2px solid var(--amber);
+  background: transparent;
+}
+
+.mass[data-level='2'] {
+  background: color-mix(in srgb, var(--amber) 35%, transparent);
+}
+
+.mass[data-level='3'] {
+  background: color-mix(in srgb, var(--amber) 75%, transparent);
+}
+
+.mass[data-level='4'] {
+  background: var(--amber);
+}
+
+.mass[data-level='4']::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1px solid var(--amber);
+  opacity: 0.3;
 }

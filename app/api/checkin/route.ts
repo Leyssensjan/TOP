@@ -1,6 +1,6 @@
 import { handle } from '@/lib/api';
 import { addDays, isValidDate, today as todayDate } from '@/lib/dates';
-import { adjustForCheckin, countFlowSessions, planSession, rollingStatus, skateFocus } from '@/lib/rules';
+import { adjustForCheckin, flowsSinceUnlock, planSession, rollingStatus, skateFocus } from '@/lib/rules';
 import { suggestNext } from '@/lib/planner';
 import { getStore } from '@/lib/store';
 import type { SessionType } from '@/lib/types';
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
         : ((suggestion.type === 'rest' ? 'flow' : suggestion.type) as SessionType);
 
     const skills = [...movementSkills, ...strengthSkills];
-    const flowsDone = countFlowSessions(sessions);
+    const flowsDone = flowsSinceUnlock(slots, sessions);
     const base = planSession(slots, skills, type, date, planEntry ? 'plan' : 'default', planEntry?.plannedMinutes ?? null, flowsDone);
     const adjustedTarget = adjustForCheckin(base, { minutes, energy, soreness });
 

@@ -11,6 +11,8 @@ import type {
   NewSession,
   NewSkill,
   NewStrengthSet,
+  NewMilestone,
+  Milestone,
   PlanEntry,
   Route,
   SessionLog,
@@ -156,6 +158,7 @@ export class MemoryStore implements Store {
     unlockOrder,
     entryPosition,
     exitPosition,
+    unlockedOn: null,
   }));
 
   private skills: Skill[] = SKILL_SEED.map(([slot, level, name, cues, referenceTerm]) => {
@@ -173,6 +176,7 @@ export class MemoryStore implements Store {
       exitPosition: slotSeed[6],
       whyBuilds: '',
       whyUnlocks: '',
+    whySkate: '',
       sessionsAtLevel: 0,
       lastPracticed: null,
       levelUpDeferred: null,
@@ -182,6 +186,7 @@ export class MemoryStore implements Store {
       family: '',
       prereqs: [],
       attempts: 0,
+      servesSlot: null,
     };
   });
 
@@ -198,6 +203,7 @@ export class MemoryStore implements Store {
     active,
     retired: false,
     stat: [],
+    assistStreakWeeks: 0,
   }));
 
   private skateSkills: Skill[] = SKATE_SEED.map(([skillId, name, level, family, prereqs]) => ({
@@ -213,11 +219,13 @@ export class MemoryStore implements Store {
     exitPosition: '',
     whyBuilds: '',
     whyUnlocks: '',
+    whySkate: '',
     sessionsAtLevel: 0,
     lastPracticed: null,
     levelUpDeferred: null,
     durationSeconds: null,
     unit: null,
+    servesSlot: null,
     skillId,
     family,
     prereqs: prereqs ? prereqs.split(',') : [],
@@ -226,6 +234,7 @@ export class MemoryStore implements Store {
 
   private sessions: SessionLog[] = [];
   private strengthSets: StrengthSet[] = [];
+  private milestones: Milestone[] = [];
   private plan: PlanEntry[] = [];
   private microLog: MicroLogEntry[] = [];
   private seq = 0;
@@ -259,11 +268,13 @@ export class MemoryStore implements Store {
       exitPosition: '',
       whyBuilds: '',
       whyUnlocks: '',
+    whySkate: '',
       sessionsAtLevel: 0,
       lastPracticed: null,
       levelUpDeferred: null,
       durationSeconds: null,
       unit: null,
+    servesSlot: null,
       skillId: input.skillId,
       family: input.family,
       prereqs: input.prereqs.split(',').map((v) => v.trim()).filter(Boolean),
@@ -326,6 +337,24 @@ export class MemoryStore implements Store {
       session: input.session,
     };
     this.strengthSets.push(row);
+    return { ...row };
+  }
+
+  async getMilestonesSince(since: string): Promise<Milestone[]> {
+    return this.milestones.filter((m) => m.date >= since).map((m) => ({ ...m }));
+  }
+
+  async createMilestone(input: NewMilestone): Promise<Milestone> {
+    const row: Milestone = {
+      id: this.nextId('milestone'),
+      name: `${input.subject} — ${input.kind} ${input.date}`,
+      date: input.date,
+      kind: input.kind,
+      subject: input.subject,
+      detail: input.detail,
+      session: input.session ?? '',
+    };
+    this.milestones.push(row);
     return { ...row };
   }
 

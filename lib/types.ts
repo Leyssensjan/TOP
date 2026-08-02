@@ -20,6 +20,8 @@ export interface Skill {
   exitPosition: string;
   whyBuilds: string;
   whyUnlocks: string;
+  /** What this movement does for skating. Empty when it does nothing. */
+  whySkate: string;
   sessionsAtLevel: number;
   lastPracticed: string | null;
   levelUpDeferred: string | null;
@@ -27,6 +29,8 @@ export interface Skill {
   durationSeconds: number | null;
   /** Strength only: whether a set of this is counted in reps or in seconds. */
   unit: 'reps' | 'seconds' | null;
+  /** Strength only: the Form slot id this ladder feeds. Null serves nothing. */
+  servesSlot: number | null;
   /** Skate fields. Empty for movement skills. */
   skillId: string;
   family: string;
@@ -49,6 +53,8 @@ export interface Slot {
   unlockOrder: number;
   entryPosition: string;
   exitPosition: string;
+  /** When this slot joined the Form. Null for the ones that were there first. */
+  unlockedOn: string | null;
 }
 
 export interface SessionLog {
@@ -147,11 +153,14 @@ export interface Micro {
   /** Ignored for three weeks while active, so it is not offered again. */
   retired: boolean;
   stat: string[];
+  /** Consecutive weeks at the assist threshold. Written by the app. */
+  assistStreakWeeks: number;
 }
 
 export interface MicroPatch {
   active?: boolean;
   retired?: boolean;
+  assistStreakWeeks?: number;
 }
 
 export interface MicroLogEntry {
@@ -194,6 +203,36 @@ export interface SkillPatch {
 export interface SlotPatch {
   currentLevel?: number;
   active?: boolean;
+  unlockedOn?: string | null;
+}
+
+export type MilestoneKind =
+  | 'level up'
+  | 'slot unlock'
+  | 'rounds up'
+  | 'trick mastered'
+  | 'strength level up';
+
+/**
+ * The app's memory. Every advancement writes one row, which is what makes a
+ * year of training legible on the Progress screen.
+ */
+export interface Milestone {
+  id: string;
+  name: string;
+  date: string;
+  kind: MilestoneKind;
+  subject: string;
+  detail: string;
+  session: string;
+}
+
+export interface NewMilestone {
+  date: string;
+  kind: MilestoneKind;
+  subject: string;
+  detail: string;
+  session?: string;
 }
 
 /**
@@ -216,6 +255,9 @@ export interface Store {
 
   getStrengthSetsSince(since: string): Promise<StrengthSet[]>;
   createStrengthSet(input: NewStrengthSet): Promise<StrengthSet>;
+
+  getMilestonesSince(since: string): Promise<Milestone[]>;
+  createMilestone(input: NewMilestone): Promise<Milestone>;
 
   getPlanForDay(day: string): Promise<PlanEntry | null>;
   getPlanForWeek(weekStart: string): Promise<PlanEntry[]>;

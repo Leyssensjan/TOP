@@ -48,6 +48,13 @@ export async function POST(req: Request) {
     await store.updateSkill(next.id, { status: 'current', sessionsAtLevel: 0 });
     await store.updateSlot(slot.id, { currentLevel: next.level ?? slot.currentLevel + 1 });
 
+    await store.createMilestone({
+      date,
+      kind: 'level up',
+      subject: next.name,
+      detail: `${slot.name} to level ${next.level}. ${current.name} is done.`,
+    });
+
     return {
       action,
       slot: slotId,
@@ -88,6 +95,13 @@ async function strength(
 
   await store.updateSkill(current.id, { status: 'mastered', levelUpDeferred: null });
   await store.updateSkill(next.id, { status: 'current', sessionsAtLevel: 0 });
+
+  await store.createMilestone({
+    date,
+    kind: 'strength level up',
+    subject: next.name,
+    detail: `${family} to level ${next.level}. ${current.name} is done.`,
+  });
 
   return {
     action,

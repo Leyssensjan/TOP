@@ -19,6 +19,20 @@ import {
 
 type Status = 'loading' | 'ready' | 'nokey' | 'error';
 
+/** No icons: eight invented glyphs at 6am is more to decode, not less. */
+const DOMAINS = [
+  { label: 'Form', path: '/form' },
+  { label: 'Strength', path: '/strength' },
+  { label: 'Micros', path: '/micros' },
+  { label: 'Skate', path: '/skate' },
+];
+
+const UTILITIES = [
+  { label: 'Progress', path: '/progress' },
+  { label: 'Week', path: '/week' },
+  { label: 'Routes', path: '/routes' },
+];
+
 export default function TodayPage() {
   const router = useRouter();
   const [status, setStatus] = useState<Status>('loading');
@@ -156,12 +170,20 @@ export default function TodayPage() {
           {minutes(session.totalSeconds) || session.targetMinutes}
           <span style={{ fontSize: '0.28em', color: 'var(--muted)', marginLeft: 10 }}>MIN</span>
         </div>
+        {/* The most important small thing in the app: the only place the arc
+            is stated every single morning. The horizon clause is amber. */}
         <p style={{ margin: '0 0 22px', color: 'var(--muted)' }}>
           {hasMovements
             ? `${session.movements.length} movements · ${session.rounds} ${session.rounds === 1 ? 'round' : 'rounds'}`
             : hasStrength
               ? `${strengthMovements} lifts · ${session.strength!.blocks.filter((b) => !b.warmUp).length} blocks`
               : (session.note ?? '')}
+          {payload.horizon && payload.horizon.inSessions !== null && (
+            <span style={{ color: 'var(--amber)' }}>
+              {' · '}
+              slot {payload.horizon.slot} in {payload.horizon.inSessions} sessions
+            </span>
+          )}
         </p>
 
         <button
@@ -189,13 +211,9 @@ export default function TodayPage() {
         )}
         {payload.alreadyLogged && <div className="banner">Already logged today.</div>}
 
-        {payload.proposals.map((p) => (
-          <Proposal key={p.slot} proposal={p} onDone={() => void load()} />
-        ))}
-
-        {payload.strengthProposals?.map((p) => (
-          <StrengthProposalCard key={p.family} proposal={p} onDone={() => void load()} />
-        ))}
+        {/* At most one proposal, ever. Three decisions on a dark morning is a
+            chore list, so everything else waits its turn. */}
+        {payload.proposal && <ProposalCard proposal={payload.proposal} onDone={() => void refresh()} />}
 
         {payload.suggestion && (
           <p style={{ margin: 0, color: 'var(--muted)', fontSize: 15 }}>{payload.suggestion.line}</p>
@@ -204,26 +222,39 @@ export default function TodayPage() {
         <Rolling rolling={rolling} />
 
         {!adjusting ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            <button className="btn btn-quiet" style={{ flex: '1 1 45%' }} onClick={() => setAdjusting(true)}>
-              Adjust
-            </button>
-            <button className="btn btn-quiet" style={{ flex: '1 1 45%' }} onClick={() => router.push('/form')}>
-              Form
-            </button>
-            <button className="btn btn-quiet" style={{ flex: '1 1 45%' }} onClick={() => router.push('/micros')}>
-              Micros
-            </button>
-            <button className="btn btn-quiet" style={{ flex: '1 1 45%' }} onClick={() => router.push('/skate')}>
-              Skate
-            </button>
-            <button className="btn btn-quiet" style={{ flex: '1 1 45%' }} onClick={() => router.push('/week')}>
-              Week
-            </button>
-            <button className="btn btn-quiet" style={{ flex: '1 1 45%' }} onClick={() => router.push('/routes')}>
-              Routes
-            </button>
-          </div>
+          <>
+            {/* The four training domains get buttons: at 6am the question is
+                "which of my four kinds of training", not "which of my screens". */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              {DOMAINS.map((d) => (
+                <button
+                  key={d.path}
+                  className="btn btn-quiet"
+                  style={{ flex: '1 1 45%' }}
+                  onClick={() => router.push(d.path)}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+
+            {/* The utilities are a text strip, not buttons. */}
+            <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', paddingTop: 2 }}>
+              <button className="label" onClick={() => setAdjusting(true)} style={{ padding: '10px 0' }}>
+                Adjust
+              </button>
+              {UTILITIES.map((u) => (
+                <button
+                  key={u.path}
+                  className="label"
+                  onClick={() => router.push(u.path)}
+                  style={{ padding: '10px 0' }}
+                >
+                  {u.label}
+                </button>
+              ))}
+            </div>
+          </>
         ) : (
           <Checkin
             onCancel={() => setAdjusting(false)}
@@ -253,11 +284,15 @@ function Rolling({ rolling }: { rolling: TodayPayload['rolling'] }) {
   );
 }
 
-function Proposal({
+/**
+ * One card for all three kinds of advancement, because they are the same
+ * decision: the app proposes, Jan decides, and deferring is always available.
+ */
+function ProposalCard({
   proposal,
   onDone,
 }: {
-  proposal: TodayPayload['proposals'][number];
+  proposal: NonNullable<TodayPayload['proposal']>;
   onDone: () => void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -265,24 +300,31 @@ function Proposal({
   const send = async (action: 'accept' | 'defer') => {
     setBusy(true);
     try {
-      await api('/levelup', { method: 'POST', body: { slot: proposal.slot, action } });
+      if (proposal.kind === 'slot') {
+        await api('/unlock', { method: 'POST', body: { action } });
+      } else if (proposal.kind === 'movement') {
+        await api('/levelup', { method: 'POST', body: { slot: proposal.movement.slot, action } });
+      } else {
+        await api('/levelup', { method: 'POST', body: { family: proposal.strength.family, action } });
+      }
       onDone();
     } catch {
       setBusy(false);
     }
   };
 
+  const { title, subject, reason, accept } = describe(proposal);
+
   return (
     <div className="banner" style={{ color: 'var(--text)' }}>
-      <p style={{ margin: '0 0 4px' }}>
-        {proposal.slotName}: {proposal.nextSkillName}
+      <p className="label" style={{ margin: '0 0 6px' }}>
+        {title}
       </p>
-      <p style={{ margin: '0 0 12px', color: 'var(--muted)', fontSize: 15 }}>
-        Level {proposal.fromLevel} to {proposal.toLevel}. Eight sessions, last three easy.
-      </p>
+      <p style={{ margin: '0 0 4px' }}>{subject}</p>
+      <p style={{ margin: '0 0 12px', color: 'var(--muted)', fontSize: 15 }}>{reason}</p>
       <div style={{ display: 'flex', gap: 10 }}>
         <button className="btn" disabled={busy} onClick={() => void send('accept')}>
-          Level up
+          {accept}
         </button>
         <button className="btn btn-quiet" disabled={busy} onClick={() => void send('defer')}>
           Not yet
@@ -292,44 +334,35 @@ function Proposal({
   );
 }
 
-function StrengthProposalCard({
-  proposal,
-  onDone,
-}: {
-  proposal: NonNullable<TodayPayload['strengthProposals']>[number];
-  onDone: () => void;
-}) {
-  const [busy, setBusy] = useState(false);
-
-  const send = async (action: 'accept' | 'defer') => {
-    setBusy(true);
-    try {
-      await api('/levelup', { method: 'POST', body: { family: proposal.family, action } });
-      onDone();
-    } catch {
-      setBusy(false);
-    }
+function describe(proposal: NonNullable<TodayPayload['proposal']>) {
+  if (proposal.kind === 'slot') {
+    const p = proposal.slot;
+    return {
+      title: 'The Form is ready to grow',
+      subject: `Slot ${p.slot}: ${p.name}`,
+      reason: `${p.sessionsSinceUnlock} sessions, nothing hard in the last five. Rounds go back to ${p.roundsAfter}.`,
+      accept: 'Add it',
+    };
+  }
+  if (proposal.kind === 'movement') {
+    const p = proposal.movement;
+    return {
+      title: 'Ready to level up',
+      subject: `${p.slotName}: ${p.nextSkillName}`,
+      // The entire argument for micros, made concrete rather than asserted.
+      reason: p.assisted
+        ? `Level ${p.fromLevel} to ${p.toLevel}. ${p.needed} sessions instead of 8. The micros did that.`
+        : `Level ${p.fromLevel} to ${p.toLevel}. ${p.needed} sessions, last three easy.`,
+      accept: 'Level up',
+    };
+  }
+  const p = proposal.strength;
+  return {
+    title: 'Ready to level up',
+    subject: `${p.family}: ${p.nextSkillName}`,
+    reason: `Level ${p.fromLevel} to ${p.toLevel}. ${p.clearedSets} clean sets on ${p.currentSkillName}.`,
+    accept: 'Level up',
   };
-
-  return (
-    <div className="banner" style={{ color: 'var(--text)' }}>
-      <p style={{ margin: '0 0 4px' }}>
-        {proposal.family}: {proposal.nextSkillName}
-      </p>
-      <p style={{ margin: '0 0 12px', color: 'var(--muted)', fontSize: 15 }}>
-        Level {proposal.fromLevel} to {proposal.toLevel}. {proposal.clearedSets} clean sets on{' '}
-        {proposal.currentSkillName}.
-      </p>
-      <div style={{ display: 'flex', gap: 10 }}>
-        <button className="btn" disabled={busy} onClick={() => void send('accept')}>
-          Level up
-        </button>
-        <button className="btn btn-quiet" disabled={busy} onClick={() => void send('defer')}>
-          Not yet
-        </button>
-      </div>
-    </div>
-  );
 }
 
 function Checkin({

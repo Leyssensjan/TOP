@@ -42,6 +42,17 @@ export async function POST(req: Request) {
       lastPracticed: date,
     });
 
+    // Only the crossing into mastered is an event. Cycling back through the
+    // states while correcting a mistap must not litter the log.
+    if (status === 'mastered' && trick.status !== 'mastered') {
+      await store.createMilestone({
+        date,
+        kind: 'trick mastered',
+        subject: trick.name,
+        detail: trick.family ? `${trick.family}, level ${trick.level ?? '?'}.` : `Level ${trick.level ?? '?'}.`,
+      });
+    }
+
     const after = tricks.map((t) =>
       t.id === id
         ? { ...t, status: status ?? t.status, attempts: attempts ?? t.attempts, lastPracticed: date }

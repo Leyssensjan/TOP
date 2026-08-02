@@ -149,6 +149,7 @@ function Runner({ active }: { active: ActiveSession }) {
     return {
       slot,
       inPlay: Boolean(movement),
+      active: active.plan.activeSlotIds?.includes(slot) ?? Boolean(movement),
       level: movement?.level ?? 1,
       done: orderInRound >= 0 && orderInRound < step.indexInRound,
       current: slot === step.slot,
@@ -194,11 +195,9 @@ function Runner({ active }: { active: ActiveSession }) {
             >
               {mmss(remaining / 1000)}
             </span>
-            {!running && (
-              <span className="label" style={{ display: 'block', marginTop: 8 }}>
-                Paused · tap to resume
-              </span>
-            )}
+            <span className="label" style={{ display: 'block', marginTop: 8 }}>
+              {running ? 'tap to pause' : 'paused · tap to resume'}
+            </span>
           </button>
         </div>
       </div>
@@ -342,6 +341,7 @@ function StrengthRunner({ active }: { active: ActiveSession }) {
                 unit={m.unit}
                 logged={sets.filter((s) => s.skill === m.name)}
                 targetSets={block.rounds}
+                restSeconds={block.restSeconds}
                 onLog={(value) => logSet(m.name, m.unit, value)}
                 onUndo={() => undoSet(m.name)}
               />
@@ -403,6 +403,10 @@ function StrengthRunner({ active }: { active: ActiveSession }) {
  * One strength movement with its set log. Tapping a number logs a set; the
  * chips above show what has been banked so far, so the count is readable at
  * arm's length without opening anything.
+ *
+ * Logging a set starts the rest countdown in place. Holding a block clock and a
+ * mental rest timer at the same time, mid-superset, is exactly the friction
+ * that gets strength sessions skipped.
  */
 function Lift({
   name,
@@ -412,6 +416,7 @@ function Lift({
   unit,
   logged,
   targetSets,
+  restSeconds,
   onLog,
   onUndo,
 }: {
@@ -422,12 +427,35 @@ function Lift({
   unit: 'reps' | 'seconds';
   logged: LoggedSet[];
   targetSets: number;
+  restSeconds: number;
   onLog: (value: number) => void;
   onUndo: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [restUntil, setRestUntil] = useState(0);
+  const [restLeft, setRestLeft] = useState(0);
   const choices = unit === 'seconds' ? STRENGTH.secondChoices : STRENGTH.repChoices;
   const valueOf = (s: LoggedSet) => (unit === 'seconds' ? s.seconds : s.reps) ?? 0;
+
+  // Numerals change without transition: nothing in the app animates except the
+  // thread fill, and this must not become the exception.
+  useEffect(() => {
+    if (!restUntil) return;
+    const tick = () => {
+      const left = Math.max(0, restUntil - Date.now());
+      setRestLeft(left);
+      if (left <= 0) setRestUntil(0);
+    };
+    tick();
+    const id = window.setInterval(tick, 250);
+    return () => window.clearInterval(id);
+  }, [restUntil]);
+
+  const log = (value: number) => {
+    onLog(value);
+    setOpen(false);
+    if (restSeconds > 0) setRestUntil(Date.now() + restSeconds * 1000);
+  };
 
   return (
     <div>
@@ -468,13 +496,19 @@ function Lift({
           />
         ))}
 
-        <button
-          className="label"
-          onClick={() => setOpen((v) => !v)}
-          style={{ marginLeft: 'auto', color: 'var(--amber)', padding: '10px 0 10px 12px' }}
-        >
-          {open ? 'Close' : 'Log a set'}
-        </button>
+        {restUntil ? (
+          <span className="label" style={{ marginLeft: 'auto', color: 'var(--sage)', padding: '10px 0' }}>
+            rest {mmss(restLeft / 1000)}
+          </span>
+        ) : (
+          <button
+            className="label"
+            onClick={() => setOpen((v) => !v)}
+            style={{ marginLeft: 'auto', color: 'var(--amber)', padding: '10px 0 10px 12px' }}
+          >
+            {open ? 'Close' : 'Log a set'}
+          </button>
+        )}
       </div>
 
       {open && (
@@ -484,7 +518,7 @@ function Lift({
               key={v}
               className="btn"
               style={{ width: 'auto', flex: '1 1 26%', padding: '12px 8px', minHeight: 48 }}
-              onClick={() => onLog(v)}
+              onClick={() => log(v)}
             >
               <span className="num" style={{ fontSize: 20 }}>
                 {v}

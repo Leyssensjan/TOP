@@ -3,8 +3,8 @@
  * Not part of the app. Run with: npx tsx scripts/verify-rules.ts
  */
 import { readFileSync } from 'node:fs';
-import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow, strengthLevelUpProposals, unitOf } from '../lib/rules';
-import { STRENGTH } from '../lib/config';
+import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow, strengthLevelUpProposals, unitOf, slotUnlockProposal, chooseProposal, assistedSlots, sessionsNeeded, flowsSinceUnlock, sessionsUntilNextSlot, nextSlotToUnlock } from '../lib/rules';
+import { MICRO_ASSIST, ROUND_RAMP, SLOT_UNLOCK, STRENGTH } from '../lib/config';
 import { weekStart } from '../lib/dates';
 import { parse, applyBaseline, SOURCE } from './skate-migration';
 import type { Micro, MicroLogEntry, SessionLog, Skill, Slot, StrengthSet } from '../lib/types';
@@ -20,6 +20,13 @@ const fixture = JSON.parse(readFileSync(new URL('./notion-snapshot.json', import
 
 const { slots, skills, micros, microLog, sessions, today } = fixture;
 const week = weekStart(today);
+
+/** Local date arithmetic, so the checks do not depend on the app's helpers. */
+function addDaysStr(date: string, days: number): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
 let failures = 0;
 
 function check(label: string, condition: boolean, detail: string) {
@@ -276,6 +283,7 @@ const easySessions: SessionLog[] = [0, 1, 2].map((i) => ({
   actualMinutes: 18, completed: true, difficulty: 'easy', soreness: '', notes: '',
   skillsPracticed: [slot1Skill.name], distanceKm: null, route: '',
 }));
+const primedSkills = primed;
 const proposals = levelUpProposals(slots, primed, easySessions, today);
 check('Level-up proposed after 8 sessions with 3 easy', proposals.some((p) => p.slot === 1), `${proposals.length} proposals`);
 
@@ -284,6 +292,155 @@ check('No level-up when the last three were not easy', levelUpProposals(slots, p
 
 const deferred = primed.map((s) => (s.id === slot1Skill.id ? { ...s, levelUpDeferred: today } : s));
 check('Deferring silences the proposal', levelUpProposals(slots, deferred, easySessions, today).every((p) => p.slot !== 1), '');
+
+// --- the three axes: depth, breadth, volume --------------------------------
+// Breadth is the axis worth the most and the one gated hardest.
+
+const topRounds = ROUND_RAMP[ROUND_RAMP.length - 1].rounds;
+const ready = (n: number): SessionLog[] =>
+  Array.from({ length: n }, (_, i) => ({
+    id: `f${i}`, name: `flow d${i} [f${i}]`, date: addDaysStr(today, -(n - i)), type: 'flow' as const,
+    plannedMinutes: 18, actualMinutes: 18, completed: true, difficulty: 'right' as const,
+    soreness: '', notes: '', skillsPracticed: [], distanceKm: null, route: '',
+  }));
+
+// Exactly half the active slots at level 2 or above, which is the depth
+// condition sitting right on its boundary.
+const activeIds = slots.filter((s) => s.active).map((s) => s.id);
+const toDeepen = new Set(activeIds.slice(0, Math.ceil(activeIds.length * SLOT_UNLOCK.depthFraction)));
+const deepSlots = slots.map((s) => (toDeepen.has(s.id) ? { ...s, currentLevel: 2 } : s));
+const manyFlows = ready(40);
+
+check(
+  'A slot unlock needs all four conditions together',
+  slotUnlockProposal(deepSlots, manyFlows, today) !== null,
+  `${slots.filter((s) => s.active).length} active`,
+);
+check(
+  'Too few sessions blocks the unlock',
+  slotUnlockProposal(deepSlots, ready(SLOT_UNLOCK.minSessions - 1), today) === null,
+  '',
+);
+check(
+  'A hard session in the recent window blocks the unlock',
+  slotUnlockProposal(
+    deepSlots,
+    manyFlows.map((s, i) => (i === manyFlows.length - 1 ? { ...s, difficulty: 'hard' as const } : s)),
+    today,
+  ) === null,
+  '',
+);
+check(
+  'Shallow depth blocks the unlock even with the sessions banked',
+  slotUnlockProposal(slots, manyFlows, today) === null,
+  'all slots at level 1',
+);
+check(
+  'Volume must be maxed before breadth increases',
+  slotUnlockProposal(deepSlots, ready(SLOT_UNLOCK.minSessions), today) === null ||
+    roundsForFlow(SLOT_UNLOCK.minSessions) === topRounds,
+  '',
+);
+
+// The reset is the point: a longer sequence at fewer rounds is the same
+// morning. It only works because the ramp counts flows since the last unlock.
+const proposal = slotUnlockProposal(deepSlots, manyFlows, today)!;
+check(
+  'Unlocking resets rounds to the bottom band',
+  proposal.roundsBefore === topRounds && proposal.roundsAfter === ROUND_RAMP[0].rounds,
+  `${proposal.roundsBefore} to ${proposal.roundsAfter}`,
+);
+const afterUnlock = deepSlots.map((s) => (s.id === proposal.slotId ? { ...s, active: true, unlockedOn: today } : s));
+check(
+  'And the reset is real: the ramp counts flows since that unlock',
+  roundsForFlow(flowsSinceUnlock(afterUnlock, manyFlows)) === ROUND_RAMP[0].rounds,
+  `${flowsSinceUnlock(afterUnlock, manyFlows)} flows since`,
+);
+check(
+  'The next slot to unlock is the one with the lowest unlock order',
+  nextSlotToUnlock(slots)?.name === slots.filter((s) => !s.active).sort((a, b) => a.unlockOrder - b.unlockOrder)[0].name,
+  `${nextSlotToUnlock(slots)?.name}`,
+);
+check(
+  'The horizon counts down and never goes negative',
+  (sessionsUntilNextSlot(slots, ready(3)) ?? -1) === SLOT_UNLOCK.minSessions - 3 &&
+    (sessionsUntilNextSlot(slots, manyFlows) ?? -1) === 0,
+  `${sessionsUntilNextSlot(slots, ready(3))} then ${sessionsUntilNextSlot(slots, manyFlows)}`,
+);
+
+// One proposal, ever. Breadth beats depth beats strength.
+const movementProposal = levelUpProposals(slots, primedSkills, easySessions, today);
+const strengthProposal = strengthLevelUpProposals(skills, threeOfEight, [cleanSession], today);
+check(
+  'Only one proposal is ever offered',
+  chooseProposal(proposal, movementProposal, strengthProposal)?.kind === 'slot',
+  '',
+);
+check(
+  'Depth is offered when there is no slot to unlock',
+  chooseProposal(null, movementProposal, strengthProposal)?.kind === 'movement',
+  '',
+);
+check(
+  'Strength comes last',
+  chooseProposal(null, [], strengthProposal)?.kind === 'strength',
+  '',
+);
+check('Nothing due means no card at all', chooseProposal(null, [], []) === null, '');
+
+// --- micros as accelerants -------------------------------------------------
+const kettle = micros.find((m) => m.feedsSlot !== null && m.weeklyTarget)!;
+const hitWeeks = (weeks: number): MicroLogEntry[] =>
+  Array.from({ length: weeks }, (_, w) => ({
+    id: `ml${w}`, name: kettle.name, date: addDaysStr(weekStart(today), -7 * (w + 1)),
+    count: Math.ceil(kettle.weeklyTarget! * MICRO_ASSIST.threshold), weekStart: null,
+  }));
+
+check(
+  'Two consecutive weeks at the threshold lowers the bar',
+  assistedSlots([kettle], hitWeeks(MICRO_ASSIST.weeks), today).has(kettle.feedsSlot!),
+  `${kettle.name} feeds slot ${kettle.feedsSlot}`,
+);
+check(
+  'One week is not enough',
+  !assistedSlots([kettle], hitWeeks(1), today).has(kettle.feedsSlot!),
+  '',
+);
+check(
+  'The lowered bar is the configured one',
+  sessionsNeeded(kettle.feedsSlot!, assistedSlots([kettle], hitWeeks(MICRO_ASSIST.weeks), today)) ===
+    MICRO_ASSIST.assistedSessions,
+  `${MICRO_ASSIST.assistedSessions} instead of 8`,
+);
+check(
+  'An assisted slot proposes sooner, and says it was assisted',
+  levelUpProposals(
+    slots,
+    skills.map((s) => (s.slot === 1 && s.level === 1 ? { ...s, sessionsAtLevel: MICRO_ASSIST.assistedSessions } : s)),
+    easySessions,
+    today,
+    new Set([1]),
+  ).some((p) => p.slot === 1 && p.assisted),
+  '',
+);
+check(
+  'Without the assist, the same slot is not yet due',
+  levelUpProposals(
+    slots,
+    skills.map((s) => (s.slot === 1 && s.level === 1 ? { ...s, sessionsAtLevel: MICRO_ASSIST.assistedSessions } : s)),
+    easySessions,
+    today,
+  ).length === 0,
+  '',
+);
+
+// --- the thread always shows the whole structure ---------------------------
+check(
+  'A short session still reports every unlocked slot to the thread',
+  short.activeSlotIds.length === slots.filter((s) => s.active).length &&
+    short.movements.length <= short.activeSlotIds.length,
+  `${short.movements.length} in play of ${short.activeSlotIds.length} unlocked`,
+);
 
 // --- micro rotation on the real micros ---
 const rot = rotateMicros(micros, microLog, slots, skills, week, false);
@@ -312,8 +469,8 @@ check('Micro progress covers only active micros', progress.every((p) => micros.f
   const asSkills: Skill[] = raw.map((r) => ({
     id: `t-${r.skillId}`, name: r.name, domain: 'skate', slot: null, level: r.level,
     status: r.status, cues: '', referenceTerm: '', entryPosition: '', exitPosition: '',
-    whyBuilds: '', whyUnlocks: '', sessionsAtLevel: 0, lastPracticed: null,
-    levelUpDeferred: null, durationSeconds: null, unit: null, skillId: r.skillId, family: r.family,
+    whyBuilds: '', whyUnlocks: '', whySkate: '', sessionsAtLevel: 0, lastPracticed: null,
+    levelUpDeferred: null, durationSeconds: null, unit: null, servesSlot: null, skillId: r.skillId, family: r.family,
     prereqs: r.prereqs, attempts: 0,
   }));
 

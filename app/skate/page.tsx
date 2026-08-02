@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Detail from '@/components/Detail';
 import { ApiError, api, getKey } from '@/lib/client/store';
 import { SKATE_FIRST_RUN_TIERS } from '@/lib/config';
 
@@ -20,6 +21,8 @@ interface Trick {
   attempts: number;
   lastPracticed: string | null;
   unlockable: boolean;
+  whySkate: string;
+  builtBy: { slots: string[]; families: string[] };
 }
 
 interface FocusTrick {
@@ -50,6 +53,7 @@ export default function SkatePage() {
   const [error, setError] = useState<string | null>(null);
   const [level, setLevel] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
   const [firstRun, setFirstRun] = useState(false);
 
   const load = useCallback(async () => {
@@ -200,39 +204,64 @@ export default function SkatePage() {
 
           <div className="stack">
             {shown.map((trick) => (
-              <button
-                key={trick.id}
-                disabled={busy === trick.id}
-                onClick={() => void cycle(trick)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '14px 16px',
-                  borderRadius: 12,
-                  background: 'var(--ink-raised)',
-                  border: `1px solid ${trick.unlockable && trick.status === 'locked' ? 'var(--amber-dim)' : 'var(--ink-line)'}`,
-                  minHeight: 'var(--tap)',
-                }}
-              >
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', color: trick.status === 'locked' ? 'var(--muted)' : 'var(--text)' }}>
-                    {trick.name}
-                  </span>
-                  <span style={{ display: 'block', fontSize: 13, color: 'var(--muted)' }}>{trick.family}</span>
-                </span>
-                <span className="label" style={{ color: COLOUR[trick.status], flex: 'none' }}>
-                  {trick.status}
-                </span>
-              </button>
+              <div key={trick.id}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    width: '100%',
+                    borderRadius: 12,
+                    background: 'var(--ink-raised)',
+                    border: `1px solid ${trick.unlockable && trick.status === 'locked' ? 'var(--amber-dim)' : 'var(--ink-line)'}`,
+                  }}
+                >
+                  {/* Tapping the name opens the detail; tapping the status
+                      cycles it. Two targets, so neither is accidental. */}
+                  <button
+                    onClick={() => setOpen(open === trick.id ? null : trick.id)}
+                    aria-expanded={open === trick.id}
+                    style={{ flex: 1, minWidth: 0, textAlign: 'left', padding: '14px 0 14px 16px', minHeight: 'var(--tap)' }}
+                  >
+                    <span style={{ display: 'block', color: trick.status === 'locked' ? 'var(--muted)' : 'var(--text)' }}>
+                      {trick.name}
+                    </span>
+                    <span style={{ display: 'block', fontSize: 13, color: 'var(--muted)' }}>{trick.family}</span>
+                  </button>
+                  <button
+                    className="label"
+                    disabled={busy === trick.id}
+                    onClick={() => void cycle(trick)}
+                    style={{ color: COLOUR[trick.status], flex: 'none', padding: '18px 16px' }}
+                  >
+                    {trick.status}
+                  </button>
+                </div>
+
+                {open === trick.id && (
+                  <Detail
+                    rows={[
+                      { label: 'Skate', value: trick.whySkate },
+                      {
+                        label: 'Built by',
+                        links: [
+                          ...trick.builtBy.slots.map((name) => ({ label: name, onClick: () => router.push('/form') })),
+                          ...trick.builtBy.families.map((f) => ({ label: f, onClick: () => router.push('/strength') })),
+                        ],
+                      },
+                      { label: 'Needs', value: trick.prereqs.join(', ') },
+                    ]}
+                    progress={`Level ${trick.level}${trick.lastPracticed ? ` · last ${trick.lastPracticed}` : ''}`}
+                    referenceTerm={trick.name}
+                  />
+                )}
+              </div>
             ))}
           </div>
 
           <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 'auto' }}>
-            Tap to move a trick on: locked, in progress, mastered. An amber edge means every prerequisite is
-            mastered.
+            Tap the status to move a trick on: locked, in progress, mastered. An amber edge means every
+            prerequisite is mastered.
           </p>
         </>
       )}

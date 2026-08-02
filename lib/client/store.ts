@@ -25,23 +25,37 @@ export interface TodayPayload {
     streakWeeks: number;
   };
   suggestion?: { type: string; line: string; reasons: string[] };
-  proposals: Array<{
-    slot: number;
-    slotName: string;
-    fromLevel: number;
-    toLevel: number;
-    currentSkillName: string;
-    nextSkillName: string;
-  }>;
-  strengthProposals?: Array<{
-    family: string;
-    fromLevel: number;
-    toLevel: number;
-    currentSkillName: string;
-    nextSkillName: string;
-    unit: 'reps' | 'seconds';
-    clearedSets: number;
-  }>;
+  /** At most one, ever. Breadth beats depth beats strength. */
+  proposal:
+    | { kind: 'slot'; slot: { slot: number; name: string; sessionsSinceUnlock: number; roundsAfter: number } }
+    | {
+        kind: 'movement';
+        movement: {
+          slot: number;
+          slotName: string;
+          fromLevel: number;
+          toLevel: number;
+          currentSkillName: string;
+          nextSkillName: string;
+          assisted: boolean;
+          needed: number;
+        };
+      }
+    | {
+        kind: 'strength';
+        strength: {
+          family: string;
+          fromLevel: number;
+          toLevel: number;
+          currentSkillName: string;
+          nextSkillName: string;
+          unit: 'reps' | 'seconds';
+          clearedSets: number;
+        };
+      }
+    | null;
+  /** The arc, stated every morning. The only place it appears daily. */
+  horizon: { slot: number; name: string; inSessions: number | null } | null;
 }
 
 /** One set logged during a Strength session, held locally until Close. */

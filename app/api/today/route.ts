@@ -1,14 +1,23 @@
 import { handle } from '@/lib/api';
 import { addDays, isValidDate, today as todayDate } from '@/lib/dates';
 import {
-  countFlowSessions,
+  assistedSlots,
+  chooseProposal,
+  flowsSinceUnlock,
   levelUpProposals,
+  nextSlotToUnlock,
   planSession,
   rollingStatus,
+  sessionsUntilNextSlot,
   skateFocus,
+  slotUnlockProposal,
   strengthLevelUpProposals,
+  rotateMicros,
+  assistStreaks,
 } from '@/lib/rules';
 import { suggestNext } from '@/lib/planner';
+import { MICRO_ROTATION } from '@/lib/config';
+import { weekStart } from '@/lib/dates';
 import { getStore } from '@/lib/store';
 import type { SessionType } from '@/lib/types';
 
@@ -22,14 +31,24 @@ export async function GET(req: Request) {
     const date = isValidDate(dateParam) ? dateParam : todayDate();
 
     const store = getStore();
-    const [slots, movementSkills, strengthSkills, planEntry, sessions, sets] = await Promise.all([
-      store.getSlots(),
-      store.getSkills('movement'),
-      store.getSkills('strength'),
-      store.getPlanForDay(date),
-      store.getSessionsSince(addDays(date, -120)),
-      store.getStrengthSetsSince(addDays(date, -120)),
-    ]);
+    const [slots, movementSkills, strengthSkills, planEntry, sessions, sets, micros, microLog] =
+      await Promise.all([
+        store.getSlots(),
+        store.getSkills('movement'),
+        store.getSkills('strength'),
+        store.getPlanForDay(date),
+        // Slot unlocks are counted over the whole history, not a rolling window.
+        store.getSessionsSince(addDays(date, -1200)),
+        store.getStrengthSetsSince(addDays(date, -400)),
+        store.getMicros(),
+        // Far enough back for both the assist streak and the retirement window.
+        store.getMicroLogSince(addDays(date, -7 * (MICRO_ROTATION.retireAfterUntouchedWeeks + MICRO_ASSIST_LOOKBACK))),
+      ]);
+
+    // Rotation used to run only when a week was generated, and week generation
+    // was removed — so it never ran at all. It is deterministic for a given
+    // week, so running it every morning converges and then writes nothing.
+    await reconcileMicros(store, micros, microLog, slots, movementSkills, date);
 
     // A planned day wins. Otherwise the suggestion decides, so the big number
     // and the suggestion line can never contradict each other.
@@ -42,7 +61,7 @@ export async function GET(req: Request) {
     const source = planEntry ? 'plan' : 'default';
 
     const skills = [...movementSkills, ...strengthSkills];
-    const flowsDone = countFlowSessions(sessions);
+    const flowsDone = flowsSinceUnlock(slots, sessions);
     const session = planSession(
       slots,
       skills,
@@ -61,6 +80,9 @@ export async function GET(req: Request) {
       session.skate = { focus: skateFocus(await store.getSkills('skate'), date) };
     }
 
+    const assisted = assistedSlots(micros, microLog, date);
+    const nextSlot = nextSlotToUnlock(slots);
+    const untilNextSlot = sessionsUntilNextSlot(slots, sessions);
     const loggedToday = sessions.filter((s) => s.date === date && s.completed);
 
     return {
@@ -72,9 +94,56 @@ export async function GET(req: Request) {
       rolling: rollingStatus(sessions, date),
       suggestion,
       flowSessionsCompleted: flowsDone,
-      proposals: levelUpProposals(slots, skills, sessions, date),
-      strengthProposals: strengthLevelUpProposals(strengthSkills, sets, sessions, date),
+      // At most one decision on a dark morning. Breadth beats depth.
+      proposal: chooseProposal(
+        slotUnlockProposal(slots, sessions, date),
+        levelUpProposals(slots, skills, sessions, date, assisted),
+        strengthLevelUpProposals(strengthSkills, sets, sessions, date),
+      ),
+      // The horizon: the only place the arc is stated every single morning.
+      horizon: nextSlot
+        ? { slot: nextSlot.slotId || nextSlot.sequence, name: nextSlot.name, inSessions: untilNextSlot }
+        : null,
       store: store.name,
     };
   });
+}
+
+/** Weeks of history the assist streak needs on top of the retirement window. */
+const MICRO_ASSIST_LOOKBACK = 4;
+
+/**
+ * Bring Notion in line with what the rotation rule wants, writing only the rows
+ * that actually differ. Idempotent, so calling it on every Today load is safe
+ * and settles to zero writes once the week's set is correct.
+ */
+async function reconcileMicros(
+  store: ReturnType<typeof getStore>,
+  micros: Awaited<ReturnType<ReturnType<typeof getStore>['getMicros']>>,
+  microLog: Awaited<ReturnType<ReturnType<typeof getStore>['getMicroLogSince']>>,
+  slots: Awaited<ReturnType<ReturnType<typeof getStore>['getSlots']>>,
+  skills: Awaited<ReturnType<ReturnType<typeof getStore>['getSkills']>>,
+  date: string,
+) {
+  const week = weekStart(date);
+  const rotation = rotateMicros(micros, microLog, slots, skills, week, false);
+  const streaks = assistStreaks(micros, microLog, date);
+
+  const wanted = new Map<string, { active: boolean; retired: boolean }>();
+  for (const m of micros) wanted.set(m.id, { active: m.active, retired: m.retired });
+  for (const m of rotation.activate) wanted.set(m.id, { active: true, retired: false });
+  for (const m of rotation.deactivate) wanted.set(m.id, { active: false, retired: false });
+  for (const m of rotation.retire) wanted.set(m.id, { active: false, retired: true });
+
+  const writes = micros.flatMap((m) => {
+    const want = wanted.get(m.id)!;
+    const streak = streaks.get(m.id) ?? 0;
+    const patch: { active?: boolean; retired?: boolean; assistStreakWeeks?: number } = {};
+    if (want.active !== m.active) patch.active = want.active;
+    if (want.retired !== m.retired) patch.retired = want.retired;
+    if (streak !== m.assistStreakWeeks) patch.assistStreakWeeks = streak;
+    return Object.keys(patch).length ? [store.updateMicro(m.id, patch)] : [];
+  });
+
+  await Promise.all(writes);
 }

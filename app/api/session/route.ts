@@ -1,6 +1,6 @@
 import { BadRequest, handle } from '@/lib/api';
 import { addDays, isValidDate, today as todayDate } from '@/lib/dates';
-import { levelUpProposals, rollingStatus } from '@/lib/rules';
+import { flowsSinceUnlock, roundsForFlow, rollingStatus } from '@/lib/rules';
 import { getStore } from '@/lib/store';
 import type { Difficulty, SessionType } from '@/lib/types';
 
@@ -66,7 +66,6 @@ export async function POST(req: Request) {
           session: existing,
           duplicate: true,
           rolling: rollingStatus(recent, date),
-          proposals: levelUpProposals(slots, skills, recent, date),
           store: store.name,
         };
       }
@@ -129,17 +128,30 @@ export async function POST(req: Request) {
     }
 
     const after = [...recent, { ...session }];
-    const skillsAfter = skills.map((s) =>
-      completed && practiced.some((p) => p.id === s.id)
-        ? { ...s, sessionsAtLevel: (s.sessionsAtLevel ?? 0) + 1, lastPracticed: date }
-        : s,
-    );
+
+    // A round-ramp crossing is never a proposal — it just happens, and gets
+    // stated once. Only Flow advances the ramp.
+    let roundsUp: number | null = null;
+    if (completed && type === 'flow') {
+      const before = roundsForFlow(flowsSinceUnlock(slots, recent));
+      const now = roundsForFlow(flowsSinceUnlock(slots, after));
+      if (now > before) {
+        roundsUp = now;
+        await store.createMilestone({
+          date,
+          kind: 'rounds up',
+          subject: `Rounds up to ${now}`,
+          detail: `The Form now runs ${now} times through.`,
+          session: clientId,
+        });
+      }
+    }
 
     return {
       session,
       duplicate: false,
+      roundsUp,
       rolling: rollingStatus(after, date),
-      proposals: levelUpProposals(slots, skillsAfter, after, date),
       store: store.name,
     };
   });

@@ -11,6 +11,9 @@ interface MicroRow {
   cue: string;
   duration: string;
   feedsSlot: number | null;
+  feedsName: string | null;
+  /** The assist rule is live for this micro's slot. */
+  assisting: boolean;
   weeklyTarget: number | null;
   count: number;
 }
@@ -116,6 +119,31 @@ export default function MicrosPage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 17, marginBottom: 3 }}>{row.name}</div>
                 <div style={{ fontSize: 14, color: 'var(--muted)' }}>{row.trigger}</div>
+                {/* What it feeds, which is the reason to do it at all. */}
+                {row.feedsName && (
+                  <div
+                    role="link"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push('/form');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.stopPropagation();
+                        router.push('/form');
+                      }
+                    }}
+                    style={{
+                      fontSize: 14,
+                      marginTop: 3,
+                      color: row.assisting ? 'var(--sage)' : 'var(--muted)',
+                    }}
+                  >
+                    feeds {row.feedsName}
+                    {row.assisting && ' · assisting'}
+                  </div>
+                )}
               </div>
               <div style={{ textAlign: 'right', flex: 'none' }}>
                 <span

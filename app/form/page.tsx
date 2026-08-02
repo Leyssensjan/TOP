@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Detail from '@/components/Detail';
 import { ApiError, api, getKey } from '@/lib/client/store';
-import { LEVELUP_MIN_SESSIONS } from '@/lib/config';
 
 interface LadderEntry {
   id: string;
@@ -13,8 +13,9 @@ interface LadderEntry {
   referenceTerm: string;
 }
 
-interface FormSlot {
+export interface FormSlot {
   slot: number;
+  slotId: number;
   name: string;
   active: boolean;
   inShortForm: boolean;
@@ -23,6 +24,12 @@ interface FormSlot {
   unlockOrder: number;
   entryPosition: string;
   exitPosition: string;
+  micros: Array<{ id: string; name: string; active: boolean }>;
+  strengthFamilies: string[];
+  assisted: boolean;
+  sessionsNeeded: number;
+  isNextToUnlock: boolean;
+  sessionsAway: number | null;
   current: {
     id: string;
     name: string;
@@ -31,6 +38,7 @@ interface FormSlot {
     referenceTerm: string;
     whyBuilds: string;
     whyUnlocks: string;
+    whySkate: string;
     sessionsAtLevel: number;
     lastPracticed: string | null;
   } | null;
@@ -41,6 +49,7 @@ interface FormSlot {
 interface StatePayload {
   form: FormSlot[];
   activeSlots: number;
+  horizon: { slot: number; name: string; inSessions: number | null } | null;
 }
 
 /**
@@ -50,7 +59,7 @@ interface StatePayload {
  */
 export default function FormPage() {
   const router = useRouter();
-  const [form, setForm] = useState<FormSlot[] | null>(null);
+  const [state, setState] = useState<StatePayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<number | null>(null);
 
@@ -60,8 +69,7 @@ export default function FormPage() {
       return;
     }
     try {
-      const state = await api<StatePayload>('/state');
-      setForm(state.form);
+      setState(await api<StatePayload>('/state'));
       setError(null);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) router.replace('/');
@@ -73,8 +81,10 @@ export default function FormPage() {
     void load();
   }, [load]);
 
+  const form = state?.form;
   const active = form?.filter((f) => f.active).length ?? 0;
   const levels = form?.reduce((sum, f) => sum + (f.active ? f.currentLevel : 0), 0) ?? 0;
+  const horizon = state?.horizon;
 
   return (
     <main className="screen" style={{ gap: 16 }}>
@@ -90,11 +100,16 @@ export default function FormPage() {
 
       {form && (
         <>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
             <span className="num" style={{ fontSize: 46, color: 'var(--amber)' }}>
               {active}
             </span>
-            <span style={{ color: 'var(--muted)' }}>of 12 slots · {levels} levels deep</span>
+            <span style={{ color: 'var(--muted)' }}>
+              of 12 slots · {levels} levels deep
+              {horizon && horizon.inSessions !== null && (
+                <span style={{ color: 'var(--amber)' }}> · slot {horizon.slot} in {horizon.inSessions} sessions</span>
+              )}
+            </span>
           </div>
 
           <div className="spine">
@@ -105,11 +120,11 @@ export default function FormPage() {
                   <button
                     className="spine-row"
                     data-active={slot.active}
+                    data-next={slot.isNextToUnlock}
                     aria-expanded={isOpen}
-                    style={{ ['--level' as string]: slot.currentLevel }}
                     onClick={() => setOpen(isOpen ? null : slot.slot)}
                   >
-                    <span className="spine-node" />
+                    <span className="spine-node mass" data-level={slot.active ? slot.currentLevel : 0} />
                     <span className="num spine-num" style={{ fontSize: 21 }}>
                       {slot.slot}
                     </span>
@@ -117,8 +132,18 @@ export default function FormPage() {
                       <span className="spine-name" style={{ display: 'block' }}>
                         {slot.active && slot.current ? slot.current.name : slot.name}
                       </span>
-                      <span style={{ display: 'block', fontSize: 13, color: 'var(--muted)' }}>
-                        {slot.active ? slot.name : `unlocks ${ordinal(slot.unlockOrder)}`}
+                      <span
+                        style={{
+                          display: 'block',
+                          fontSize: 13,
+                          color: slot.isNextToUnlock ? 'var(--amber-dim)' : 'var(--muted)',
+                        }}
+                      >
+                        {slot.active
+                          ? slot.name
+                          : slot.isNextToUnlock
+                            ? `unlocks next${slot.sessionsAway !== null ? ` · ${slot.sessionsAway} sessions away` : ''}`
+                            : `unlocks ${ordinal(slot.unlockOrder)}`}
                       </span>
                     </span>
                     {slot.active && (
@@ -128,7 +153,7 @@ export default function FormPage() {
                       </span>
                     )}
                   </button>
-                  {isOpen && <Detail slot={slot} />}
+                  {isOpen && <SlotDetail slot={slot} onGo={(path) => router.push(path)} />}
                 </div>
               );
             })}
@@ -139,58 +164,44 @@ export default function FormPage() {
   );
 }
 
-function Detail({ slot }: { slot: FormSlot }) {
+function SlotDetail({ slot, onGo }: { slot: FormSlot; onGo: (path: string) => void }) {
   const current = slot.current;
+  if (!current) return <div className="panel">No movement set for this slot.</div>;
+
   return (
-    <div className="detail">
-      {current ? (
-        <>
-          {current.cues && <p style={{ color: 'var(--text)' }}>{current.cues}</p>}
-          {current.whyBuilds && (
-            <p>
-              <strong>Builds</strong> {current.whyBuilds}
-            </p>
-          )}
-          {current.whyUnlocks && (
-            <p>
-              <strong>Unlocks</strong> {current.whyUnlocks}
-            </p>
-          )}
-          {current.referenceTerm && (
-            <p>
-              <strong>Look up</strong>{' '}
-              <a
-                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(current.referenceTerm)}`}
-                target="_blank"
-                rel="noreferrer"
-                style={{ color: 'var(--amber)' }}
-              >
-                {current.referenceTerm}
-              </a>
-            </p>
-          )}
-          <p>
-            {slot.entryPosition} to {slot.exitPosition}
-            {slot.inShortForm && ' · in the short form'}
-          </p>
-          {slot.active && (
-            <p>
-              {current.sessionsAtLevel} of {LEVELUP_MIN_SESSIONS} sessions at this level
-              {current.lastPracticed && ` · last ${current.lastPracticed}`}
-            </p>
-          )}
-          {slot.next ? (
-            <p>
-              <strong>Next</strong> {slot.next.name} at level {slot.next.level}
-            </p>
-          ) : (
-            <p>Top of the ladder.</p>
-          )}
-        </>
-      ) : (
-        <p>No movement set for this slot.</p>
-      )}
-    </div>
+    <Detail
+      rows={[
+        { label: 'Cues', value: current.cues },
+        { label: 'Builds', value: current.whyBuilds },
+        { label: 'Opens', value: slot.next ? `${slot.next.name}, level ${slot.next.level}` : 'Top of the ladder.' },
+        {
+          label: 'Micros',
+          links: slot.micros.map((m) => ({ label: m.name, onClick: () => onGo('/micros') })),
+        },
+        {
+          label: 'Strength',
+          links: slot.strengthFamilies.map((f) => ({ label: f, onClick: () => onGo('/strength') })),
+        },
+        { label: 'Skate', value: current.whySkate },
+        {
+          label: 'Chain',
+          value: `${slot.entryPosition} to ${slot.exitPosition}${slot.inShortForm ? ' · in the short form' : ''}`,
+        },
+      ]}
+      footnote={
+        slot.assisted ? (
+          <>Micros have lowered the bar here: {slot.sessionsNeeded} sessions instead of 8.</>
+        ) : null
+      }
+      progress={
+        slot.active
+          ? `${current.sessionsAtLevel} of ${slot.sessionsNeeded} sessions at this level${
+              current.lastPracticed ? ` · last ${current.lastPracticed}` : ''
+            }`
+          : undefined
+      }
+      referenceTerm={current.referenceTerm}
+    />
   );
 }
 

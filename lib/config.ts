@@ -9,6 +9,7 @@ export const DATA_SOURCES = {
   micros: '13734eb0-cb98-4c1e-bbf2-9637f2831537',
   microLog: 'b45bc1c1-16e9-4516-aefe-3bbc0ffb63a6',
   strengthLog: 'e2e0df58-be03-4c5e-bcab-df20881b6d45',
+  milestones: 'c4df4d86-0085-4aa7-8722-1e1302801b33',
 } as const;
 
 // Data source IDs require 2025-09-03 or later.
@@ -83,6 +84,16 @@ export const STRENGTH = {
   /** The quick-pick values on the set logger. Jan can still type any number. */
   repChoices: [3, 5, 6, 8, 10, 12],
   secondChoices: [15, 20, 30, 45, 60, 90],
+  /**
+   * Which Form slot each ladder serves. Notion's "Serves slot" wins; this is
+   * the fallback. Pull deliberately serves nothing — see `notes` below.
+   */
+  serves: { Pull: null, Push: 6, 'Single leg': 12, Hinge: 9, Hang: 10 } as Record<string, number | null>,
+  /**
+   * A ladder that serves nothing in the Form needs its justification stated
+   * where it will be read on the morning the session is about to be skipped.
+   */
+  notes: { Pull: 'Nothing on the floor trains this.' } as Record<string, string>,
 };
 
 /**
@@ -121,6 +132,64 @@ export const LEVELUP_MIN_SESSIONS = 8;
 export const LEVELUP_EASY_STREAK = 3;
 /** A deferred level-up stays quiet for this long. */
 export const LEVELUP_DEFER_DAYS = 14;
+
+/**
+ * The Form grows on three axes: depth (levels), breadth (slots) and volume
+ * (rounds). Breadth is the one worth the most, so it is gated hardest: the
+ * sequence only gets longer once you have stopped struggling with what you
+ * already have.
+ */
+export const SLOT_UNLOCK = {
+  /** Completed Flow sessions since the last unlock. */
+  minSessions: 10,
+  /** No session rated "hard" in this many most recent sessions. */
+  noHardWindow: 5,
+  /** This fraction of active slots must be at level 2 or above. */
+  depthFraction: 0.5,
+  /** Volume is maxed before breadth increases. */
+  requireTopOfRamp: true,
+  /**
+   * On unlock the round count resets to the bottom band, so a longer sequence
+   * at fewer rounds is the same session length. That reset is the point: the
+   * Form gets longer without the morning getting longer.
+   */
+  resetRounds: true,
+};
+
+/**
+ * Micros are accelerants. A slot whose micros have been hit consistently
+ * levels up sooner, and the proposal says so rather than asserting it.
+ */
+export const MICRO_ASSIST = {
+  /** Fraction of the weekly target that counts as hitting it. */
+  threshold: 0.8,
+  /** Consecutive weeks at that threshold. */
+  weeks: 2,
+  /** The reduced bar, replacing LEVELUP_MIN_SESSIONS for that slot. */
+  assistedSessions: 6,
+};
+
+/**
+ * At most one proposal on Today, ever. Three decisions on a dark morning is a
+ * chore list. Breadth beats depth: a longer Form is worth more than a harder
+ * one.
+ */
+export const PROPOSAL_PRIORITY = ['slot', 'movement', 'strength'] as const;
+
+/**
+ * Which Form slots and strength families build each skate trick family, for
+ * the "Built by" line. Only a fallback: a trick's own Why skate text wins.
+ */
+export const SKATE_BUILT_BY: Record<string, { slots: number[]; families: string[] }> = {
+  Pop: { slots: [4, 12], families: ['Single leg'] },
+  Rotation: { slots: [2, 10], families: ['Hang'] },
+  Manual: { slots: [1, 10], families: ['Hinge'] },
+  Balance: { slots: [1, 4], families: ['Single leg'] },
+  Grind: { slots: [4, 6], families: ['Single leg'] },
+  Slide: { slots: [3, 4], families: ['Single leg'] },
+  Transition: { slots: [4, 12], families: ['Single leg', 'Hinge'] },
+  Flip: { slots: [4, 12], families: ['Single leg'] },
+};
 
 /** Weekly target: three sessions per rolling seven days. */
 export const ROLLING_WINDOW_DAYS = 7;

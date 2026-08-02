@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ApiError, api, getKey } from '@/lib/client/store';
+import { ApiError, api, getKey, startSession, saveActive, getActive } from '@/lib/client/store';
+import { TARGET_MINUTES } from '@/lib/config';
+import { today as todayDate } from '@/lib/dates';
 
 interface Route {
   id: string;
@@ -41,6 +43,30 @@ export default function RoutesPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Starting from here pre-selects the route, so the Runner and the Close
+  // screen already know which one it was and how far it is.
+  const start = (route: Route) => {
+    const date = todayDate();
+    startSession(
+      {
+        date,
+        type: 'engine',
+        source: 'default',
+        targetMinutes: TARGET_MINUTES.engine ?? 30,
+        totalSeconds: (TARGET_MINUTES.engine ?? 30) * 60,
+        rounds: 1,
+        movements: [],
+        activeSlotIds: [],
+        engine: { routes: routes ?? [] },
+        note: null,
+      },
+      date,
+    );
+    const active = getActive();
+    if (active) saveActive({ ...active, routeName: route.name, distanceKm: route.distanceKm });
+    router.push('/runner');
+  };
 
   return (
     <main className="screen" style={{ gap: 16 }}>
@@ -93,16 +119,26 @@ export default function RoutesPage() {
                   .join(' · ')}
               </p>
 
-              {route.mapLink && (
-                <a
-                  href={route.mapLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ color: 'var(--amber)', fontSize: 15 }}
+              <div style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
+                {/* One tap from reading a route to running it. */}
+                <button
+                  className="label"
+                  style={{ color: 'var(--amber)', padding: '10px 0' }}
+                  onClick={() => start(route)}
                 >
-                  Open the map
-                </a>
-              )}
+                  Run this
+                </button>
+                {route.mapLink && (
+                  <a
+                    href={route.mapLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: 'var(--amber)', fontSize: 15 }}
+                  >
+                    Open the map
+                  </a>
+                )}
+              </div>
             </div>
           ))}
       </div>

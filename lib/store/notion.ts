@@ -11,6 +11,8 @@ import type {
   NewSession,
   NewSkill,
   NewStrengthSet,
+  NewMilestone,
+  Milestone,
   PlanEntry,
   Route,
   SessionLog,
@@ -128,11 +130,13 @@ function toSkill(page: NotionPage): Skill {
     exitPosition: rText(p['Exit position']),
     whyBuilds: rText(p['Why builds']),
     whyUnlocks: rText(p['Why unlocks']),
+    whySkate: rText(p['Why skate']),
     sessionsAtLevel: rNum(p['Sessions at level']) ?? 0,
     lastPracticed: rDate(p['Last practiced']),
     levelUpDeferred: rDate(p['Level up deferred']),
     durationSeconds: rNum(p['Duration seconds']),
     unit: (rSelect(p['Unit']) as Skill['unit']) ?? null,
+    servesSlot: rNum(p['Serves slot']),
     skillId: rText(p['Skill id']),
     family: rText(p['Family']),
     prereqs: rText(p['Prereqs'])
@@ -158,6 +162,7 @@ function toSlot(page: NotionPage): Slot {
     unlockOrder: rNum(p['Unlock order']) ?? 0,
     entryPosition: rText(p['Entry position']),
     exitPosition: rText(p['Exit position']),
+    unlockedOn: rDate(p['Unlocked on']),
   };
 }
 
@@ -193,6 +198,19 @@ function toStrengthSet(page: NotionPage): StrengthSet {
     set: rNum(p['Set']) ?? 0,
     reps: rNum(p['Reps']),
     seconds: rNum(p['Seconds']),
+    session: rText(p['Session']),
+  };
+}
+
+function toMilestone(page: NotionPage): Milestone {
+  const p = page.properties;
+  return {
+    id: page.id,
+    name: rTitle(p['Name']),
+    date: rDate(p['Date']) ?? '',
+    kind: (rSelect(p['Kind']) as Milestone['kind']) ?? 'level up',
+    subject: rText(p['Subject']),
+    detail: rText(p['Detail']),
     session: rText(p['Session']),
   };
 }
@@ -240,6 +258,7 @@ function toMicro(page: NotionPage): Micro {
     referenceTerm: rText(p['Reference term']),
     active: rCheck(p['Active']),
     retired: rCheck(p['Retired']),
+    assistStreakWeeks: rNum(p['Assist streak weeks']) ?? 0,
     stat: rMulti(p['Stat']),
   };
 }
@@ -369,6 +388,31 @@ export class NotionStore implements Store {
       },
     });
     return toStrengthSet(page);
+  }
+
+  async getMilestonesSince(since: string): Promise<Milestone[]> {
+    const pages = await queryAll(DATA_SOURCES.milestones, {
+      filter: { property: 'Date', date: { on_or_after: since } },
+    });
+    return pages.map(toMilestone);
+  }
+
+  async createMilestone(input: NewMilestone): Promise<Milestone> {
+    const page = await notionFetch('/pages', {
+      method: 'POST',
+      body: {
+        parent: { type: 'data_source_id', data_source_id: DATA_SOURCES.milestones },
+        properties: {
+          Name: wTitle(`${input.subject} — ${input.kind} ${input.date}`),
+          Date: wDate(input.date),
+          Kind: wSelect(input.kind),
+          Subject: wText(input.subject),
+          Detail: wText(input.detail),
+          Session: wText(input.session ?? ''),
+        },
+      },
+    });
+    return toMilestone(page);
   }
 
   async getPlanForDay(day: string): Promise<PlanEntry | null> {

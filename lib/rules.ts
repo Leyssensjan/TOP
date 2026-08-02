@@ -7,7 +7,10 @@ import {
   LEVELUP_MIN_SESSIONS,
   MAX_LEVEL,
   FLOW_SHORT_ROUNDS,
+  MICRO_ASSIST,
   MICRO_ROTATION,
+  PROPOSAL_PRIORITY,
+  SLOT_UNLOCK,
   ROUND_RAMP,
   SKATE_FOCUS,
   STRENGTH,
@@ -17,7 +20,7 @@ import {
   SLOT_SECONDS,
   TARGET_MINUTES,
 } from '@/lib/config';
-import { addDays, daysBetween } from '@/lib/dates';
+import { addDays, daysBetween, weekStart } from '@/lib/dates';
 import type { Micro, MicroLogEntry, Route, SessionLog, SessionType, Skill, Slot, StrengthSet } from '@/lib/types';
 
 export interface Movement {
@@ -61,6 +64,12 @@ export interface SessionPlan {
   rounds: number;
   /** One pass through the Form. The Runner repeats it `rounds` times. */
   movements: Movement[];
+  /**
+   * Every unlocked slot, not just today's. The thread always draws twelve
+   * nodes, and a Flow Short has to visibly sit inside the same structure as a
+   * full Flow rather than looking like a different, smaller Form.
+   */
+  activeSlotIds: number[];
   /** Only for Strength: the ladders, grouped into supersets. */
   strength?: { blocks: StrengthBlock[]; prescription: typeof STRENGTH.prescription };
   /** Only for Engine: the scouted routes, so one can be picked and logged. */
@@ -73,6 +82,10 @@ export interface SessionPlan {
 /**
  * Rounds ramp with experience. Session n is the (completed + 1)th Flow, and
  * takes the rounds of the first band it still fits inside. All in config.
+ *
+ * The count fed in is Flow sessions *since the last slot unlock*, not the
+ * lifetime total. That is what makes the unlock reset real: a longer sequence
+ * at fewer rounds is the same session length.
  */
 export function roundsForFlow(flowSessionsCompleted: number): number {
   const sessionNumber = Math.max(0, flowSessionsCompleted) + 1;
@@ -227,6 +240,9 @@ export interface LevelUpProposal {
   nextSkillId: string;
   nextSkillName: string;
   sessionsAtLevel: number;
+  /** True when micros lowered the bar. The proposal says so rather than hiding it. */
+  assisted: boolean;
+  needed: number;
 }
 
 const FORM_TYPES: SessionType[] = ['flow', 'flow short'];
@@ -291,6 +307,7 @@ export function planSession(
   flowSessionsCompleted = 0,
 ): SessionPlan {
   const targetMinutes = targetMinutesOverride ?? TARGET_MINUTES[type] ?? 20;
+  const activeSlotIds = slots.filter((s) => s.active).map((s) => s.slotId || s.sequence);
 
   if (type === 'strength') {
     const blocks = buildStrength(skills);
@@ -303,6 +320,7 @@ export function planSession(
       totalSeconds: targetMinutes * 60,
       rounds: 1,
       movements: [],
+      activeSlotIds,
       strength: hasContent ? { blocks, prescription: STRENGTH.prescription } : undefined,
       note: hasContent ? null : 'No strength movements found in Notion for the five ladders.',
     };
@@ -317,6 +335,7 @@ export function planSession(
       totalSeconds: targetMinutes * 60,
       rounds: 1,
       movements: [],
+      activeSlotIds,
       // Engine and Skate have no prescribed movement list by design. The Runner
       // gives them a stopwatch and the reference card they actually need.
       note:
@@ -340,6 +359,7 @@ export function planSession(
       totalSeconds: 0,
       rounds: 0,
       movements: [],
+      activeSlotIds,
       note: 'No active slots. Tick Active on at least one slot in Notion.',
     };
   }
@@ -356,6 +376,7 @@ export function planSession(
     totalSeconds: roundSeconds * rounds,
     rounds,
     movements,
+    activeSlotIds,
     note: null,
   };
 }
@@ -443,6 +464,7 @@ export function levelUpProposals(
   skills: Skill[],
   sessions: SessionLog[],
   today: string,
+  assisted: Set<number> = new Set(),
 ): LevelUpProposal[] {
   const proposals: LevelUpProposal[] = [];
   const history = sessions
@@ -457,7 +479,8 @@ export function levelUpProposals(
     const current = skills.find((s) => s.slot === slotId && s.level === slot.currentLevel);
     const next = skills.find((s) => s.slot === slotId && s.level === slot.currentLevel + 1);
     if (!current || !next) continue;
-    if (current.sessionsAtLevel < LEVELUP_MIN_SESSIONS) continue;
+    const needed = sessionsNeeded(slotId, assisted);
+    if (current.sessionsAtLevel < needed) continue;
 
     if (current.levelUpDeferred) {
       const since = daysBetween(current.levelUpDeferred, today);
@@ -480,6 +503,8 @@ export function levelUpProposals(
       nextSkillId: next.id,
       nextSkillName: next.name,
       sessionsAtLevel: current.sessionsAtLevel,
+      assisted: assisted.has(slotId),
+      needed,
     });
   }
   return proposals;
@@ -690,4 +715,166 @@ export function microProgress(
         .filter((l) => l.name === m.name && (l.weekStart === weekStartDate || l.date >= weekStartDate))
         .reduce((sum, l) => sum + (l.count || 0), 0),
     }));
+}
+
+// --- the three axes: depth, breadth, volume ---------------------------------
+
+/**
+ * Which slots have their level-up bar lowered because their micros have been
+ * hit consistently. This is the entire argument for micros, made mechanical:
+ * frequency work makes the movement come sooner, and the proposal says so.
+ */
+export function assistedSlots(micros: Micro[], logs: MicroLogEntry[], today: string): Set<number> {
+  const assisted = new Set<number>();
+  const thisWeek = weekStart(today);
+
+  for (const micro of micros) {
+    if (micro.feedsSlot === null) continue;
+    if (!micro.weeklyTarget) continue;
+
+    // Count backwards in whole weeks. A run is only a run if it is unbroken.
+    let streak = 0;
+    for (let w = 1; w <= MICRO_ASSIST.weeks; w += 1) {
+      const start = addDays(thisWeek, -7 * w);
+      const end = addDays(start, 6);
+      const count = logs
+        .filter((l) => l.name === micro.name && l.date >= start && l.date <= end)
+        .reduce((sum, l) => sum + l.count, 0);
+      if (count >= micro.weeklyTarget * MICRO_ASSIST.threshold) streak += 1;
+      else break;
+    }
+    if (streak >= MICRO_ASSIST.weeks) assisted.add(micro.feedsSlot);
+  }
+
+  return assisted;
+}
+
+/** Consecutive weeks each micro has hit its assist threshold. */
+export function assistStreaks(micros: Micro[], logs: MicroLogEntry[], today: string): Map<string, number> {
+  const thisWeek = weekStart(today);
+  const streaks = new Map<string, number>();
+
+  for (const micro of micros) {
+    if (!micro.weeklyTarget) {
+      streaks.set(micro.id, 0);
+      continue;
+    }
+    let streak = 0;
+    // Capped, because an unbounded walk backwards would read the whole log.
+    for (let w = 1; w <= 52; w += 1) {
+      const start = addDays(thisWeek, -7 * w);
+      const end = addDays(start, 6);
+      const count = logs
+        .filter((l) => l.name === micro.name && l.date >= start && l.date <= end)
+        .reduce((sum, l) => sum + l.count, 0);
+      if (count >= micro.weeklyTarget * MICRO_ASSIST.threshold) streak += 1;
+      else break;
+    }
+    streaks.set(micro.id, streak);
+  }
+
+  return streaks;
+}
+
+/** The level-up bar for a slot, lowered when its micros have been feeding it. */
+export function sessionsNeeded(slotId: number, assisted: Set<number>): number {
+  return assisted.has(slotId) ? MICRO_ASSIST.assistedSessions : LEVELUP_MIN_SESSIONS;
+}
+
+export interface SlotUnlockProposal {
+  slotId: string;
+  slot: number;
+  name: string;
+  unlockOrder: number;
+  sessionsSinceUnlock: number;
+  /** Rounds drop back to the bottom band, so the morning stays the same length. */
+  roundsAfter: number;
+  roundsBefore: number;
+}
+
+/** Flow sessions completed since the most recent slot joined the Form. */
+export function flowsSinceUnlock(slots: Slot[], sessions: SessionLog[]): number {
+  const unlockDates = slots.map((s) => s.unlockedOn).filter((d): d is string => Boolean(d)).sort();
+  const since = unlockDates[unlockDates.length - 1];
+  const flows = sessions.filter((s) => s.completed && s.type === 'flow');
+  return since ? flows.filter((s) => s.date >= since).length : flows.length;
+}
+
+/** How many more Flow sessions before the next slot can be proposed. */
+export function sessionsUntilNextSlot(slots: Slot[], sessions: SessionLog[]): number | null {
+  const next = nextSlotToUnlock(slots);
+  if (!next) return null;
+  return Math.max(0, SLOT_UNLOCK.minSessions - flowsSinceUnlock(slots, sessions));
+}
+
+/** The locked slot whose turn it is, by Unlock order. */
+export function nextSlotToUnlock(slots: Slot[]): Slot | null {
+  return (
+    slots
+      .filter((s) => !s.active)
+      .sort((a, b) => a.unlockOrder - b.unlockOrder)[0] ?? null
+  );
+}
+
+/**
+ * The Form grows when you have stopped struggling with what you have. All four
+ * conditions, all in config. Breadth is the axis worth the most, so it is the
+ * one gated hardest.
+ */
+export function slotUnlockProposal(
+  slots: Slot[],
+  sessions: SessionLog[],
+  today: string,
+): SlotUnlockProposal | null {
+  const next = nextSlotToUnlock(slots);
+  if (!next) return null;
+
+  const done = sessions.filter((s) => s.completed).sort((a, b) => (a.date < b.date ? 1 : -1));
+  const flows = flowsSinceUnlock(slots, sessions);
+  if (flows < SLOT_UNLOCK.minSessions) return null;
+
+  // Nothing hard recently: the current Form has to feel settled first.
+  if (done.slice(0, SLOT_UNLOCK.noHardWindow).some((s) => s.difficulty === 'hard')) return null;
+
+  // Volume is maxed before breadth increases.
+  const active = slots.filter((s) => s.active);
+  const topRounds = ROUND_RAMP[ROUND_RAMP.length - 1].rounds;
+  const roundsBefore = roundsForFlow(flows);
+  if (SLOT_UNLOCK.requireTopOfRamp && roundsBefore < topRounds) return null;
+
+  // And half the Form has to be past level one.
+  const deep = active.filter((s) => s.currentLevel >= 2).length;
+  if (active.length && deep / active.length < SLOT_UNLOCK.depthFraction) return null;
+
+  return {
+    slotId: next.id,
+    slot: next.slotId || next.sequence,
+    name: next.name,
+    unlockOrder: next.unlockOrder,
+    sessionsSinceUnlock: flows,
+    roundsBefore,
+    roundsAfter: SLOT_UNLOCK.resetRounds ? ROUND_RAMP[0].rounds : roundsBefore,
+  };
+}
+
+export type Proposal =
+  | { kind: 'slot'; slot: SlotUnlockProposal }
+  | { kind: 'movement'; movement: LevelUpProposal }
+  | { kind: 'strength'; strength: StrengthProposal };
+
+/**
+ * At most one proposal, ever. Three decisions on a dark morning turns the app
+ * into a chore list, and breadth is worth more than depth.
+ */
+export function chooseProposal(
+  slot: SlotUnlockProposal | null,
+  movements: LevelUpProposal[],
+  strength: StrengthProposal[],
+): Proposal | null {
+  for (const kind of PROPOSAL_PRIORITY) {
+    if (kind === 'slot' && slot) return { kind: 'slot', slot };
+    if (kind === 'movement' && movements[0]) return { kind: 'movement', movement: movements[0] };
+    if (kind === 'strength' && strength[0]) return { kind: 'strength', strength: strength[0] };
+  }
+  return null;
 }
