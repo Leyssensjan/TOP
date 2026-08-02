@@ -512,6 +512,19 @@ at the park with a list of trick names is not a session.
 | 35–42 | One stretch attempt | a locked trick with every prerequisite mastered |
 | 42–45 | Switch and fakie | the switch/fakie item |
 
+**Blocks with nothing on their card are dropped**, and their minutes handed to
+the blocks that do have something, in proportion. A young graph therefore gives
+a short honest session rather than a full-length one with idle stretches in it.
+The warm-up always survives and keeps its own length.
+
+**The cold start.** Every pick above needs something already mastered or
+current. Since everything begins locked — Jan's choice — the card would
+otherwise be empty until he had marked tricks by hand, which is exactly what
+happened. So a graph that knows nothing offers **the bottom of itself**: the
+five level-0 tricks, which is where anyone starts. Today that session is `Roll
+in` for 5 minutes, then 40 minutes on Stance discovery, Static balance, Safe
+bail reflex, Foot placement reset and Heel-toe press, each with its drills.
+
 - **Header**: `SKATE · BLOCK 2 OF 5`, `END`. A bar per block underneath, sized to
   its duration.
 - **The block clock**, smaller than elsewhere because the cards matter more.
@@ -971,7 +984,7 @@ loading spinners — screens that are loading say `LOADING` and nothing more.
 Jan is travelling for a month and cannot test any of this, so this section is
 deliberately blunt.
 
-**Verified against real Notion rows.** 90 automated checks run against a
+**Verified against real Notion rows.** 94 automated checks run against a
 snapshot of the actual database contents — the twelve slots, 48 movement skills,
 21 strength movements, 16 micros, and the real 190-trick skate graph. They
 cover: Form ordering by Sequence, movement resolution by Slot id, the closed
@@ -1008,7 +1021,10 @@ back and checked link by link.
 family-level and lives in config, because the source data has no per-trick
 fitness mapping — it is the coarsest thing in the app and expected to be wrong
 in places. And the skate block minutes are a straight guess: 10 minutes of rust
-confirmation and 20 on projects has never been tried.
+confirmation and 20 on projects has never been tried. The cold start assumes
+level-0 tricks are the right place to begin for someone who has skated before —
+it is a floor, not an assessment, and marking real levels on the Skate screen
+replaces it immediately.
 
 ---
 
