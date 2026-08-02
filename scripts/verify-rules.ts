@@ -4,7 +4,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow, strengthLevelUpProposals, unitOf, slotUnlockProposal, buildSkateSession, skateProposals, chooseProposal, assistedSlots, sessionsNeeded, flowsSinceUnlock, sessionsUntilNextSlot, nextSlotToUnlock } from '../lib/rules';
-import { MICRO_ASSIST, PLANNER, ROUND_RAMP, SKATE_SESSION, SLOT_UNLOCK, STRENGTH, TARGET_MINUTES } from '../lib/config';
+import { MICRO_ASSIST, PLANNER, ROUND_RAMP, SKATE_FOCUS, SKATE_SESSION, SLOT_UNLOCK, STRENGTH, TARGET_MINUTES } from '../lib/config';
 import { skateContent } from '../lib/skate-content';
 import { generateWeek } from '../lib/planner';
 import { weekStart } from '../lib/dates';
@@ -598,7 +598,35 @@ check('Micro progress covers only active micros', progress.every((p) => micros.f
     console.log(`  ${b.fromMinute}-${b.toMinute} ${b.label}: ${b.tricks.map((t) => t.name).join(', ') || '-'}`),
   );
 
-  check('A skate session is planned in blocks', blocks.length === SKATE_SESSION.blocks.length, `${blocks.length}`);
+  check('A skate session is planned in blocks', blocks.length > 1, `${blocks.length}`);
+  check(
+    'Blocks with nothing on their card are dropped, not run empty',
+    blocks.every((b) => b.warmUp || b.tricks.length > 0),
+    blocks.map((b) => `${b.label}:${b.tricks.length}`).join(' '),
+  );
+
+  // The cold start: everything locked is exactly Jan's real data today, and it
+  // used to produce a session with five empty blocks and nothing to do.
+  const allLocked: Skill[] = asSkills.map((t) => ({ ...t, status: 'locked' as const }));
+  const cold = buildSkateSession(allLocked, [], today);
+  const coldTricks = cold.flatMap((b) => b.tricks);
+  console.log(`  cold start: ${coldTricks.map((t) => t.name).join(', ')}`);
+  check(
+    'An all-locked graph still produces a session',
+    coldTricks.length === SKATE_FOCUS.coldStart,
+    `${coldTricks.length} tricks over ${cold.length} blocks`,
+  );
+  check(
+    'The cold start offers the bottom of the graph',
+    coldTricks.every((t) => t.level === 0),
+    coldTricks.map((t) => `L${t.level}`).join(' '),
+  );
+  check(
+    'And it still fills the session with drills to do',
+    coldTricks.every((t) => t.drills.length > 0) &&
+      cold[cold.length - 1].toMinute === TARGET_MINUTES.skate,
+    `ends at minute ${cold[cold.length - 1].toMinute}`,
+  );
   check(
     'Blocks cover the target minutes without gaps or overlap',
     blocks.every((b, i) => (i === 0 ? b.fromMinute === 0 : b.fromMinute === blocks[i - 1].toMinute)) &&

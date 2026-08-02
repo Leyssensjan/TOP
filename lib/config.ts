@@ -252,6 +252,13 @@ export const SKATE_FOCUS = {
   stretch: 1,
   switchOrFakie: 1,
   rustAfterDays: 21,
+  /**
+   * Every other pick needs something already mastered or current. Starting
+   * everything locked — which Jan chose — means the card would otherwise be
+   * empty until he had marked tricks by hand. So a graph that knows nothing
+   * offers the bottom of itself instead, which is where anyone starts anyway.
+   */
+  coldStart: 5,
 };
 
 /** A trick counts as switch or fakie work if its id contains one of these. */
@@ -269,10 +276,16 @@ export const SKATE_SESSION = {
   blocks: [
     { from: 0, to: 5, label: 'Roll in', reasons: [] as string[], warmUp: true },
     { from: 5, to: 15, label: 'Confirm the rusty ones', reasons: ['rusty'] },
-    { from: 15, to: 35, label: 'The projects', reasons: ['project'] },
+    { from: 15, to: 35, label: 'The projects', reasons: ['project', 'start here'] },
     { from: 35, to: 42, label: 'One stretch attempt', reasons: ['stretch'] },
     { from: 42, to: 45, label: 'Switch and fakie', reasons: ['switch or fakie'] },
   ],
+  /**
+   * A block with nothing on its card is dropped and its minutes handed to the
+   * blocks that do have something. A young graph then gives a short honest
+   * session rather than a full-length one with four idle stretches in it.
+   */
+  dropEmptyBlocks: true,
   /**
    * A trick proposes mastery once it has been landed this many times inside one
    * session. The gate text is what Jan actually judges against — most gates are

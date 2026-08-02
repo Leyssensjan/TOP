@@ -344,7 +344,7 @@ export function planSession(
         type === 'engine'
           ? 'Pick a route, or just go. The clock counts up.'
           : type === 'skate'
-            ? 'Work the focus card. The clock counts up.'
+            ? 'Nothing on the card yet. Mark what you can already do on Skate.'
             : 'No movement list for this type yet. Log it when you are done.',
     };
   }
@@ -530,7 +530,7 @@ export interface FocusTrick {
   family: string;
   level: number | null;
   status: string;
-  reason: 'rusty' | 'project' | 'stretch' | 'switch or fakie';
+  reason: 'rusty' | 'project' | 'stretch' | 'switch or fakie' | 'start here';
   lastPracticed: string | null;
   attempts: number;
 }
@@ -559,6 +559,18 @@ export function skateFocus(tricks: Skill[], today: string): FocusTrick[] {
       attempts: skill.attempts,
     });
   };
+
+  // A graph where nothing is mastered and nothing is current knows nothing
+  // about what Jan can already do, and every pick below would come back empty.
+  // The bottom of the graph is the honest answer: it is where anyone starts.
+  if (!tricks.some((t) => t.status !== 'locked')) {
+    tricks
+      .slice()
+      .sort((a, b) => (a.level ?? 0) - (b.level ?? 0) || a.prereqs.length - b.prereqs.length)
+      .slice(0, cfg.coldStart)
+      .forEach((t) => add(t, 'start here'));
+    return picked;
+  }
 
   // Rusty: mastered, but not confirmed inside the rust window. Oldest first.
   const rusty = tricks
@@ -944,13 +956,43 @@ export function buildSkateSession(tricks: Skill[], sets: SkateSet[], today: stri
     };
   };
 
-  return SKATE_SESSION.blocks.map((block) => ({
+  const built = SKATE_SESSION.blocks.map((block) => ({
     label: block.label,
     fromMinute: block.from,
     toMinute: block.to,
     warmUp: block.warmUp === true,
     tricks: focus.filter((f) => block.reasons.includes(f.reason)).map(card),
   }));
+
+  if (!SKATE_SESSION.dropEmptyBlocks) return built;
+
+  // Drop the blocks with nothing on their card, then hand their minutes to the
+  // ones that remain in proportion to what they were already given. The warm-up
+  // always survives and keeps its own length.
+  const kept = built.filter((b) => b.warmUp || b.tricks.length > 0);
+  if (kept.length === built.length) return built;
+
+  const total = built[built.length - 1]?.toMinute ?? 0;
+  const warmUpMinutes = kept.filter((b) => b.warmUp).reduce((n, b) => n + (b.toMinute - b.fromMinute), 0);
+  const working = kept.filter((b) => !b.warmUp);
+  const originalWorking = working.reduce((n, b) => n + (b.toMinute - b.fromMinute), 0);
+  if (!working.length || originalWorking === 0) return kept;
+
+  const available = total - warmUpMinutes;
+  let cursor = 0;
+  return kept.map((b, i) => {
+    const original = b.toMinute - b.fromMinute;
+    const share = b.warmUp
+      ? original
+      : // The last working block absorbs the rounding, so the session always
+        // ends exactly on the target minute.
+        i === kept.length - 1
+        ? total - cursor
+        : Math.round((original / originalWorking) * available);
+    const from = cursor;
+    cursor += share;
+    return { ...b, fromMinute: from, toMinute: cursor };
+  });
 }
 
 export interface SkateProposal {

@@ -158,6 +158,8 @@ export default function TodayPage() {
   // Engine and Skate are open sessions: no steps to prepare, but startable.
   const isOpen = session.type === 'engine' || session.type === 'skate';
   const canStart = hasMovements || hasStrength || isOpen;
+  const skateTricks = session.skate?.blocks.reduce((n, b) => n + b.tricks.length, 0) ?? 0;
+  const hasSkate = skateTricks > 0;
 
   return (
     <main className="screen">
@@ -180,7 +182,9 @@ export default function TodayPage() {
             ? `${session.movements.length} movements · ${session.rounds} ${session.rounds === 1 ? 'round' : 'rounds'}`
             : hasStrength
               ? `${strengthMovements} lifts · ${session.strength!.blocks.filter((b) => !b.warmUp).length} blocks`
-              : (session.note ?? '')}
+              : hasSkate
+                ? `${skateTricks} ${skateTricks === 1 ? 'trick' : 'tricks'} · ${session.skate!.blocks.length} blocks`
+                : (session.note ?? '')}
           {payload.rest && `${titleCase(session.type)} if you want it · `}
           {payload.horizon && payload.horizon.inSessions !== null && (
             <span style={{ color: 'var(--amber)' }}>
