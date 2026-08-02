@@ -4,7 +4,8 @@
  */
 import { readFileSync } from 'node:fs';
 import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow, strengthLevelUpProposals, unitOf, slotUnlockProposal, chooseProposal, assistedSlots, sessionsNeeded, flowsSinceUnlock, sessionsUntilNextSlot, nextSlotToUnlock } from '../lib/rules';
-import { MICRO_ASSIST, ROUND_RAMP, SLOT_UNLOCK, STRENGTH } from '../lib/config';
+import { MICRO_ASSIST, PLANNER, ROUND_RAMP, SLOT_UNLOCK, STRENGTH } from '../lib/config';
+import { generateWeek } from '../lib/planner';
 import { weekStart } from '../lib/dates';
 import { parse, applyBaseline, SOURCE } from './skate-migration';
 import type { Micro, MicroLogEntry, SessionLog, Skill, Slot, StrengthSet } from '../lib/types';
@@ -20,6 +21,14 @@ const fixture = JSON.parse(readFileSync(new URL('./notion-snapshot.json', import
 
 const { slots, skills, micros, microLog, sessions, today } = fixture;
 const week = weekStart(today);
+
+/** The seven planned types in day order. */
+function plannedTypes(week: ReturnType<typeof generateWeek>): string[] {
+  return week.entries
+    .slice()
+    .sort((a, b) => (a.day < b.day ? -1 : 1))
+    .map((e) => e.sessionType as string);
+}
 
 /** Local date arithmetic, so the checks do not depend on the app's helpers. */
 function addDaysStr(date: string, days: number): string {
@@ -440,6 +449,59 @@ check(
   short.activeSlotIds.length === slots.filter((s) => s.active).length &&
     short.movements.length <= short.activeSlotIds.length,
   `${short.movements.length} in play of ${short.activeSlotIds.length} unlocked`,
+);
+
+// --- planning the week ------------------------------------------------------
+// Sunday planning: the suggestion fills seven days with no inputs to type, and
+// the result is a starting point to correct rather than an answer to accept.
+const planned = generateWeek({ weekStart: today });
+const plannedDays = plannedTypes(planned);
+console.log(`\nWeek of ${planned.weekStart}: ${plannedDays.join(', ')}`);
+
+check('A week is planned for all seven days', planned.entries.length === 7, `${planned.entries.length}`);
+check(
+  'One entry per distinct day',
+  new Set(planned.entries.map((e) => e.day)).size === 7,
+  '',
+);
+const sessionDays = planned.entries.filter((e) => e.sessionType !== 'rest');
+check(
+  'Sessions planned land between the target and the maximum',
+  sessionDays.length >= PLANNER.sessions && sessionDays.length <= PLANNER.maxSessions,
+  `${sessionDays.length} sessions, target ${PLANNER.sessions}, max ${PLANNER.maxSessions}`,
+);
+check(
+  'At least one strength session, never more than the cap',
+  plannedDays.filter((t) => t === 'strength').length >= PLANNER.strength &&
+    plannedDays.filter((t) => t === 'strength').length <= PLANNER.maxStrength,
+  `${plannedDays.filter((t) => t === 'strength').length}`,
+);
+check(
+  'A run is planned',
+  plannedDays.filter((t) => t === 'engine').length >= PLANNER.engine,
+  `${plannedDays.filter((t) => t === 'engine').length} engine`,
+);
+check(
+  'Strength never lands on back-to-back days',
+  !plannedDays.some((t, i) => t === 'strength' && plannedDays[i + 1] === 'strength'),
+  '',
+);
+check(
+  'Enough rest days survive the plan',
+  plannedDays.filter((t) => t === 'rest').length >= PLANNER.minRestDays,
+  `${plannedDays.filter((t) => t === 'rest').length} rest days`,
+);
+check(
+  'Every planned session carries its minutes, and rest carries none',
+  planned.entries.every((e) =>
+    e.sessionType === 'rest' ? e.plannedMinutes == null : (e.plannedMinutes ?? 0) > 0,
+  ),
+  '',
+);
+check(
+  'The rationale describes the plan that came out',
+  planned.rationale.some((line) => line.includes(`${sessionDays.length} sessions planned`)),
+  '',
 );
 
 // --- micro rotation on the real micros ---

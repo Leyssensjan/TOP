@@ -1,5 +1,5 @@
 import { BadRequest, handle } from '@/lib/api';
-import { MICRO_ROTATION } from '@/lib/config';
+import { MICRO_ROTATION, PLANNER, TARGET_MINUTES } from '@/lib/config';
 import { addDays, isValidDate, today as todayDate, weekStart } from '@/lib/dates';
 import { generateWeek } from '@/lib/planner';
 import { rotateMicros } from '@/lib/rules';
@@ -19,7 +19,15 @@ export async function GET(req: Request) {
 
     const store = getStore();
     const entries = await store.getPlanForWeek(week);
-    return { weekStart: week, entries, locked: entries.length > 0, store: store.name };
+    return {
+      weekStart: week,
+      entries,
+      locked: entries.length > 0,
+      // The shape of the week, so the screen never has to recount it.
+      sessions: entries.filter((e) => e.sessionType && e.sessionType !== 'rest').length,
+      target: PLANNER.sessions,
+      store: store.name,
+    };
   });
 }
 
@@ -108,7 +116,12 @@ export async function POST(req: Request) {
         weekStart: week,
         day: raw.day,
         sessionType: raw.sessionType,
-        plannedMinutes: typeof raw.plannedMinutes === 'number' ? Math.round(raw.plannedMinutes) : null,
+        // Falls back to the type's target, so planning a day is one tap and
+        // never a form asking how long the session should be.
+        plannedMinutes:
+          typeof raw.plannedMinutes === 'number'
+            ? Math.round(raw.plannedMinutes)
+            : (TARGET_MINUTES[raw.sessionType] ?? null),
         location: typeof raw.location === 'string' ? raw.location.slice(0, 200) : '',
         status: raw.status === 'done' || raw.status === 'skipped' ? raw.status : 'planned',
         reasonNote: typeof raw.reasonNote === 'string' ? raw.reasonNote.slice(0, 500) : '',
@@ -123,6 +136,13 @@ export async function POST(req: Request) {
       }
     }
 
-    return { weekStart: week, entries: written, store: store.name };
+    const all = await store.getPlanForWeek(week);
+    return {
+      weekStart: week,
+      entries: all.length ? all : written,
+      sessions: all.filter((e) => e.sessionType && e.sessionType !== 'rest').length,
+      target: PLANNER.sessions,
+      store: store.name,
+    };
   });
 }

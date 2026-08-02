@@ -166,7 +166,10 @@ export default function TodayPage() {
         <p className="label" style={{ margin: 0 }}>
           {payload.rest ? 'Planned rest' : titleCase(session.type)}
         </p>
-        <div className="num" style={{ fontSize: 'clamp(92px, 34vw, 150px)', color: 'var(--amber)' }}>
+        <div
+          className="num"
+          style={{ fontSize: 'clamp(92px, 34vw, 150px)', color: payload.rest ? 'var(--muted)' : 'var(--amber)' }}
+        >
           {minutes(session.totalSeconds) || session.targetMinutes}
           <span style={{ fontSize: '0.28em', color: 'var(--muted)', marginLeft: 10 }}>MIN</span>
         </div>
@@ -178,6 +181,7 @@ export default function TodayPage() {
             : hasStrength
               ? `${strengthMovements} lifts · ${session.strength!.blocks.filter((b) => !b.warmUp).length} blocks`
               : (session.note ?? '')}
+          {payload.rest && `${titleCase(session.type)} if you want it · `}
           {payload.horizon && payload.horizon.inSessions !== null && (
             <span style={{ color: 'var(--amber)' }}>
               {' · '}
@@ -186,13 +190,15 @@ export default function TodayPage() {
           )}
         </p>
 
+        {/* A planned rest day still offers the session, quietly. The plan is a
+            decision already made, not a lock. */}
         <button
-          className="btn btn-primary"
+          className={payload.rest ? 'btn btn-quiet' : 'btn btn-primary'}
           onClick={() => begin(session, payload.date)}
           disabled={!canStart}
           style={canStart ? undefined : { opacity: 0.4 }}
         >
-          {resumable ? 'Restart' : 'Start'}
+          {payload.rest ? 'Train anyway' : resumable ? 'Restart' : 'Start'}
         </button>
 
         {resumable && (
