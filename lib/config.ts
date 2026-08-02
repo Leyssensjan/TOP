@@ -8,6 +8,7 @@ export const DATA_SOURCES = {
   routes: '95b8e870-7fd2-4911-a80d-f317618827ee',
   micros: '13734eb0-cb98-4c1e-bbf2-9637f2831537',
   microLog: 'b45bc1c1-16e9-4516-aefe-3bbc0ffb63a6',
+  strengthLog: 'e2e0df58-be03-4c5e-bcab-df20881b6d45',
 } as const;
 
 // Data source IDs require 2025-09-03 or later.
@@ -69,6 +70,19 @@ export const STRENGTH = {
   /** Level-up when three sets of eight are clean. Proposed, never automatic. */
   levelUpSets: 3,
   levelUpReps: 8,
+  /**
+   * "Clean" is not a separate tap. A set counts as clean when the session it
+   * belongs to was closed at one of these difficulties, which Jan already
+   * answers on the Close screen.
+   */
+  cleanDifficulties: ['easy', 'right'] as string[],
+  /** Holds level up on time held rather than on reps. */
+  levelUpSeconds: 45,
+  /** How a set is counted when a movement's Notion "Unit" is empty. */
+  defaultUnit: 'reps' as 'reps' | 'seconds',
+  /** The quick-pick values on the set logger. Jan can still type any number. */
+  repChoices: [3, 5, 6, 8, 10, 12],
+  secondChoices: [15, 20, 30, 45, 60, 90],
 };
 
 /**

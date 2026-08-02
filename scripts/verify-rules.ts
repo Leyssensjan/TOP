@@ -3,11 +3,11 @@
  * Not part of the app. Run with: npx tsx scripts/verify-rules.ts
  */
 import { readFileSync } from 'node:fs';
-import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow } from '../lib/rules';
+import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow, strengthLevelUpProposals, unitOf } from '../lib/rules';
 import { STRENGTH } from '../lib/config';
 import { weekStart } from '../lib/dates';
 import { parse, applyBaseline, SOURCE } from './skate-migration';
-import type { Micro, MicroLogEntry, SessionLog, Skill, Slot } from '../lib/types';
+import type { Micro, MicroLogEntry, SessionLog, Skill, Slot, StrengthSet } from '../lib/types';
 
 const fixture = JSON.parse(readFileSync(new URL('./notion-snapshot.json', import.meta.url), 'utf8')) as {
   slots: Slot[];
@@ -160,6 +160,96 @@ check(
   `${sBlocks.flatMap((b) => b.movements).length} lifts`,
 );
 
+// --- strength set logging and its level-up rule ----------------------------
+// Built on the real ladder rows, so the names and units are the live ones.
+const pullCurrent = skills.find((s) => s.domain === 'strength' && s.family === 'Pull' && s.status === 'current')!;
+const hangCurrent = skills.find((s) => s.domain === 'strength' && s.family === 'Hang' && s.status === 'current')!;
+
+check(
+  'Units come from Notion, not from a guess',
+  unitOf(pullCurrent) === 'reps' && unitOf(hangCurrent) === 'seconds',
+  `${pullCurrent.name} in ${unitOf(pullCurrent)}, ${hangCurrent.name} in ${unitOf(hangCurrent)}`,
+);
+
+const cleanSession: SessionLog = {
+  id: 'sx', name: `strength ${today} [abc123]`, date: today, type: 'strength', plannedMinutes: 30,
+  actualMinutes: 30, completed: true, difficulty: 'right', soreness: '', notes: '',
+  skillsPracticed: [pullCurrent.name], distanceKm: null, route: '',
+};
+const hardSession: SessionLog = { ...cleanSession, id: 'sy', name: `strength ${today} [zzz999]`, difficulty: 'hard' };
+
+const setsOf = (session: string, skill: string, values: number[], unit: 'reps' | 'seconds'): StrengthSet[] =>
+  values.map((v, i) => ({
+    id: `set-${session}-${i}`, name: '', date: today, skill, set: i + 1,
+    reps: unit === 'reps' ? v : null, seconds: unit === 'seconds' ? v : null, session,
+  }));
+
+const threeOfEight = setsOf('abc123', pullCurrent.name, [8, 8, 8], 'reps');
+check(
+  'Three sets of eight in a clean session proposes a level-up',
+  strengthLevelUpProposals(skills, threeOfEight, [cleanSession], today).some((p) => p.family === 'Pull'),
+  '',
+);
+check(
+  'Two sets of eight is not enough',
+  strengthLevelUpProposals(skills, setsOf('abc123', pullCurrent.name, [8, 8], 'reps'), [cleanSession], today).length === 0,
+  '',
+);
+check(
+  'Three sets short of eight is not enough',
+  strengthLevelUpProposals(skills, setsOf('abc123', pullCurrent.name, [7, 7, 7], 'reps'), [cleanSession], today).length === 0,
+  '',
+);
+check(
+  'A session closed as hard does not count, however good the sets',
+  strengthLevelUpProposals(skills, setsOf('zzz999', pullCurrent.name, [12, 12, 12], 'reps'), [hardSession], today).length === 0,
+  '',
+);
+// Three good sets spread over three separate sessions is not "three sets of
+// eight" — that rule is about one session's work.
+const spread = [
+  ...setsOf('a1', pullCurrent.name, [8], 'reps'),
+  ...setsOf('a2', pullCurrent.name, [8], 'reps'),
+  ...setsOf('a3', pullCurrent.name, [8], 'reps'),
+];
+check(
+  'Good sets spread across sessions do not add up to a level-up',
+  strengthLevelUpProposals(
+    skills,
+    spread,
+    ['a1', 'a2', 'a3'].map((id) => ({ ...cleanSession, id, name: `strength ${today} [${id}]` })),
+    today,
+  ).length === 0,
+  '',
+);
+// Holds are judged on seconds, so a rep count must not accidentally clear them.
+check(
+  'A hold levels up on seconds, not on reps',
+  strengthLevelUpProposals(skills, setsOf('abc123', hangCurrent.name, [60, 60, 60], 'seconds'), [cleanSession], today)
+    .some((p) => p.family === 'Hang') &&
+    strengthLevelUpProposals(skills, setsOf('abc123', hangCurrent.name, [8, 8, 8], 'reps'), [cleanSession], today).length === 0,
+  '',
+);
+check(
+  'A deferred strength level-up stays quiet',
+  strengthLevelUpProposals(
+    skills.map((s) => (s.id === pullCurrent.id ? { ...s, levelUpDeferred: today } : s)),
+    threeOfEight,
+    [cleanSession],
+    today,
+  ).length === 0,
+  '',
+);
+
+// --- engine and skate are startable ----------------------------------------
+const engine = planSession(slots, skills, 'engine', today, 'default');
+const skate = planSession(slots, skills, 'skate', today, 'default');
+check(
+  'Engine and Skate carry a target and a note rather than an empty screen',
+  engine.targetMinutes > 0 && skate.targetMinutes > 0 && Boolean(engine.note) && Boolean(skate.note),
+  `engine ${engine.targetMinutes} min, skate ${skate.targetMinutes} min`,
+);
+
 // --- continuity of the real slot order ---
 const chain = flow.movements;
 const seams: string[] = [];
@@ -184,7 +274,7 @@ const primed = skills.map((s) => (s.id === slot1Skill.id ? { ...s, sessionsAtLev
 const easySessions: SessionLog[] = [0, 1, 2].map((i) => ({
   id: `s${i}`, name: 'x', date: `2026-07-2${7 + i}`, type: 'flow', plannedMinutes: 18,
   actualMinutes: 18, completed: true, difficulty: 'easy', soreness: '', notes: '',
-  skillsPracticed: [slot1Skill.name],
+  skillsPracticed: [slot1Skill.name], distanceKm: null, route: '',
 }));
 const proposals = levelUpProposals(slots, primed, easySessions, today);
 check('Level-up proposed after 8 sessions with 3 easy', proposals.some((p) => p.slot === 1), `${proposals.length} proposals`);
@@ -223,7 +313,7 @@ check('Micro progress covers only active micros', progress.every((p) => micros.f
     id: `t-${r.skillId}`, name: r.name, domain: 'skate', slot: null, level: r.level,
     status: r.status, cues: '', referenceTerm: '', entryPosition: '', exitPosition: '',
     whyBuilds: '', whyUnlocks: '', sessionsAtLevel: 0, lastPracticed: null,
-    levelUpDeferred: null, durationSeconds: null, skillId: r.skillId, family: r.family,
+    levelUpDeferred: null, durationSeconds: null, unit: null, skillId: r.skillId, family: r.family,
     prereqs: r.prereqs, attempts: 0,
   }));
 

@@ -10,6 +10,7 @@ import type {
   NewPlanEntry,
   NewSession,
   NewSkill,
+  NewStrengthSet,
   PlanEntry,
   Route,
   SessionLog,
@@ -18,6 +19,7 @@ import type {
   Slot,
   SlotPatch,
   Store,
+  StrengthSet,
 } from '@/lib/types';
 
 type SlotSeed = [seq: number, name: string, active: boolean, short: boolean, unlock: number, entry: string, exit: string];
@@ -175,6 +177,7 @@ export class MemoryStore implements Store {
       lastPracticed: null,
       levelUpDeferred: null,
       durationSeconds: null,
+      unit: null,
       skillId: '',
       family: '',
       prereqs: [],
@@ -214,6 +217,7 @@ export class MemoryStore implements Store {
     lastPracticed: null,
     levelUpDeferred: null,
     durationSeconds: null,
+    unit: null,
     skillId,
     family,
     prereqs: prereqs ? prereqs.split(',') : [],
@@ -221,6 +225,7 @@ export class MemoryStore implements Store {
   }));
 
   private sessions: SessionLog[] = [];
+  private strengthSets: StrengthSet[] = [];
   private plan: PlanEntry[] = [];
   private microLog: MicroLogEntry[] = [];
   private seq = 0;
@@ -258,6 +263,7 @@ export class MemoryStore implements Store {
       lastPracticed: null,
       levelUpDeferred: null,
       durationSeconds: null,
+      unit: null,
       skillId: input.skillId,
       family: input.family,
       prereqs: input.prereqs.split(',').map((v) => v.trim()).filter(Boolean),
@@ -297,9 +303,30 @@ export class MemoryStore implements Store {
       soreness: input.soreness ?? '',
       notes: input.notes ?? '',
       skillsPracticed: input.skillsPracticed,
+      distanceKm: input.distanceKm ?? null,
+      route: input.route ?? '',
     };
     this.sessions.push(session);
     return { ...session };
+  }
+
+  async getStrengthSetsSince(since: string): Promise<StrengthSet[]> {
+    return this.strengthSets.filter((s) => s.date >= since).map((s) => ({ ...s }));
+  }
+
+  async createStrengthSet(input: NewStrengthSet): Promise<StrengthSet> {
+    const row: StrengthSet = {
+      id: this.nextId('set'),
+      name: `${input.skill} set ${input.set} ${input.date}`,
+      date: input.date,
+      skill: input.skill,
+      set: input.set,
+      reps: input.reps ?? null,
+      seconds: input.seconds ?? null,
+      session: input.session,
+    };
+    this.strengthSets.push(row);
+    return { ...row };
   }
 
   async getPlanForDay(day: string): Promise<PlanEntry | null> {

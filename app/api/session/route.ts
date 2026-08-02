@@ -27,6 +27,23 @@ export async function POST(req: Request) {
       ? body.skillIds.filter((s: unknown) => typeof s === 'string')
       : [];
 
+    const distanceKm =
+      typeof body?.distanceKm === 'number' && body.distanceKm >= 0 ? body.distanceKm : null;
+    const routeName = typeof body?.route === 'string' ? body.route.slice(0, 200) : '';
+
+    // Logged sets arrive with the session rather than one write at a time, so
+    // an offline morning queues exactly one item and lands whole or not at all.
+    const sets: Array<{ skill: string; reps: number | null; seconds: number | null }> = Array.isArray(body?.sets)
+      ? body.sets
+          .filter((s: any) => s && typeof s.skill === 'string')
+          .slice(0, 200)
+          .map((s: any) => ({
+            skill: s.skill.slice(0, 200),
+            reps: typeof s.reps === 'number' ? Math.max(0, Math.round(s.reps)) : null,
+            seconds: typeof s.seconds === 'number' ? Math.max(0, Math.round(s.seconds)) : null,
+          }))
+      : [];
+
     // The offline queue can retry the same write. The client id makes that safe.
     const clientId =
       typeof body?.clientId === 'string' ? body.clientId.replace(/[^a-zA-Z0-9-]/g, '').slice(0, 24) : '';
@@ -71,7 +88,32 @@ export async function POST(req: Request) {
       soreness,
       notes,
       skillsPracticed: practiced.map((s) => s.name),
+      distanceKm,
+      route: routeName,
     });
+
+    // Set numbers restart per movement, which is how the level-up rule counts
+    // them: three sets of eight of one lift, not three across the session.
+    if (sets.length) {
+      const seen = new Map<string, number>();
+      const numbered = sets.map((set) => {
+        const n = (seen.get(set.skill) ?? 0) + 1;
+        seen.set(set.skill, n);
+        return { ...set, set: n };
+      });
+      await Promise.all(
+        numbered.map((set) =>
+          store.createStrengthSet({
+            date,
+            skill: set.skill,
+            set: set.set,
+            reps: set.reps,
+            seconds: set.seconds,
+            session: clientId,
+          }),
+        ),
+      );
+    }
 
     // Sessions at level is what drives the level-up proposal, so it only moves
     // when the session actually happened.

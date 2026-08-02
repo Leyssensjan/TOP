@@ -1,6 +1,6 @@
 import { handle } from '@/lib/api';
 import { addDays, isValidDate, today as todayDate } from '@/lib/dates';
-import { adjustForCheckin, countFlowSessions, planSession, rollingStatus } from '@/lib/rules';
+import { adjustForCheckin, countFlowSessions, planSession, rollingStatus, skateFocus } from '@/lib/rules';
 import { suggestNext } from '@/lib/planner';
 import { getStore } from '@/lib/store';
 import type { SessionType } from '@/lib/types';
@@ -51,6 +51,13 @@ export async function POST(req: Request) {
       adjustedTarget.targetMinutes,
       flowsDone,
     );
+
+    // Same reference cards Today attaches, so an adjusted session still starts.
+    if (session.type === 'engine') {
+      session.engine = { routes: await store.getRoutes() };
+    } else if (session.type === 'skate') {
+      session.skate = { focus: skateFocus(await store.getSkills('skate'), date) };
+    }
 
     return {
       date,

@@ -33,6 +33,22 @@ export interface TodayPayload {
     currentSkillName: string;
     nextSkillName: string;
   }>;
+  strengthProposals?: Array<{
+    family: string;
+    fromLevel: number;
+    toLevel: number;
+    currentSkillName: string;
+    nextSkillName: string;
+    unit: 'reps' | 'seconds';
+    clearedSets: number;
+  }>;
+}
+
+/** One set logged during a Strength session, held locally until Close. */
+export interface LoggedSet {
+  skill: string;
+  reps: number | null;
+  seconds: number | null;
 }
 
 export interface ActiveSession {
@@ -43,6 +59,11 @@ export interface ActiveSession {
   step: number;
   elapsedMs: number;
   clientId: string;
+  /** Strength only. Written as the session runs, sent once at Close. */
+  sets?: LoggedSet[];
+  /** Engine only. */
+  routeName?: string;
+  distanceKm?: number | null;
 }
 
 export interface OutboxItem {
@@ -154,6 +175,7 @@ export function startSession(plan: SessionPlan, date: string): ActiveSession {
     step: 0,
     elapsedMs: 0,
     clientId: newId(),
+    sets: [],
   };
   write(ACTIVE, active);
   return active;

@@ -10,6 +10,7 @@ import type {
   NewPlanEntry,
   NewSession,
   NewSkill,
+  NewStrengthSet,
   PlanEntry,
   Route,
   SessionLog,
@@ -18,6 +19,7 @@ import type {
   Slot,
   SlotPatch,
   Store,
+  StrengthSet,
 } from '@/lib/types';
 
 const API = 'https://api.notion.com/v1';
@@ -130,6 +132,7 @@ function toSkill(page: NotionPage): Skill {
     lastPracticed: rDate(p['Last practiced']),
     levelUpDeferred: rDate(p['Level up deferred']),
     durationSeconds: rNum(p['Duration seconds']),
+    unit: (rSelect(p['Unit']) as Skill['unit']) ?? null,
     skillId: rText(p['Skill id']),
     family: rText(p['Family']),
     prereqs: rText(p['Prereqs'])
@@ -175,6 +178,22 @@ function toSession(page: NotionPage): SessionLog {
     skillsPracticed: skills
       ? skills.split(',').map((s) => s.trim()).filter(Boolean)
       : [],
+    distanceKm: rNum(p['Distance km']),
+    route: rText(p['Route']),
+  };
+}
+
+function toStrengthSet(page: NotionPage): StrengthSet {
+  const p = page.properties;
+  return {
+    id: page.id,
+    name: rTitle(p['Name']),
+    date: rDate(p['Date']) ?? '',
+    skill: rText(p['Skill']),
+    set: rNum(p['Set']) ?? 0,
+    reps: rNum(p['Reps']),
+    seconds: rNum(p['Seconds']),
+    session: rText(p['Session']),
   };
 }
 
@@ -318,10 +337,38 @@ export class NotionStore implements Store {
           Soreness: wText(input.soreness ?? ''),
           Notes: wText(input.notes ?? ''),
           'Skills practiced': wText(input.skillsPracticed.join(', ')),
+          'Distance km': wNum(input.distanceKm),
+          Route: wText(input.route ?? ''),
         },
       },
     });
     return toSession(page);
+  }
+
+  async getStrengthSetsSince(since: string): Promise<StrengthSet[]> {
+    const pages = await queryAll(DATA_SOURCES.strengthLog, {
+      filter: { property: 'Date', date: { on_or_after: since } },
+    });
+    return pages.map(toStrengthSet);
+  }
+
+  async createStrengthSet(input: NewStrengthSet): Promise<StrengthSet> {
+    const page = await notionFetch('/pages', {
+      method: 'POST',
+      body: {
+        parent: { type: 'data_source_id', data_source_id: DATA_SOURCES.strengthLog },
+        properties: {
+          Name: wTitle(`${input.skill} set ${input.set} ${input.date}`),
+          Date: wDate(input.date),
+          Skill: wText(input.skill),
+          Set: wNum(input.set),
+          Reps: wNum(input.reps ?? null),
+          Seconds: wNum(input.seconds ?? null),
+          Session: wText(input.session),
+        },
+      },
+    });
+    return toStrengthSet(page);
   }
 
   async getPlanForDay(day: string): Promise<PlanEntry | null> {

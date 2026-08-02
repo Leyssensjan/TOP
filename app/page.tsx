@@ -141,6 +141,9 @@ export default function TodayPage() {
   const hasStrength = (session.strength?.blocks.length ?? 0) > 0;
   const strengthMovements =
     session.strength?.blocks.reduce((n, b) => n + b.movements.length, 0) ?? 0;
+  // Engine and Skate are open sessions: no steps to prepare, but startable.
+  const isOpen = session.type === 'engine' || session.type === 'skate';
+  const canStart = hasMovements || hasStrength || isOpen;
 
   return (
     <main className="screen">
@@ -164,8 +167,8 @@ export default function TodayPage() {
         <button
           className="btn btn-primary"
           onClick={() => begin(session, payload.date)}
-          disabled={!hasMovements && !hasStrength}
-          style={hasMovements || hasStrength ? undefined : { opacity: 0.4 }}
+          disabled={!canStart}
+          style={canStart ? undefined : { opacity: 0.4 }}
         >
           {resumable ? 'Restart' : 'Start'}
         </button>
@@ -188,6 +191,10 @@ export default function TodayPage() {
 
         {payload.proposals.map((p) => (
           <Proposal key={p.slot} proposal={p} onDone={() => void load()} />
+        ))}
+
+        {payload.strengthProposals?.map((p) => (
+          <StrengthProposalCard key={p.family} proposal={p} onDone={() => void load()} />
         ))}
 
         {payload.suggestion && (
@@ -272,6 +279,46 @@ function Proposal({
       </p>
       <p style={{ margin: '0 0 12px', color: 'var(--muted)', fontSize: 15 }}>
         Level {proposal.fromLevel} to {proposal.toLevel}. Eight sessions, last three easy.
+      </p>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button className="btn" disabled={busy} onClick={() => void send('accept')}>
+          Level up
+        </button>
+        <button className="btn btn-quiet" disabled={busy} onClick={() => void send('defer')}>
+          Not yet
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function StrengthProposalCard({
+  proposal,
+  onDone,
+}: {
+  proposal: NonNullable<TodayPayload['strengthProposals']>[number];
+  onDone: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  const send = async (action: 'accept' | 'defer') => {
+    setBusy(true);
+    try {
+      await api('/levelup', { method: 'POST', body: { family: proposal.family, action } });
+      onDone();
+    } catch {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="banner" style={{ color: 'var(--text)' }}>
+      <p style={{ margin: '0 0 4px' }}>
+        {proposal.family}: {proposal.nextSkillName}
+      </p>
+      <p style={{ margin: '0 0 12px', color: 'var(--muted)', fontSize: 15 }}>
+        Level {proposal.fromLevel} to {proposal.toLevel}. {proposal.clearedSets} clean sets on{' '}
+        {proposal.currentSkillName}.
       </p>
       <div style={{ display: 'flex', gap: 10 }}>
         <button className="btn" disabled={busy} onClick={() => void send('accept')}>

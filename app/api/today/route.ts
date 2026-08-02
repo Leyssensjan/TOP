@@ -1,6 +1,13 @@
 import { handle } from '@/lib/api';
 import { addDays, isValidDate, today as todayDate } from '@/lib/dates';
-import { countFlowSessions, levelUpProposals, planSession, rollingStatus } from '@/lib/rules';
+import {
+  countFlowSessions,
+  levelUpProposals,
+  planSession,
+  rollingStatus,
+  skateFocus,
+  strengthLevelUpProposals,
+} from '@/lib/rules';
 import { suggestNext } from '@/lib/planner';
 import { getStore } from '@/lib/store';
 import type { SessionType } from '@/lib/types';
@@ -15,12 +22,13 @@ export async function GET(req: Request) {
     const date = isValidDate(dateParam) ? dateParam : todayDate();
 
     const store = getStore();
-    const [slots, movementSkills, strengthSkills, planEntry, sessions] = await Promise.all([
+    const [slots, movementSkills, strengthSkills, planEntry, sessions, sets] = await Promise.all([
       store.getSlots(),
       store.getSkills('movement'),
       store.getSkills('strength'),
       store.getPlanForDay(date),
       store.getSessionsSince(addDays(date, -120)),
+      store.getStrengthSetsSince(addDays(date, -120)),
     ]);
 
     // A planned day wins. Otherwise the suggestion decides, so the big number
@@ -45,6 +53,14 @@ export async function GET(req: Request) {
       flowsDone,
     );
 
+    // Engine and Skate carry a reference card rather than a movement list. It
+    // is fetched only for the type actually being run, so Today stays cheap.
+    if (type === 'engine') {
+      session.engine = { routes: await store.getRoutes() };
+    } else if (type === 'skate') {
+      session.skate = { focus: skateFocus(await store.getSkills('skate'), date) };
+    }
+
     const loggedToday = sessions.filter((s) => s.date === date && s.completed);
 
     return {
@@ -57,6 +73,7 @@ export async function GET(req: Request) {
       suggestion,
       flowSessionsCompleted: flowsDone,
       proposals: levelUpProposals(slots, skills, sessions, date),
+      strengthProposals: strengthLevelUpProposals(strengthSkills, sets, sessions, date),
       store: store.name,
     };
   });

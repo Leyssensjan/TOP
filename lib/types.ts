@@ -25,6 +25,8 @@ export interface Skill {
   levelUpDeferred: string | null;
   /** Overrides the SLOT_SECONDS fallback in config when set. */
   durationSeconds: number | null;
+  /** Strength only: whether a set of this is counted in reps or in seconds. */
+  unit: 'reps' | 'seconds' | null;
   /** Skate fields. Empty for movement skills. */
   skillId: string;
   family: string;
@@ -61,6 +63,9 @@ export interface SessionLog {
   soreness: string;
   notes: string;
   skillsPracticed: string[];
+  /** Engine only. */
+  distanceKm: number | null;
+  route: string;
 }
 
 export interface NewSession {
@@ -75,6 +80,34 @@ export interface NewSession {
   soreness?: string;
   notes?: string;
   skillsPracticed: string[];
+  distanceKm?: number | null;
+  route?: string;
+}
+
+/**
+ * One logged set of a strength movement. Written by the app during a session;
+ * this is what makes the "three sets of eight clean" rule possible without Jan
+ * opening Notion.
+ */
+export interface StrengthSet {
+  id: string;
+  name: string;
+  date: string;
+  skill: string;
+  set: number;
+  reps: number | null;
+  seconds: number | null;
+  /** Client id of the session, so an offline retry cannot double-log. */
+  session: string;
+}
+
+export interface NewStrengthSet {
+  date: string;
+  skill: string;
+  set: number;
+  reps?: number | null;
+  seconds?: number | null;
+  session: string;
 }
 
 export interface PlanEntry {
@@ -180,6 +213,9 @@ export interface Store {
   /** Sessions dated on or after `since` (YYYY-MM-DD), newest first. */
   getSessionsSince(since: string): Promise<SessionLog[]>;
   createSession(input: NewSession): Promise<SessionLog>;
+
+  getStrengthSetsSince(since: string): Promise<StrengthSet[]>;
+  createStrengthSet(input: NewStrengthSet): Promise<StrengthSet>;
 
   getPlanForDay(day: string): Promise<PlanEntry | null>;
   getPlanForWeek(weekStart: string): Promise<PlanEntry[]>;

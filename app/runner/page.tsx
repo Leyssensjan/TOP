@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import Thread, { type ThreadNode } from '@/components/Thread';
 import { mmss, titleCase } from '@/lib/format';
 import type { Movement, StrengthBlock } from '@/lib/rules';
-import { getActive, saveActive, type ActiveSession } from '@/lib/client/store';
+import { getActive, saveActive, type ActiveSession, type LoggedSet } from '@/lib/client/store';
+import { STRENGTH } from '@/lib/config';
 
 interface Step extends Movement {
   round: number;
@@ -33,6 +34,10 @@ export default function RunnerPage() {
   // Strength has no Form movements to walk, so it runs block by block instead.
   if (!active.plan.movements.length && active.plan.strength?.blocks.length) {
     return <StrengthRunner active={active} />;
+  }
+  // Engine and Skate have no prescribed steps at all: a stopwatch and a card.
+  if (!active.plan.movements.length && (active.plan.type === 'engine' || active.plan.type === 'skate')) {
+    return <OpenRunner active={active} />;
   }
   return <Runner active={active} />;
 }
@@ -222,13 +227,15 @@ function Empty({ note, onClose }: { note: string | null; onClose: () => void }) 
 /**
  * Strength walks blocks, not slots: a superset is a pair of ladders repeated for
  * rounds with a rest between, which the Form's per-movement countdown cannot
- * express. The clock here is the block's own minute band from config, and the
- * sets inside it are read off the card rather than counted for him.
+ * express. The clock here is the block's own minute band from config, and each
+ * set is logged as it happens, because the level-up rule is about work done
+ * rather than sessions attended.
  */
 function StrengthRunner({ active }: { active: ActiveSession }) {
   const router = useRouter();
   const blocks = active.plan.strength!.blocks;
   const prescription = active.plan.strength!.prescription;
+  const [sets, setSets] = useState<LoggedSet[]>(() => active.sets ?? []);
 
   const seconds = (b: StrengthBlock) => Math.max(0, b.toMinute - b.fromMinute) * 60;
 
@@ -258,7 +265,7 @@ function StrengthRunner({ active }: { active: ActiveSession }) {
   }, [running, index]);
 
   const finish = () => {
-    saveActive({ ...active, step: blocks.length, elapsedMs: elapsed() });
+    saveActive({ ...active, step: blocks.length, elapsedMs: elapsed(), sets });
     router.replace('/close');
   };
 
@@ -270,7 +277,23 @@ function StrengthRunner({ active }: { active: ActiveSession }) {
     }
     setIndex(next);
     setRemaining(seconds(blocks[next]) * 1000);
-    saveActive({ ...active, step: next, elapsedMs: elapsed() });
+    saveActive({ ...active, step: next, elapsedMs: elapsed(), sets });
+  };
+
+  // Every set is persisted the moment it is tapped, so closing the app between
+  // the last set and the Close screen does not lose the work.
+  const logSet = (skill: string, unit: 'reps' | 'seconds', value: number) => {
+    const next = [...sets, { skill, reps: unit === 'reps' ? value : null, seconds: unit === 'seconds' ? value : null }];
+    setSets(next);
+    saveActive({ ...active, step: index, elapsedMs: elapsed(), sets: next });
+  };
+
+  const undoSet = (skill: string) => {
+    const last = sets.map((s) => s.skill).lastIndexOf(skill);
+    if (last < 0) return;
+    const next = sets.filter((_, i) => i !== last);
+    setSets(next);
+    saveActive({ ...active, step: index, elapsedMs: elapsed(), sets: next });
   };
 
   const block = blocks[index];
@@ -308,18 +331,20 @@ function StrengthRunner({ active }: { active: ActiveSession }) {
         </p>
 
         {block.movements.length ? (
-          <div className="stack" style={{ margin: '0 0 14px', gap: 12 }}>
+          <div className="stack" style={{ margin: '0 0 14px', gap: 16 }}>
             {block.movements.map((m) => (
-              <div key={m.id}>
-                <p style={{ margin: 0, fontSize: 'clamp(24px, 6.5vw, 32px)', lineHeight: 1.1, fontWeight: 600 }}>
-                  {m.name}
-                </p>
-                <p style={{ margin: '2px 0 0', color: 'var(--muted)', fontSize: 15 }}>
-                  {m.family}
-                  {m.level !== null && ` · level ${m.level}`}
-                  {m.cues && ` · ${m.cues}`}
-                </p>
-              </div>
+              <Lift
+                key={m.id}
+                name={m.name}
+                family={m.family}
+                level={m.level}
+                cues={m.cues}
+                unit={m.unit}
+                logged={sets.filter((s) => s.skill === m.name)}
+                targetSets={block.rounds}
+                onLog={(value) => logSet(m.name, m.unit, value)}
+                onUndo={() => undoSet(m.name)}
+              />
             ))}
           </div>
         ) : (
@@ -369,6 +394,235 @@ function StrengthRunner({ active }: { active: ActiveSession }) {
 
       <button className="btn btn-primary" onClick={advance}>
         {index + 1 >= blocks.length ? 'Finish' : 'Next block'}
+      </button>
+    </main>
+  );
+}
+
+/**
+ * One strength movement with its set log. Tapping a number logs a set; the
+ * chips above show what has been banked so far, so the count is readable at
+ * arm's length without opening anything.
+ */
+function Lift({
+  name,
+  family,
+  level,
+  cues,
+  unit,
+  logged,
+  targetSets,
+  onLog,
+  onUndo,
+}: {
+  name: string;
+  family: string;
+  level: number | null;
+  cues: string;
+  unit: 'reps' | 'seconds';
+  logged: LoggedSet[];
+  targetSets: number;
+  onLog: (value: number) => void;
+  onUndo: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const choices = unit === 'seconds' ? STRENGTH.secondChoices : STRENGTH.repChoices;
+  const valueOf = (s: LoggedSet) => (unit === 'seconds' ? s.seconds : s.reps) ?? 0;
+
+  return (
+    <div>
+      <p style={{ margin: 0, fontSize: 'clamp(21px, 5.5vw, 27px)', lineHeight: 1.1, fontWeight: 600 }}>{name}</p>
+      <p style={{ margin: '2px 0 8px', color: 'var(--muted)', fontSize: 14 }}>
+        {family}
+        {level !== null && ` · level ${level}`}
+        {cues && ` · ${cues}`}
+      </p>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        {logged.map((s, i) => (
+          <span
+            key={i}
+            className="num"
+            style={{
+              fontSize: 19,
+              color: 'var(--sage)',
+              padding: '4px 10px',
+              borderRadius: 8,
+              border: '1px solid var(--ink-line)',
+            }}
+          >
+            {valueOf(s)}
+            {unit === 'seconds' && <span style={{ fontSize: '0.6em', color: 'var(--muted)' }}>s</span>}
+          </span>
+        ))}
+        {Array.from({ length: Math.max(0, targetSets - logged.length) }).map((_, i) => (
+          <span
+            key={`todo-${i}`}
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              border: '1px solid var(--ink-line)',
+              display: 'inline-block',
+            }}
+          />
+        ))}
+
+        <button
+          className="label"
+          onClick={() => setOpen((v) => !v)}
+          style={{ marginLeft: 'auto', color: 'var(--amber)', padding: '10px 0 10px 12px' }}
+        >
+          {open ? 'Close' : 'Log a set'}
+        </button>
+      </div>
+
+      {open && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+          {choices.map((v) => (
+            <button
+              key={v}
+              className="btn"
+              style={{ width: 'auto', flex: '1 1 26%', padding: '12px 8px', minHeight: 48 }}
+              onClick={() => onLog(v)}
+            >
+              <span className="num" style={{ fontSize: 20 }}>
+                {v}
+              </span>
+            </button>
+          ))}
+          {logged.length > 0 && (
+            <button
+              className="btn btn-quiet"
+              style={{ width: 'auto', flex: '1 1 26%', padding: '12px 8px', minHeight: 48 }}
+              onClick={onUndo}
+            >
+              Undo
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Engine and Skate have no prescribed steps, so the clock counts up rather than
+ * down and the screen carries only the card he needs: the routes, or the focus
+ * list. Ending is the only decision.
+ */
+function OpenRunner({ active }: { active: ActiveSession }) {
+  const router = useRouter();
+  const isEngine = active.plan.type === 'engine';
+  const routes = active.plan.engine?.routes ?? [];
+  const focus = active.plan.skate?.focus ?? [];
+
+  const [routeName, setRouteName] = useState(active.routeName ?? '');
+  const [elapsedMs, setElapsedMs] = useState(() => Date.now() - active.startedAt);
+  const [running, setRunning] = useState(true);
+
+  useWakeLock();
+
+  // Counting up from the stored start time, so a reload cannot lose minutes.
+  useEffect(() => {
+    if (!running) return;
+    const id = window.setInterval(() => setElapsedMs(Date.now() - active.startedAt), 250);
+    return () => window.clearInterval(id);
+  }, [running, active.startedAt]);
+
+  const pick = (name: string) => {
+    const next = name === routeName ? '' : name;
+    setRouteName(next);
+    saveActive({ ...active, routeName: next, elapsedMs: Date.now() - active.startedAt });
+  };
+
+  const finish = () => {
+    saveActive({
+      ...active,
+      step: 1,
+      elapsedMs: Date.now() - active.startedAt,
+      routeName,
+      distanceKm: routes.find((r) => r.name === routeName)?.distanceKm ?? null,
+    });
+    router.replace('/close');
+  };
+
+  return (
+    <main className="screen" style={{ gap: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span className="label">
+          {titleCase(active.plan.type)} · target {active.plan.targetMinutes} min
+        </span>
+        <button className="label" onClick={finish} style={{ padding: '8px 0 8px 16px' }}>
+          End
+        </button>
+      </div>
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0, gap: 18 }}>
+        <button
+          onClick={() => setRunning((r) => !r)}
+          aria-label={running ? 'Pause' : 'Resume'}
+          style={{ textAlign: 'left', padding: 0 }}
+        >
+          <span
+            className="num"
+            style={{
+              fontSize: 'clamp(78px, 26vw, 120px)',
+              color: running ? 'var(--amber)' : 'var(--muted)',
+              display: 'block',
+            }}
+          >
+            {mmss(elapsedMs / 1000)}
+          </span>
+          {!running && (
+            <span className="label" style={{ display: 'block', marginTop: 8 }}>
+              Paused · tap to resume
+            </span>
+          )}
+        </button>
+
+        {isEngine ? (
+          <div className="stack">
+            <p className="label" style={{ margin: 0 }}>
+              Route
+            </p>
+            {routes
+              .slice()
+              .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
+              .map((r) => (
+                <button
+                  key={r.id}
+                  className="btn"
+                  aria-pressed={routeName === r.name}
+                  style={{ justifyContent: 'flex-start', gap: 12 }}
+                  onClick={() => pick(r.name)}
+                >
+                  <span className="num" style={{ fontSize: 22, width: 46, textAlign: 'right' }}>
+                    {r.distanceKm ?? '?'}
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>{r.name}</span>
+                </button>
+              ))}
+            {routes.length === 0 && <div className="banner">No routes scouted yet. Just go; log the distance after.</div>}
+          </div>
+        ) : (
+          <div className="stack">
+            <p className="label" style={{ margin: 0 }}>
+              Session focus
+            </p>
+            {focus.map((f) => (
+              <p key={f.id} style={{ margin: 0, fontSize: 16 }}>
+                {f.name}
+                <span style={{ color: 'var(--muted)' }}> · {f.reason}</span>
+              </p>
+            ))}
+            {focus.length === 0 && <div className="banner">Nothing on the focus card yet. Mark some tricks on Skate.</div>}
+          </div>
+        )}
+      </div>
+
+      <button className="btn btn-primary" onClick={finish}>
+        Finish
       </button>
     </main>
   );

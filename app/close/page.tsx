@@ -14,6 +14,9 @@ type Difficulty = 'easy' | 'right' | 'hard';
 
 const SORE = ['wrists', 'shoulders', 'back', 'hips', 'knees', 'ankles'];
 
+/** Engine distances, in km. Quick picks only; the route seeds the real value. */
+const DISTANCES = [3, 3.5, 5, 5.5, 8, 10];
+
 /** Three taps: how it felt, anything sore, done. Under ten seconds. */
 export default function ClosePage() {
   const router = useRouter();
@@ -22,17 +25,25 @@ export default function ClosePage() {
   const [sore, setSore] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<'synced' | 'queued' | null>(null);
+  const [distance, setDistance] = useState<number | null>(null);
 
   useEffect(() => {
     const found = getActive();
-    if (!found) router.replace('/');
-    else setActive(found);
+    if (!found) {
+      router.replace('/');
+      return;
+    }
+    setActive(found);
+    // Seed the distance from the route picked in the Runner, so the common case
+    // is already answered and only a different run needs a tap.
+    if (found.distanceKm != null) setDistance(found.distanceKm);
   }, [router]);
 
   const toggleSore = (part: string) =>
     setSore((prev) => (prev.includes(part) ? prev.filter((p) => p !== part) : [...prev, part]));
 
   const elapsedMinutes = active ? Math.max(1, Math.round(active.elapsedMs / 60000)) : 0;
+  const isEngine = active?.plan.type === 'engine';
 
   const done = async () => {
     if (!active) return;
@@ -58,6 +69,11 @@ export default function ClosePage() {
       difficulty,
       soreness: sore.join(', '),
       skillIds,
+      // The sets go with the session, so one queued write carries the whole
+      // log and a retry cannot land half of it.
+      sets: active.sets ?? [],
+      distanceKm: isEngine ? distance : null,
+      route: active.routeName ?? '',
       clientId: active.clientId,
     });
 
@@ -115,6 +131,32 @@ export default function ClosePage() {
           ))}
         </div>
       </div>
+
+      {isEngine && (
+        <div>
+          <p className="label" style={{ margin: '0 0 10px' }}>
+            Distance
+          </p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {DISTANCES.map((d) => (
+              <button
+                key={d}
+                className="btn"
+                aria-pressed={distance === d}
+                style={{ width: 'auto', flex: '1 1 20%', padding: '14px 8px' }}
+                onClick={() => setDistance(distance === d ? null : d)}
+              >
+                <span className="num" style={{ fontSize: 19 }}>
+                  {d}
+                </span>
+              </button>
+            ))}
+          </div>
+          {active.routeName && (
+            <p style={{ margin: '8px 0 0', color: 'var(--muted)', fontSize: 14 }}>{active.routeName}</p>
+          )}
+        </div>
+      )}
 
       <div>
         <p className="label" style={{ margin: '0 0 10px' }}>

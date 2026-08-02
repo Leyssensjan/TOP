@@ -18,7 +18,7 @@ import {
   TARGET_MINUTES,
 } from '@/lib/config';
 import { addDays, daysBetween } from '@/lib/dates';
-import type { Micro, MicroLogEntry, SessionLog, SessionType, Skill, Slot } from '@/lib/types';
+import type { Micro, MicroLogEntry, Route, SessionLog, SessionType, Skill, Slot, StrengthSet } from '@/lib/types';
 
 export interface Movement {
   slot: number;
@@ -41,7 +41,15 @@ export interface StrengthBlock {
   fromMinute: number;
   toMinute: number;
   warmUp: boolean;
-  movements: Array<{ id: string; name: string; family: string; level: number | null; cues: string; referenceTerm: string }>;
+  movements: Array<{
+    id: string;
+    name: string;
+    family: string;
+    level: number | null;
+    cues: string;
+    referenceTerm: string;
+    unit: 'reps' | 'seconds';
+  }>;
 }
 
 export interface SessionPlan {
@@ -55,6 +63,10 @@ export interface SessionPlan {
   movements: Movement[];
   /** Only for Strength: the ladders, grouped into supersets. */
   strength?: { blocks: StrengthBlock[]; prescription: typeof STRENGTH.prescription };
+  /** Only for Engine: the scouted routes, so one can be picked and logged. */
+  engine?: { routes: Route[] };
+  /** Only for Skate: the session focus card. */
+  skate?: { focus: FocusTrick[] };
   note: string | null;
 }
 
@@ -102,11 +114,106 @@ export function buildStrength(skills: Skill[]): StrengthBlock[] {
               level: skill.level,
               cues: skill.cues,
               referenceTerm: skill.referenceTerm,
+              unit: unitOf(skill),
             }
           : null;
       })
       .filter((m): m is NonNullable<typeof m> => m !== null),
   }));
+}
+
+/** How a set of this movement is counted. Notion wins; config is the fallback. */
+export function unitOf(skill: Pick<Skill, 'unit'>): 'reps' | 'seconds' {
+  return skill.unit ?? STRENGTH.defaultUnit;
+}
+
+/** A set is good enough to count towards a level-up. */
+export function setClears(set: StrengthSet, unit: 'reps' | 'seconds'): boolean {
+  return unit === 'seconds'
+    ? (set.seconds ?? 0) >= STRENGTH.levelUpSeconds
+    : (set.reps ?? 0) >= STRENGTH.levelUpReps;
+}
+
+export interface StrengthProposal {
+  family: string;
+  fromLevel: number;
+  toLevel: number;
+  currentSkillId: string;
+  currentSkillName: string;
+  nextSkillId: string;
+  nextSkillName: string;
+  unit: 'reps' | 'seconds';
+  clearedSets: number;
+  onDate: string;
+}
+
+/**
+ * Strength levels up on logged work rather than on sessions attended: three
+ * sets of eight, in one session, closed at a difficulty that counts as clean.
+ * Every number is in STRENGTH. Proposed, never automatic.
+ */
+export function strengthLevelUpProposals(
+  skills: Skill[],
+  sets: StrengthSet[],
+  sessions: SessionLog[],
+  today: string,
+): StrengthProposal[] {
+  // Sets carry the session's client id; the session carries it inside its name.
+  // Matching on it keeps a set tied to the difficulty Jan actually reported.
+  const cleanSessions = new Set(
+    sessions
+      .filter((s) => s.completed && STRENGTH.cleanDifficulties.includes(s.difficulty ?? ''))
+      .map((s) => s.name.match(/\[([^\]]+)\]/)?.[1] ?? '')
+      .filter(Boolean),
+  );
+
+  const proposals: StrengthProposal[] = [];
+
+  for (const family of STRENGTH.ladders) {
+    const ladder = skills
+      .filter((s) => s.domain === 'strength' && s.family === family)
+      .sort((a, b) => (a.level ?? 0) - (b.level ?? 0));
+
+    const current = ladder.find((s) => s.status === 'current');
+    if (!current) continue;
+    const next = ladder.find((s) => (s.level ?? 0) === (current.level ?? 0) + 1);
+    if (!next) continue;
+
+    if (current.levelUpDeferred && daysBetween(current.levelUpDeferred, today) < LEVELUP_DEFER_DAYS) continue;
+
+    const unit = unitOf(current);
+    // Grouped by session, because three sets of eight means three in one
+    // session, not three good sets accumulated over a month.
+    const bySession = new Map<string, StrengthSet[]>();
+    for (const set of sets) {
+      if (set.skill !== current.name) continue;
+      if (!cleanSessions.has(set.session)) continue;
+      if (!setClears(set, unit)) continue;
+      const list = bySession.get(set.session) ?? [];
+      list.push(set);
+      bySession.set(set.session, list);
+    }
+
+    const qualifying = [...bySession.values()]
+      .filter((list) => list.length >= STRENGTH.levelUpSets)
+      .sort((a, b) => (a[0].date < b[0].date ? 1 : -1))[0];
+    if (!qualifying) continue;
+
+    proposals.push({
+      family,
+      fromLevel: current.level ?? 0,
+      toLevel: next.level ?? (current.level ?? 0) + 1,
+      currentSkillId: current.id,
+      currentSkillName: current.name,
+      nextSkillId: next.id,
+      nextSkillName: next.name,
+      unit,
+      clearedSets: qualifying.length,
+      onDate: qualifying[0].date,
+    });
+  }
+
+  return proposals;
 }
 
 export interface LevelUpProposal {
@@ -210,7 +317,14 @@ export function planSession(
       totalSeconds: targetMinutes * 60,
       rounds: 1,
       movements: [],
-      note: 'No movement list for this type yet. Log it when you are done.',
+      // Engine and Skate have no prescribed movement list by design. The Runner
+      // gives them a stopwatch and the reference card they actually need.
+      note:
+        type === 'engine'
+          ? 'Pick a route, or just go. The clock counts up.'
+          : type === 'skate'
+            ? 'Work the focus card. The clock counts up.'
+            : 'No movement list for this type yet. Log it when you are done.',
     };
   }
 

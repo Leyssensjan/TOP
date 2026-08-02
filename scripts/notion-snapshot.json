@@ -1075,7 +1075,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Hang"
+   "family": "Hang",
+   "unit": "reps"
   },
   {
    "id": "3aeb7198-2759-8118-a3c5-d4d386d7cb75",
@@ -1094,7 +1095,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Hinge"
+   "family": "Hinge",
+   "unit": "reps"
   },
   {
    "id": "3aeb7198-2759-811c-93e2-de80ddd7b588",
@@ -1113,7 +1115,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Pull"
+   "family": "Pull",
+   "unit": "reps"
   },
   {
    "id": "3aeb7198-2759-812a-929b-cfa493ca04c8",
@@ -1132,7 +1135,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Push"
+   "family": "Push",
+   "unit": "seconds"
   },
   {
    "id": "3aeb7198-2759-812b-af76-d17634d646dc",
@@ -1151,7 +1155,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Hang"
+   "family": "Hang",
+   "unit": "seconds"
   },
   {
    "id": "3aeb7198-2759-8136-9e91-fc96a84a55e8",
@@ -1170,7 +1175,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Hinge"
+   "family": "Hinge",
+   "unit": "reps"
   },
   {
    "id": "3aeb7198-2759-8137-bc36-dda25b961377",
@@ -1189,7 +1195,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Push"
+   "family": "Push",
+   "unit": "reps"
   },
   {
    "id": "3aeb7198-2759-813f-a617-c2b0ca320654",
@@ -1208,7 +1215,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Push"
+   "family": "Push",
+   "unit": "reps"
   },
   {
    "id": "3aeb7198-2759-8143-87d2-d7779f52fdda",
@@ -1227,7 +1235,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Pull"
+   "family": "Pull",
+   "unit": "reps"
   },
   {
    "id": "3aeb7198-2759-814a-b049-cb223eb88231",
@@ -1246,7 +1255,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Single leg"
+   "family": "Single leg",
+   "unit": "reps"
   },
   {
    "id": "3aeb7198-2759-8157-a57d-e8a1316c453c",
@@ -1265,7 +1275,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Hinge"
+   "family": "Hinge",
+   "unit": "reps"
   },
   {
    "id": "3aeb7198-2759-8166-8bf3-f2d7868eef78",
@@ -1284,7 +1295,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Pull"
+   "family": "Pull",
+   "unit": "reps"
   },
   {
    "id": "3aeb7198-2759-816e-b90e-fc476c6a1e4a",
@@ -1303,7 +1315,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Pull"
+   "family": "Pull",
+   "unit": "reps"
   },
   {
    "id": "3aeb7198-2759-8182-8e39-d19746725da1",
@@ -1322,7 +1335,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Single leg"
+   "family": "Single leg",
+   "unit": "reps"
   },
   {
    "id": "3aeb7198-2759-819d-8bbd-f96a1a055030",
@@ -1341,7 +1355,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Hang"
+   "family": "Hang",
+   "unit": "reps"
   },
   {
    "id": "3aeb7198-2759-81a4-98c8-eca5b8ce671c",
@@ -1360,7 +1375,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Single leg"
+   "family": "Single leg",
+   "unit": "reps"
   },
   {
    "id": "3aeb7198-2759-81af-ad9b-ecfe1d07d642",
@@ -1379,7 +1395,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Single leg"
+   "family": "Single leg",
+   "unit": "reps"
   },
   {
    "id": "3aeb7198-2759-81bb-8f7e-d84ea37b4274",
@@ -1398,7 +1415,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Hang"
+   "family": "Hang",
+   "unit": "reps"
   },
   {
    "id": "3aeb7198-2759-81c0-acb3-f8f30d80162e",
@@ -1417,7 +1435,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Pull"
+   "family": "Pull",
+   "unit": "reps"
   },
   {
    "id": "3aeb7198-2759-81c7-8d74-c97338c09363",
@@ -1436,7 +1455,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Push"
+   "family": "Push",
+   "unit": "reps"
   },
   {
    "id": "3aeb7198-2759-81d3-b0e8-f1425ae195ce",
@@ -1455,7 +1475,8 @@
    "lastPracticed": null,
    "levelUpDeferred": null,
    "durationSeconds": null,
-   "family": "Hinge"
+   "family": "Hinge",
+   "unit": "reps"
   }
  ],
  "micros": [
