@@ -16,6 +16,7 @@ export interface TodayPayload {
   rest: boolean;
   session: SessionPlan;
   alreadyLogged: boolean;
+  loggedToday: Array<{ id: string; type: string; actualMinutes: number | null }>;
   rolling: {
     count: number;
     target: number;
@@ -69,6 +70,19 @@ export interface TodayPayload {
     | null;
   /** The arc, stated every morning. The only place it appears daily. */
   horizon: { slot: number; name: string; inSessions: number | null } | null;
+  /** This week's micros, tapped from Today rather than from another screen. */
+  micros: Array<{
+    id: string;
+    name: string;
+    trigger: string;
+    cue: string;
+    duration: string;
+    feedsSlot: number | null;
+    feedsName: string | null;
+    assisting: boolean;
+    weeklyTarget: number | null;
+    count: number;
+  }>;
 }
 
 /** One set logged during a Strength session, held locally until Close. */

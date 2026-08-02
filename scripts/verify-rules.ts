@@ -4,7 +4,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow, strengthLevelUpProposals, unitOf, slotUnlockProposal, buildSkateSession, skateProposals, chooseProposal, assistedSlots, sessionsNeeded, flowsSinceUnlock, sessionsUntilNextSlot, nextSlotToUnlock } from '../lib/rules';
-import { MICRO_ASSIST, PLANNER, ROUND_RAMP, SKATE_FOCUS, SKATE_SESSION, SLOT_UNLOCK, STRENGTH, TARGET_MINUTES } from '../lib/config';
+import { MICRO_ASSIST, MICRO_ROTATION, PLANNER, ROUND_RAMP, SKATE_FOCUS, SKATE_SESSION, SLOT_UNLOCK, STRENGTH, TARGET_MINUTES } from '../lib/config';
 import { skateContent } from '../lib/skate-content';
 import { generateWeek } from '../lib/planner';
 import { weekStart } from '../lib/dates';
@@ -520,6 +520,44 @@ check('Retired micros are never selected', rot.activate.every((m) => !m.retired)
 const oldLog: MicroLogEntry[] = [{ id: 'old', name: micros[0].name, date: '2026-05-01', count: 1, weekStart: '2026-04-27' }];
 const rot2 = rotateMicros(micros, oldLog, slots, skills, week, false);
 check('Retirement engages once history is long enough', rot2.retire.length > 0, `${rot2.retire.length} retired`);
+
+// --- finishing a micro brings in a new one ---------------------------------
+{
+  const target = micros.find((m) => m.active && m.weeklyTarget)!;
+  const finished: MicroLogEntry[] = [
+    { id: 'done-1', name: target.name, date: week, count: target.weeklyTarget!, weekStart: week },
+  ];
+  const before = rotateMicros(micros, [], slots, skills, week, false);
+  const after = rotateMicros(micros, finished, slots, skills, week, false);
+
+  // `reasons` carries one entry per chosen micro, which is the selection.
+  const chosenOf = (d: typeof before) => Object.keys(d.reasons);
+  const unfinishedOf = (d: typeof before) =>
+    chosenOf(d).filter((name) => d.reasons[name] !== 'done this week');
+
+  check(
+    'A finished micro stays on the screen',
+    after.reasons[target.name] === 'done this week',
+    `${after.reasons[target.name] ?? 'missing'}`,
+  );
+  check(
+    'And a new one comes in behind it',
+    unfinishedOf(after).length >= unfinishedOf(before).length &&
+      chosenOf(after).length > chosenOf(before).length,
+    `${chosenOf(before).length} chosen before, ${chosenOf(after).length} after`,
+  );
+  check(
+    'The unfinished ones still land inside the 3 to 5 band',
+    unfinishedOf(after).length >= MICRO_ROTATION.minActive &&
+      unfinishedOf(after).length <= MICRO_ROTATION.maxActive,
+    `${unfinishedOf(after).length} unfinished, ${chosenOf(after).length} shown`,
+  );
+  check(
+    'A finished micro is never counted as one of the active few',
+    !unfinishedOf(after).includes(target.name),
+    '',
+  );
+}
 
 // --- micro progress ---
 const progress = microProgress(micros, microLog, week);

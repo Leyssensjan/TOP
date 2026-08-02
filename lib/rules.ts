@@ -636,6 +636,23 @@ export function rotateMicros(
   const cfg = MICRO_ROTATION;
   const reasons: Record<string, string> = {};
 
+  // A micro that has already hit its weekly target has done its job. It stays
+  // on the screen — finishing it is the point — but it stops occupying one of
+  // the few active places, so a new one comes in behind it.
+  const doneThisWeek = new Set(
+    cfg.replaceOnComplete
+      ? micros
+          .filter((m) => m.active && m.weeklyTarget)
+          .filter(
+            (m) =>
+              log
+                .filter((l) => l.name === m.name && l.date >= weekStartDate)
+                .reduce((sum, l) => sum + (l.count || 0), 0) >= (m.weeklyTarget ?? 0),
+          )
+          .map((m) => m.id)
+      : [],
+  );
+
   const countSince = (name: string, since: string) =>
     log.filter((l) => l.name === name && l.date >= since).reduce((sum, l) => sum + (l.count || 0), 0);
 
@@ -653,7 +670,7 @@ export function rotateMicros(
     : [];
   const retiredIds = new Set(retire.map((m) => m.id));
 
-  const eligible = micros.filter((m) => !m.retired && !retiredIds.has(m.id));
+  const eligible = micros.filter((m) => !m.retired && !retiredIds.has(m.id) && !doneThisWeek.has(m.id));
 
   // The slot closest to levelling up is the one with the most sessions banked
   // at its current level.
@@ -664,9 +681,14 @@ export function rotateMicros(
     .slice()
     .sort((a, b) => progressOf(b) - progressOf(a))[0];
 
-  const chosen: Micro[] = [];
+  // The finished ones keep their place on the screen without being counted.
+  const chosen: Micro[] = micros.filter((m) => doneThisWeek.has(m.id));
+  chosen.forEach((m) => {
+    reasons[m.name] = 'done this week';
+  });
+  const counted = () => chosen.filter((m) => !doneThisWeek.has(m.id)).length;
   const take = (m: Micro | undefined, why: string) => {
-    if (!m || chosen.some((c) => c.id === m.id) || chosen.length >= cfg.maxActive) return;
+    if (!m || chosen.some((c) => c.id === m.id) || counted() >= cfg.maxActive) return;
     chosen.push(m);
     reasons[m.name] = why;
   };
@@ -695,9 +717,10 @@ export function rotateMicros(
     take(wildcards[i], 'wildcard, quiet lately');
   }
 
-  // Top up to the minimum with whatever feeds an active slot.
+  // Top up to the minimum with whatever feeds an active slot. Completed ones
+  // do not count, so finishing a micro genuinely brings a new one in.
   for (const m of eligible) {
-    if (chosen.length >= cfg.minActive) break;
+    if (counted() >= cfg.minActive) break;
     take(m, 'filling the minimum');
   }
 

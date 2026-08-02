@@ -125,7 +125,7 @@ export const TARGET_MINUTES: Record<string, number> = {
   'flow short': 7,
   strength: 30,
   engine: 30,
-  skate: 45,
+  skate: 60,
 };
 
 /** Levelling rule: 8 sessions at level, "easy" on at least the last 3. */
@@ -275,10 +275,10 @@ export const SWITCH_FAKIE_MARKERS = ['switch', 'fakie', 'nollie'];
 export const SKATE_SESSION = {
   blocks: [
     { from: 0, to: 5, label: 'Roll in', reasons: [] as string[], warmUp: true },
-    { from: 5, to: 15, label: 'Confirm the rusty ones', reasons: ['rusty'] },
-    { from: 15, to: 35, label: 'The projects', reasons: ['project', 'start here'] },
-    { from: 35, to: 42, label: 'One stretch attempt', reasons: ['stretch'] },
-    { from: 42, to: 45, label: 'Switch and fakie', reasons: ['switch or fakie'] },
+    { from: 5, to: 18, label: 'Confirm the rusty ones', reasons: ['rusty'] },
+    { from: 18, to: 45, label: 'The projects', reasons: ['project', 'start here'] },
+    { from: 45, to: 54, label: 'One stretch attempt', reasons: ['stretch'] },
+    { from: 54, to: 60, label: 'Switch and fakie', reasons: ['switch or fakie'] },
   ],
   /**
    * A block with nothing on its card is dropped and its minutes handed to the
@@ -318,4 +318,10 @@ export const MICRO_ROTATION = {
   retireAfterUntouchedWeeks: 3,
   /** A micro counts as "not recent" once it has been quiet this long. */
   wildcardQuietWeeks: 3,
+  /**
+   * Hitting a weekly target brings in a new one rather than leaving a finished
+   * row sitting there. The done micro stays visible for the rest of the week —
+   * finishing it is the point — but it stops counting towards the active few.
+   */
+  replaceOnComplete: true,
 };

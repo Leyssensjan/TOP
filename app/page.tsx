@@ -1,13 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Detail from '@/components/Detail';
 import type { SessionPlan } from '@/lib/rules';
 import { minutes, titleCase } from '@/lib/format';
 import {
   ApiError,
   api,
   cacheToday,
+  enqueue,
   cachedToday,
   getActive,
   getKey,
@@ -43,6 +45,9 @@ export default function TodayPage() {
   const [resumable, setResumable] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
   const [keyInput, setKeyInput] = useState('');
+  const [pendingTaps, setPendingTaps] = useState<Record<string, number>>({});
+  const [openMicro, setOpenMicro] = useState<string | null>(null);
+  const timers = useRef<Record<string, number>>({});
 
   const load = useCallback(async () => {
     if (!getKey()) {
@@ -99,6 +104,46 @@ export default function TodayPage() {
     startSession(plan, date);
     router.push('/runner');
   };
+
+  // Skating is opportunistic: the weather decides, not the plan. This asks for
+  // a skate session outright and starts it.
+  const skateNow = async () => {
+    try {
+      const fresh = await api<TodayPayload>('/today?type=skate');
+      begin(fresh.session, fresh.date);
+    } catch {
+      // Offline: nothing to start from, and Today already says so.
+    }
+  };
+
+  // Taps inside this window collapse into one write, so five taps is one row
+  // in Notion with a count of five rather than five rows.
+  const flushMicro = useCallback(
+    (name: string) => {
+      setPendingTaps((prev) => {
+        const count = prev[name] ?? 0;
+        if (count > 0) {
+          enqueue('/micro', { name, count });
+          void sync().then(() => void load());
+        }
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+    },
+    [load],
+  );
+
+  const tapMicro = (name: string) => {
+    setPendingTaps((prev) => ({ ...prev, [name]: (prev[name] ?? 0) + 1 }));
+    window.clearTimeout(timers.current[name]);
+    timers.current[name] = window.setTimeout(() => flushMicro(name), 1200);
+  };
+
+  useEffect(() => {
+    const pending = timers.current;
+    return () => Object.values(pending).forEach((t) => window.clearTimeout(t));
+  }, []);
 
   if (status === 'nokey') {
     return (
@@ -160,23 +205,36 @@ export default function TodayPage() {
   const canStart = hasMovements || hasStrength || isOpen;
   const skateTricks = session.skate?.blocks.reduce((n, b) => n + b.tricks.length, 0) ?? 0;
   const hasSkate = skateTricks > 0;
+  const done = payload.alreadyLogged && !resumable;
+  const loggedMinutes = payload.loggedToday.reduce((n, l) => n + (l.actualMinutes ?? 0), 0);
 
   return (
     <main className="screen">
       {/* Above the fold: type, duration, one button. Nothing else. */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8, paddingTop: 8 }}>
         <p className="label" style={{ margin: 0 }}>
-          {payload.rest ? 'Planned rest' : titleCase(session.type)}
+          {done ? 'Today' : payload.rest ? 'Planned rest' : titleCase(session.type)}
         </p>
+        {/* Done for the day: the same card, just smaller and out of the way. */}
         <div
           className="num"
-          style={{ fontSize: 'clamp(92px, 34vw, 150px)', color: payload.rest ? 'var(--muted)' : 'var(--amber)' }}
+          style={{
+            fontSize: done ? 'clamp(48px, 16vw, 68px)' : 'clamp(92px, 34vw, 150px)',
+            color: done ? 'var(--sage)' : payload.rest ? 'var(--muted)' : 'var(--amber)',
+          }}
         >
-          {minutes(session.totalSeconds) || session.targetMinutes}
+          {done ? loggedMinutes : minutes(session.totalSeconds) || session.targetMinutes}
           <span style={{ fontSize: '0.28em', color: 'var(--muted)', marginLeft: 10 }}>MIN</span>
         </div>
         {/* The most important small thing in the app: the only place the arc
             is stated every single morning. The horizon clause is amber. */}
+        {done && (
+          <p style={{ margin: '0 0 18px', color: 'var(--muted)' }}>
+            {payload.loggedToday.map((l) => titleCase(l.type)).join(' and ')}. But hey, done.
+          </p>
+        )}
+
+        {!done && (
         <p style={{ margin: '0 0 22px', color: 'var(--muted)' }}>
           {hasMovements
             ? `${session.movements.length} movements · ${session.rounds} ${session.rounds === 1 ? 'round' : 'rounds'}`
@@ -193,6 +251,7 @@ export default function TodayPage() {
             </span>
           )}
         </p>
+        )}
 
         {/* A planned rest day still offers the session, quietly. The plan is a
             decision already made, not a lock. */}
@@ -211,6 +270,90 @@ export default function TodayPage() {
           </button>
         )}
       </div>
+
+      {/* Micros sit here, below the session and above everything else: they are
+          tapped through the day, so a trip to another screen loses them. */}
+      {payload.micros.length > 0 && (
+        <div style={{ paddingTop: 22 }}>
+          <p className="label" style={{ margin: '0 0 10px' }}>
+            This week&rsquo;s micros
+          </p>
+          <div className="stack" style={{ gap: 8 }}>
+            {payload.micros.map((m, i) => {
+              const shown = m.count + (pendingTaps[m.name] ?? 0);
+              const target = m.weeklyTarget ?? 0;
+              const met = target > 0 && shown >= target;
+              return (
+                <div key={m.id}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      borderRadius: 12,
+                      background: 'var(--ink-raised)',
+                      border: '1px solid var(--ink-line)',
+                      opacity: met ? 0.7 : 1,
+                    }}
+                  >
+                    {/* Tapping the name explains it; tapping the count logs it. */}
+                    <button
+                      onClick={() => setOpenMicro(openMicro === m.id ? null : m.id)}
+                      aria-expanded={openMicro === m.id}
+                      style={{ flex: 1, minWidth: 0, textAlign: 'left', padding: '14px 0 14px 16px', minHeight: 'var(--tap)' }}
+                    >
+                      <span style={{ display: 'block', fontSize: 16 }}>
+                        <span className="num" style={{ color: 'var(--muted)', marginRight: 8 }}>
+                          {i + 1}
+                        </span>
+                        {m.name}
+                      </span>
+                      <span style={{ display: 'block', fontSize: 13, color: 'var(--muted)', marginLeft: 22 }}>
+                        {m.trigger}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => tapMicro(m.name)}
+                      aria-label={`Log ${m.name}`}
+                      style={{ flex: 'none', padding: '14px 16px', minHeight: 'var(--tap)' }}
+                    >
+                      <span className="num" style={{ fontSize: 30, color: met ? 'var(--sage)' : 'var(--amber)' }}>
+                        {shown}
+                      </span>
+                      <span className="num" style={{ fontSize: 18, color: 'var(--muted)' }}>
+                        /{target || '-'}
+                      </span>
+                    </button>
+                  </div>
+
+                  {openMicro === m.id && (
+                    <Detail
+                      rows={[
+                        { label: 'Cue', value: m.cue },
+                        { label: 'When', value: m.trigger },
+                        { label: 'Takes', value: m.duration },
+                        {
+                          label: 'Feeds',
+                          links: m.feedsName
+                            ? [{ label: m.feedsName, onClick: () => router.push('/form') }]
+                            : undefined,
+                        },
+                      ]}
+                      footnote={met ? <>Done for this week. A new one has taken its place.</> : null}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Skating is opportunistic, so it gets its own way in rather than
+          waiting to be the suggested session. */}
+      <button className="btn btn-quiet" style={{ marginTop: 18 }} onClick={() => void skateNow()}>
+        Give me a skate session
+      </button>
 
       <div className="stack" style={{ paddingTop: 18 }}>
         {stale && <div className="banner">Showing the last saved copy. Not refreshed yet.</div>}

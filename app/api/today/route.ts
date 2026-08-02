@@ -15,12 +15,15 @@ import {
   skateProposals,
   rotateMicros,
   assistStreaks,
+  microProgress,
 } from '@/lib/rules';
 import { suggestNext } from '@/lib/planner';
 import { MICRO_ROTATION, SKATE_SESSION } from '@/lib/config';
 import { weekStart } from '@/lib/dates';
 import { getStore } from '@/lib/store';
 import type { SessionType } from '@/lib/types';
+
+const TYPES: SessionType[] = ['flow', 'flow short', 'strength', 'engine', 'skate'];
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -30,6 +33,10 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const dateParam = url.searchParams.get('date');
     const date = isValidDate(dateParam) ? dateParam : todayDate();
+    // "Give me a skate session" asks for a type outright, whatever the plan or
+    // the suggestion says. Skating is opportunistic; the weather decides.
+    const wanted = url.searchParams.get('type');
+    const forced: SessionType | null = TYPES.includes(wanted as SessionType) ? (wanted as SessionType) : null;
 
     const store = getStore();
     const [slots, movementSkills, strengthSkills, planEntry, sessions, sets, micros, microLog] =
@@ -56,9 +63,10 @@ export async function GET(req: Request) {
     const planned = planEntry?.sessionType;
     const suggestion = suggestNext(sessions, date);
     const type: SessionType =
-      planned && planned !== 'rest'
+      forced ??
+      (planned && planned !== 'rest'
         ? (planned as SessionType)
-        : ((suggestion.type === 'rest' ? 'flow' : suggestion.type) as SessionType);
+        : ((suggestion.type === 'rest' ? 'flow' : suggestion.type) as SessionType));
     const source = planEntry ? 'plan' : 'default';
 
     const skills = [...movementSkills, ...strengthSkills];
@@ -94,7 +102,7 @@ export async function GET(req: Request) {
 
     return {
       date,
-      rest: planned === 'rest',
+      rest: planned === 'rest' && !forced,
       session,
       alreadyLogged: loggedToday.length > 0,
       loggedToday: loggedToday.map((s) => ({ id: s.id, type: s.type, actualMinutes: s.actualMinutes })),
@@ -112,6 +120,16 @@ export async function GET(req: Request) {
       horizon: nextSlot
         ? { slot: nextSlot.slotId || nextSlot.sequence, name: nextSlot.name, inSessions: untilNextSlot }
         : null,
+      // The micros live on Today: they are tapped through the day, and making
+      // that a trip to another screen is exactly the friction that loses them.
+      micros: microProgress(micros, microLog, weekStart(date)).map((m) => {
+        const slot = slots.find((s) => (s.slotId || s.sequence) === m.feedsSlot);
+        return {
+          ...m,
+          feedsName: slot?.name ?? null,
+          assisting: m.feedsSlot !== null && assisted.has(m.feedsSlot),
+        };
+      }),
       store: store.name,
     };
   });
