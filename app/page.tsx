@@ -310,8 +310,13 @@ function ProposalCard({
         await api('/unlock', { method: 'POST', body: { action } });
       } else if (proposal.kind === 'movement') {
         await api('/levelup', { method: 'POST', body: { slot: proposal.movement.slot, action } });
-      } else {
+      } else if (proposal.kind === 'strength') {
         await api('/levelup', { method: 'POST', body: { family: proposal.strength.family, action } });
+      } else {
+        await api('/trick', {
+          method: 'POST',
+          body: action === 'accept' ? { id: proposal.skate.id, status: 'mastered' } : { id: proposal.skate.id, defer: true },
+        });
       }
       onDone();
     } catch {
@@ -362,12 +367,23 @@ function describe(proposal: NonNullable<TodayPayload['proposal']>) {
       accept: 'Level up',
     };
   }
-  const p = proposal.strength;
+  if (proposal.kind === 'strength') {
+    const p = proposal.strength;
+    return {
+      title: 'Ready to level up',
+      subject: `${p.family}: ${p.nextSkillName}`,
+      reason: `Level ${p.fromLevel} to ${p.toLevel}. ${p.clearedSets} clean sets on ${p.currentSkillName}.`,
+      accept: 'Level up',
+    };
+  }
+  const p = proposal.skate;
   return {
-    title: 'Ready to level up',
-    subject: `${p.family}: ${p.nextSkillName}`,
-    reason: `Level ${p.fromLevel} to ${p.toLevel}. ${p.clearedSets} clean sets on ${p.currentSkillName}.`,
-    accept: 'Level up',
+    title: 'Call it mastered?',
+    subject: p.name,
+    // The gate is shown verbatim: most of them are judgements the app cannot
+    // make, so it reports the evidence and asks.
+    reason: `Landed ${p.landed} of ${p.attempts}. ${p.gate}`,
+    accept: 'Mastered',
   };
 }
 

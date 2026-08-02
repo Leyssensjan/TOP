@@ -2,6 +2,7 @@ import { handle } from '@/lib/api';
 import { SKATE_BUILT_BY, SKATE_FOCUS, STRENGTH } from '@/lib/config';
 import { today as todayDate } from '@/lib/dates';
 import { skateFocus, unlockableTricks } from '@/lib/rules';
+import { skateContent } from '@/lib/skate-content';
 import { getStore } from '@/lib/store';
 
 export const runtime = 'nodejs';
@@ -52,6 +53,12 @@ export async function GET(req: Request) {
           attempts: t.attempts,
           whySkate: t.whySkate,
           builtBy: builtBy(t.family),
+          // Mechanics, drills and the gate come from the SkateQuest library.
+          mechanics: skateContent(t.skillId)?.mechanics ?? [],
+          drills: skateContent(t.skillId)?.drills ?? [],
+          gate: skateContent(t.skillId)?.gate ?? '',
+          terrain: skateContent(t.skillId)?.terrain ?? [],
+          risk: skateContent(t.skillId)?.risk ?? 0,
           lastPracticed: t.lastPracticed,
           unlockable: unlockable.has(t.id),
         }))

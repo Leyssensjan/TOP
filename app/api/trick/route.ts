@@ -27,13 +27,20 @@ export async function POST(req: Request) {
 
     const status: SkillStatus | null = STATUSES.includes(body?.status) ? body.status : null;
     const attempts = typeof body?.attempts === 'number' ? Math.max(0, Math.round(body.attempts)) : null;
-    if (!status && attempts === null) throw new BadRequest('status or attempts is required');
+    const defer = body?.defer === true;
+    if (!status && attempts === null && !defer) throw new BadRequest('status, attempts or defer is required');
 
     const date = todayDate();
     const store = getStore();
     const tricks = await store.getSkills('skate');
     const trick = tricks.find((t) => t.id === id);
     if (!trick) throw new BadRequest('No skate trick with that id');
+
+    // Deferring a mastery proposal silences it without touching the status.
+    if (defer) {
+      await store.updateSkill(id, { levelUpDeferred: date });
+      return { id, status: trick.status, deferredOn: date, store: store.name };
+    }
 
     await store.updateSkill(id, {
       ...(status ? { status } : {}),

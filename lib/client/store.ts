@@ -53,6 +53,19 @@ export interface TodayPayload {
           clearedSets: number;
         };
       }
+    | {
+        kind: 'skate';
+        skate: {
+          skillId: string;
+          id: string;
+          name: string;
+          family: string;
+          level: number | null;
+          landed: number;
+          attempts: number;
+          gate: string;
+        };
+      }
     | null;
   /** The arc, stated every morning. The only place it appears daily. */
   horizon: { slot: number; name: string; inSessions: number | null } | null;
@@ -78,6 +91,15 @@ export interface ActiveSession {
   /** Engine only. */
   routeName?: string;
   distanceKm?: number | null;
+  /** Skate only. Attempts and lands per trick, sent once at Close. */
+  tricks?: LoggedTrick[];
+}
+
+/** One trick worked in a skate session, keyed by its skill id. */
+export interface LoggedTrick {
+  trick: string;
+  attempts: number;
+  landed: number;
 }
 
 export interface OutboxItem {
@@ -190,6 +212,7 @@ export function startSession(plan: SessionPlan, date: string): ActiveSession {
     elapsedMs: 0,
     clientId: newId(),
     sets: [],
+    tricks: [],
   };
   write(ACTIVE, active);
   return active;

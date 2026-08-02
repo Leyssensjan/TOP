@@ -4,9 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Thread, { type ThreadNode } from '@/components/Thread';
 import { mmss, titleCase } from '@/lib/format';
-import type { Movement, StrengthBlock } from '@/lib/rules';
-import { getActive, saveActive, type ActiveSession, type LoggedSet } from '@/lib/client/store';
-import { STRENGTH } from '@/lib/config';
+import type { Movement, SkateBlock, SkateTrickCard, StrengthBlock } from '@/lib/rules';
+import { getActive, saveActive, type ActiveSession, type LoggedSet, type LoggedTrick } from '@/lib/client/store';
+import { SKATE_SESSION, STRENGTH } from '@/lib/config';
 
 interface Step extends Movement {
   round: number;
@@ -35,7 +35,11 @@ export default function RunnerPage() {
   if (!active.plan.movements.length && active.plan.strength?.blocks.length) {
     return <StrengthRunner active={active} />;
   }
-  // Engine and Skate have no prescribed steps at all: a stopwatch and a card.
+  // Skate walks blocks like Strength: rust, projects, one stretch, switch work.
+  if (!active.plan.movements.length && active.plan.skate?.blocks.length) {
+    return <SkateRunner active={active} />;
+  }
+  // Engine has no prescribed steps at all: a stopwatch and the routes.
   if (!active.plan.movements.length && (active.plan.type === 'engine' || active.plan.type === 'skate')) {
     return <OpenRunner active={active} />;
   }
@@ -541,15 +545,12 @@ function Lift({
 }
 
 /**
- * Engine and Skate have no prescribed steps, so the clock counts up rather than
- * down and the screen carries only the card he needs: the routes, or the focus
- * list. Ending is the only decision.
+ * Engine has no prescribed steps, so the clock counts up rather than down and
+ * the screen carries only the routes. Ending is the only decision.
  */
 function OpenRunner({ active }: { active: ActiveSession }) {
   const router = useRouter();
-  const isEngine = active.plan.type === 'engine';
   const routes = active.plan.engine?.routes ?? [];
-  const focus = active.plan.skate?.focus ?? [];
 
   const [routeName, setRouteName] = useState(active.routeName ?? '');
   const [elapsedMs, setElapsedMs] = useState(() => Date.now() - active.startedAt);
@@ -615,8 +616,7 @@ function OpenRunner({ active }: { active: ActiveSession }) {
           )}
         </button>
 
-        {isEngine ? (
-          <div className="stack">
+        <div className="stack">
             <p className="label" style={{ margin: 0 }}>
               Route
             </p>
@@ -638,26 +638,259 @@ function OpenRunner({ active }: { active: ActiveSession }) {
                 </button>
               ))}
             {routes.length === 0 && <div className="banner">No routes scouted yet. Just go; log the distance after.</div>}
-          </div>
-        ) : (
-          <div className="stack">
-            <p className="label" style={{ margin: 0 }}>
-              Session focus
-            </p>
-            {focus.map((f) => (
-              <p key={f.id} style={{ margin: 0, fontSize: 16 }}>
-                {f.name}
-                <span style={{ color: 'var(--muted)' }}> · {f.reason}</span>
-              </p>
-            ))}
-            {focus.length === 0 && <div className="banner">Nothing on the focus card yet. Mark some tricks on Skate.</div>}
-          </div>
-        )}
+        </div>
       </div>
 
       <button className="btn btn-primary" onClick={finish}>
         Finish
       </button>
     </main>
+  );
+}
+
+/**
+ * A skate session walks blocks the way Strength does, and for the same reason:
+ * an hour at the park with a list of names is not a session. Rust first while
+ * the legs are fresh, then the projects that need real attempts, then one
+ * stretch, then the switch work that otherwise never happens.
+ *
+ * Each card carries the trick's own drills — what to actually do — and its
+ * mastery gate, which is the thing being judged.
+ */
+function SkateRunner({ active }: { active: ActiveSession }) {
+  const router = useRouter();
+  const blocks = active.plan.skate!.blocks;
+  const [tricks, setTricks] = useState<LoggedTrick[]>(() => active.tricks ?? []);
+
+  const seconds = (b: SkateBlock) => Math.max(0, b.toMinute - b.fromMinute) * 60;
+
+  const [index, setIndex] = useState(() => Math.min(active.step, blocks.length - 1));
+  const [running, setRunning] = useState(true);
+  const [remaining, setRemaining] = useState(() => seconds(blocks[Math.min(active.step, blocks.length - 1)]) * 1000);
+  const endAtRef = useRef(0);
+
+  const elapsed = () => Date.now() - active.startedAt;
+
+  useWakeLock();
+
+  useEffect(() => {
+    if (!running) return;
+    endAtRef.current = Date.now() + remaining;
+    const id = window.setInterval(() => {
+      const left = endAtRef.current - Date.now();
+      if (left <= 0) {
+        window.clearInterval(id);
+        advance();
+      } else {
+        setRemaining(left);
+      }
+    }, 200);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, index]);
+
+  const persist = (nextIndex: number, next: LoggedTrick[]) => {
+    saveActive({ ...active, step: nextIndex, elapsedMs: elapsed(), tricks: next });
+  };
+
+  const finish = () => {
+    persist(blocks.length, tricks);
+    router.replace('/close');
+  };
+
+  const advance = () => {
+    const next = index + 1;
+    if (next >= blocks.length) {
+      finish();
+      return;
+    }
+    setIndex(next);
+    setRemaining(seconds(blocks[next]) * 1000);
+    persist(next, tricks);
+  };
+
+  // Every tap is persisted, because a session at the park is exactly where the
+  // phone gets locked, dropped or run out of battery.
+  const log = (trick: string, attempts: number, landed: number) => {
+    const existing = tricks.find((t) => t.trick === trick);
+    const next = existing
+      ? tricks.map((t) =>
+          t.trick === trick ? { ...t, attempts: t.attempts + attempts, landed: t.landed + landed } : t,
+        )
+      : [...tricks, { trick, attempts, landed }];
+    setTricks(next);
+    persist(index, next);
+  };
+
+  const block = blocks[index];
+  if (!block) return <Empty note={active.plan.note} onClose={() => router.replace('/close')} />;
+
+  return (
+    <main className="screen" style={{ gap: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span className="label">
+          Skate · block {index + 1} of {blocks.length}
+        </span>
+        <button className="label" onClick={finish} style={{ padding: '8px 0 8px 16px' }}>
+          End
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', gap: 6 }}>
+        {blocks.map((b, i) => (
+          <span
+            key={b.label}
+            style={{
+              flex: Math.max(1, b.toMinute - b.fromMinute),
+              height: 4,
+              borderRadius: 2,
+              background: i === index ? 'var(--amber)' : i < index ? 'var(--sage)' : 'var(--ink-line)',
+            }}
+          />
+        ))}
+      </div>
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflowY: 'auto' }}>
+        <p className="label" style={{ margin: '0 0 4px' }}>
+          {block.label} · minute {block.fromMinute} to {block.toMinute}
+        </p>
+
+        <button
+          onClick={() => setRunning((r) => !r)}
+          aria-label={running ? 'Pause' : 'Resume'}
+          style={{ textAlign: 'left', padding: 0, marginBottom: 16 }}
+        >
+          <span
+            className="num"
+            style={{
+              fontSize: 'clamp(56px, 18vw, 84px)',
+              color: running ? 'var(--amber)' : 'var(--muted)',
+              display: 'block',
+            }}
+          >
+            {mmss(remaining / 1000)}
+          </span>
+          <span className="label" style={{ display: 'block', marginTop: 4 }}>
+            {running ? 'tap to pause' : 'paused · tap to resume'}
+          </span>
+        </button>
+
+        {block.tricks.length ? (
+          <div className="stack" style={{ gap: 18 }}>
+            {block.tricks.map((t) => (
+              <TrickCard
+                key={t.id}
+                trick={t}
+                logged={tricks.find((l) => l.trick === t.skillId) ?? null}
+                onLog={(attempts, landed) => log(t.skillId, attempts, landed)}
+              />
+            ))}
+          </div>
+        ) : (
+          <p style={{ margin: 0, color: 'var(--muted)', fontSize: 16, lineHeight: 1.45 }}>
+            {block.warmUp
+              ? 'Roll around. Push, carve, get the feet used to the board.'
+              : 'Nothing on the card for this block. Skate whatever you want.'}
+          </p>
+        )}
+      </div>
+
+      <button className="btn btn-primary" onClick={advance}>
+        {index + 1 >= blocks.length ? 'Finish' : 'Next block'}
+      </button>
+    </main>
+  );
+}
+
+/**
+ * One trick: what it is, how it works, what to do, and what counts as having
+ * it. Landed and missed are two taps, which is all the logging a cold hand at a
+ * skatepark will tolerate.
+ */
+function TrickCard({
+  trick,
+  logged,
+  onLog,
+}: {
+  trick: SkateTrickCard;
+  logged: LoggedTrick | null;
+  onLog: (attempts: number, landed: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const attempts = logged?.attempts ?? 0;
+  const landed = logged?.landed ?? 0;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 'clamp(20px, 5.5vw, 26px)', fontWeight: 600 }}>
+          {trick.name}
+        </span>
+        <span className="num" style={{ fontSize: 22, color: landed > 0 ? 'var(--sage)' : 'var(--muted)' }}>
+          {landed}
+          <span style={{ color: 'var(--muted)', fontSize: '0.65em' }}>/{attempts}</span>
+        </span>
+      </div>
+
+      <p style={{ margin: '2px 0 8px', color: 'var(--muted)', fontSize: 14 }}>
+        {trick.reason}
+        {trick.risk >= SKATE_SESSION.highRisk && ' · high risk, pads'}
+        {trick.terrain.length > 0 && ` · ${trick.terrain[0]}`}
+      </p>
+
+      {/* The drills are the point of the block: what to actually do. */}
+      {trick.drills.length > 0 && (
+        <p style={{ margin: '0 0 10px', fontSize: 15, lineHeight: 1.45 }}>{trick.drills.join(' · ')}</p>
+      )}
+
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <button
+          className="btn"
+          style={{ width: 'auto', flex: '1 1 40%', padding: '14px 8px', borderColor: 'var(--sage)' }}
+          onClick={() => onLog(1, 1)}
+        >
+          Landed
+        </button>
+        <button
+          className="btn"
+          style={{ width: 'auto', flex: '1 1 40%', padding: '14px 8px' }}
+          onClick={() => onLog(1, 0)}
+        >
+          Missed
+        </button>
+        <button
+          className="label"
+          onClick={() => setOpen((v) => !v)}
+          style={{ color: 'var(--amber)', padding: '14px 0 14px 10px' }}
+        >
+          {open ? 'Less' : 'How'}
+        </button>
+      </div>
+
+      {open && (
+        <div className="panel" style={{ paddingLeft: 0 }}>
+          {trick.mechanics.length > 0 && (
+            <div className="panel-row">
+              <span className="panel-label">Mechanics</span>
+              <span className="panel-value">{trick.mechanics.join(' ')}</span>
+            </div>
+          )}
+          {trick.gate && (
+            <div className="panel-row">
+              <span className="panel-label">Gate</span>
+              <span className="panel-value">{trick.gate}</span>
+            </div>
+          )}
+          {trick.attemptsLast > 0 && (
+            <div className="panel-row">
+              <span className="panel-label">Last time</span>
+              <span className="panel-value" style={{ color: 'var(--muted)' }}>
+                {trick.landedLast} of {trick.attemptsLast}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

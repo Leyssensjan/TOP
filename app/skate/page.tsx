@@ -23,6 +23,11 @@ interface Trick {
   unlockable: boolean;
   whySkate: string;
   builtBy: { slots: string[]; families: string[] };
+  mechanics: string[];
+  drills: string[];
+  gate: string;
+  terrain: string[];
+  risk: number;
 }
 
 interface FocusTrick {
@@ -241,6 +246,12 @@ export default function SkatePage() {
                 {open === trick.id && (
                   <Detail
                     rows={[
+                      { label: 'Mechanics', value: trick.mechanics.join(' ') },
+                      // The drills are what turns a trick name into something
+                      // you can actually go and do at the park.
+                      { label: 'Drills', value: trick.drills.join(' · ') },
+                      { label: 'Gate', value: trick.gate },
+                      { label: 'Terrain', value: trick.terrain.join(', ') },
                       { label: 'Skate', value: trick.whySkate },
                       {
                         label: 'Built by',
@@ -251,7 +262,9 @@ export default function SkatePage() {
                       },
                       { label: 'Needs', value: trick.prereqs.join(', ') },
                     ]}
-                    progress={`Level ${trick.level}${trick.lastPracticed ? ` · last ${trick.lastPracticed}` : ''}`}
+                    progress={`Level ${trick.level} · risk ${trick.risk} of 10${
+                      trick.attempts ? ` · ${trick.attempts} attempts` : ''
+                    }${trick.lastPracticed ? ` · last ${trick.lastPracticed}` : ''}`}
                     referenceTerm={trick.name}
                   />
                 )}

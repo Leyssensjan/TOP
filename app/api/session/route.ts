@@ -44,6 +44,19 @@ export async function POST(req: Request) {
           }))
       : [];
 
+    // Skate logs attempts and lands per trick, keyed by skill id.
+    const tricks: Array<{ trick: string; attempts: number; landed: number }> = Array.isArray(body?.tricks)
+      ? body.tricks
+          .filter((t: any) => t && typeof t.trick === 'string')
+          .slice(0, 100)
+          .map((t: any) => ({
+            trick: t.trick.slice(0, 100),
+            attempts: typeof t.attempts === 'number' ? Math.max(0, Math.round(t.attempts)) : 0,
+            landed: typeof t.landed === 'number' ? Math.max(0, Math.round(t.landed)) : 0,
+          }))
+          .filter((t: { attempts: number }) => t.attempts > 0)
+      : [];
+
     // The offline queue can retry the same write. The client id makes that safe.
     const clientId =
       typeof body?.clientId === 'string' ? body.clientId.replace(/[^a-zA-Z0-9-]/g, '').slice(0, 24) : '';
@@ -111,6 +124,28 @@ export async function POST(req: Request) {
             session: clientId,
           }),
         ),
+      );
+    }
+
+    if (tricks.length) {
+      await Promise.all(
+        tricks.map((t) =>
+          store.createSkateSet({ date, trick: t.trick, attempts: t.attempts, landed: t.landed, session: clientId }),
+        ),
+      );
+      // Touching a trick confirms it, which is what clears the rust flag.
+      const allTricks = await store.getSkills('skate');
+      await Promise.all(
+        tricks.flatMap((t) => {
+          const skill = allTricks.find((s) => s.skillId === t.trick);
+          if (!skill) return [];
+          return [
+            store.updateSkill(skill.id, {
+              attempts: (skill.attempts ?? 0) + t.attempts,
+              lastPracticed: date,
+            }),
+          ];
+        }),
       );
     }
 

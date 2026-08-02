@@ -116,6 +116,25 @@ export interface NewStrengthSet {
   session: string;
 }
 
+/** One trick worked in a skate session. Attempts and lands, nothing else. */
+export interface SkateSet {
+  id: string;
+  name: string;
+  date: string;
+  trick: string;
+  attempts: number;
+  landed: number;
+  session: string;
+}
+
+export interface NewSkateSet {
+  date: string;
+  trick: string;
+  attempts: number;
+  landed: number;
+  session: string;
+}
+
 export interface PlanEntry {
   id: string;
   name: string;
@@ -255,6 +274,9 @@ export interface Store {
 
   getStrengthSetsSince(since: string): Promise<StrengthSet[]>;
   createStrengthSet(input: NewStrengthSet): Promise<StrengthSet>;
+
+  getSkateSetsSince(since: string): Promise<SkateSet[]>;
+  createSkateSet(input: NewSkateSet): Promise<SkateSet>;
 
   getMilestonesSince(since: string): Promise<Milestone[]>;
   createMilestone(input: NewMilestone): Promise<Milestone>;

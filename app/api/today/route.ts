@@ -9,14 +9,15 @@ import {
   planSession,
   rollingStatus,
   sessionsUntilNextSlot,
-  skateFocus,
+  buildSkateSession,
   slotUnlockProposal,
   strengthLevelUpProposals,
+  skateProposals,
   rotateMicros,
   assistStreaks,
 } from '@/lib/rules';
 import { suggestNext } from '@/lib/planner';
-import { MICRO_ROTATION } from '@/lib/config';
+import { MICRO_ROTATION, SKATE_SESSION } from '@/lib/config';
 import { weekStart } from '@/lib/dates';
 import { getStore } from '@/lib/store';
 import type { SessionType } from '@/lib/types';
@@ -72,12 +73,18 @@ export async function GET(req: Request) {
       flowsDone,
     );
 
-    // Engine and Skate carry a reference card rather than a movement list. It
-    // is fetched only for the type actually being run, so Today stays cheap.
+    // The skate log is small; the 190 tricks are not. Read the log first and
+    // only pay for the tricks when this is actually a skate day, or when the
+    // log already looks like it might propose something.
+    const skateSets = await store.getSkateSetsSince(addDays(date, -400));
+    const needTricks = type === 'skate' || mightPropose(skateSets);
+    const tricks = needTricks ? await store.getSkills('skate') : [];
+
+    // Engine and Skate carry a reference card rather than a movement list.
     if (type === 'engine') {
       session.engine = { routes: await store.getRoutes() };
     } else if (type === 'skate') {
-      session.skate = { focus: skateFocus(await store.getSkills('skate'), date) };
+      session.skate = { blocks: buildSkateSession(tricks, skateSets, date) };
     }
 
     const assisted = assistedSlots(micros, microLog, date);
@@ -99,6 +106,7 @@ export async function GET(req: Request) {
         slotUnlockProposal(slots, sessions, date),
         levelUpProposals(slots, skills, sessions, date, assisted),
         strengthLevelUpProposals(strengthSkills, sets, sessions, date),
+        skateProposals(tricks, skateSets, date),
       ),
       // The horizon: the only place the arc is stated every single morning.
       horizon: nextSlot
@@ -107,6 +115,22 @@ export async function GET(req: Request) {
       store: store.name,
     };
   });
+}
+
+/**
+ * Could any trick possibly clear the bar? Answered from the log alone, so a
+ * Flow morning never pays to read 190 rows it will not use.
+ */
+function mightPropose(sets: Awaited<ReturnType<ReturnType<typeof getStore>['getSkateSetsSince']>>): boolean {
+  const byPair = new Map<string, { landed: number; attempts: number }>();
+  for (const set of sets) {
+    const key = `${set.trick}|${set.session}`;
+    const prior = byPair.get(key) ?? { landed: 0, attempts: 0 };
+    byPair.set(key, { landed: prior.landed + set.landed, attempts: prior.attempts + set.attempts });
+  }
+  return [...byPair.values()].some(
+    (v) => v.landed >= SKATE_SESSION.landsToPropose && v.attempts >= SKATE_SESSION.minAttempts,
+  );
 }
 
 /** Weeks of history the assist streak needs on top of the retirement window. */

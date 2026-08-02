@@ -13,6 +13,8 @@ import type {
   NewStrengthSet,
   NewMilestone,
   Milestone,
+  NewSkateSet,
+  SkateSet,
   PlanEntry,
   Route,
   SessionLog,
@@ -198,6 +200,19 @@ function toStrengthSet(page: NotionPage): StrengthSet {
     set: rNum(p['Set']) ?? 0,
     reps: rNum(p['Reps']),
     seconds: rNum(p['Seconds']),
+    session: rText(p['Session']),
+  };
+}
+
+function toSkateSet(page: NotionPage): SkateSet {
+  const p = page.properties;
+  return {
+    id: page.id,
+    name: rTitle(p['Name']),
+    date: rDate(p['Date']) ?? '',
+    trick: rText(p['Trick']),
+    attempts: rNum(p['Attempts']) ?? 0,
+    landed: rNum(p['Landed']) ?? 0,
     session: rText(p['Session']),
   };
 }
@@ -388,6 +403,31 @@ export class NotionStore implements Store {
       },
     });
     return toStrengthSet(page);
+  }
+
+  async getSkateSetsSince(since: string): Promise<SkateSet[]> {
+    const pages = await queryAll(DATA_SOURCES.skateLog, {
+      filter: { property: 'Date', date: { on_or_after: since } },
+    });
+    return pages.map(toSkateSet);
+  }
+
+  async createSkateSet(input: NewSkateSet): Promise<SkateSet> {
+    const page = await notionFetch('/pages', {
+      method: 'POST',
+      body: {
+        parent: { type: 'data_source_id', data_source_id: DATA_SOURCES.skateLog },
+        properties: {
+          Name: wTitle(`${input.trick} ${input.date}`),
+          Date: wDate(input.date),
+          Trick: wText(input.trick),
+          Attempts: wNum(input.attempts),
+          Landed: wNum(input.landed),
+          Session: wText(input.session),
+        },
+      },
+    });
+    return toSkateSet(page);
   }
 
   async getMilestonesSince(since: string): Promise<Milestone[]> {

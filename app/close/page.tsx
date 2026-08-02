@@ -72,6 +72,7 @@ export default function ClosePage() {
       // The sets go with the session, so one queued write carries the whole
       // log and a retry cannot land half of it.
       sets: active.sets ?? [],
+      tricks: active.tricks ?? [],
       distanceKm: isEngine ? distance : null,
       route: active.routeName ?? '',
       clientId: active.clientId,

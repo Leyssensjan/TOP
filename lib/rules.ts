@@ -13,6 +13,7 @@ import {
   SLOT_UNLOCK,
   ROUND_RAMP,
   SKATE_FOCUS,
+  SKATE_SESSION,
   STRENGTH,
   SWITCH_FAKIE_MARKERS,
   ROLLING_WINDOW_DAYS,
@@ -21,7 +22,8 @@ import {
   TARGET_MINUTES,
 } from '@/lib/config';
 import { addDays, daysBetween, weekStart } from '@/lib/dates';
-import type { Micro, MicroLogEntry, Route, SessionLog, SessionType, Skill, Slot, StrengthSet } from '@/lib/types';
+import { skateContent } from '@/lib/skate-content';
+import type { Micro, MicroLogEntry, Route, SessionLog, SessionType, SkateSet, Skill, Slot, StrengthSet } from '@/lib/types';
 
 export interface Movement {
   slot: number;
@@ -74,8 +76,8 @@ export interface SessionPlan {
   strength?: { blocks: StrengthBlock[]; prescription: typeof STRENGTH.prescription };
   /** Only for Engine: the scouted routes, so one can be picked and logged. */
   engine?: { routes: Route[] };
-  /** Only for Skate: the session focus card. */
-  skate?: { focus: FocusTrick[] };
+  /** Only for Skate: the focus card, grouped into blocks with its drills. */
+  skate?: { blocks: SkateBlock[] };
   note: string | null;
 }
 
@@ -860,7 +862,8 @@ export function slotUnlockProposal(
 export type Proposal =
   | { kind: 'slot'; slot: SlotUnlockProposal }
   | { kind: 'movement'; movement: LevelUpProposal }
-  | { kind: 'strength'; strength: StrengthProposal };
+  | { kind: 'strength'; strength: StrengthProposal }
+  | { kind: 'skate'; skate: SkateProposal };
 
 /**
  * At most one proposal, ever. Three decisions on a dark morning turns the app
@@ -870,11 +873,140 @@ export function chooseProposal(
   slot: SlotUnlockProposal | null,
   movements: LevelUpProposal[],
   strength: StrengthProposal[],
+  skate: SkateProposal[] = [],
 ): Proposal | null {
   for (const kind of PROPOSAL_PRIORITY) {
     if (kind === 'slot' && slot) return { kind: 'slot', slot };
     if (kind === 'movement' && movements[0]) return { kind: 'movement', movement: movements[0] };
     if (kind === 'strength' && strength[0]) return { kind: 'strength', strength: strength[0] };
+    if (kind === 'skate' && skate[0]) return { kind: 'skate', skate: skate[0] };
   }
   return null;
+}
+
+// --- the skate session ------------------------------------------------------
+
+export interface SkateTrickCard extends FocusTrick {
+  /** How it works, what to actually do, and what counts as having it. */
+  mechanics: string[];
+  drills: string[];
+  gate: string;
+  terrain: string[];
+  risk: number;
+  /** Landed this many times in the session that most recently worked it. */
+  landedLast: number;
+  attemptsLast: number;
+}
+
+export interface SkateBlock {
+  label: string;
+  fromMinute: number;
+  toMinute: number;
+  warmUp: boolean;
+  tricks: SkateTrickCard[];
+}
+
+/**
+ * A skate session is not a free-for-all. Rust first, while the legs are fresh
+ * and the stakes are low; then the projects that need real attempts; then one
+ * stretch; then the switch work that never happens otherwise.
+ *
+ * Each card carries the trick's own drills, which is the part that makes this a
+ * session rather than a list of names.
+ */
+export function buildSkateSession(tricks: Skill[], sets: SkateSet[], today: string): SkateBlock[] {
+  const focus = skateFocus(tricks, today);
+
+  // The most recent session that worked each trick, for the running count.
+  const lastOf = (skillId: string) => {
+    const rows = sets.filter((s) => s.trick === skillId).sort((a, b) => (a.date < b.date ? 1 : -1));
+    if (!rows.length) return { landed: 0, attempts: 0 };
+    const session = rows[0].session;
+    const same = rows.filter((r) => r.session === session);
+    return {
+      landed: same.reduce((n, r) => n + r.landed, 0),
+      attempts: same.reduce((n, r) => n + r.attempts, 0),
+    };
+  };
+
+  const card = (t: FocusTrick): SkateTrickCard => {
+    const content = skateContent(t.skillId);
+    const last = lastOf(t.skillId);
+    return {
+      ...t,
+      mechanics: content?.mechanics ?? [],
+      drills: content?.drills ?? [],
+      gate: content?.gate ?? '',
+      terrain: content?.terrain ?? [],
+      risk: content?.risk ?? 0,
+      landedLast: last.landed,
+      attemptsLast: last.attempts,
+    };
+  };
+
+  return SKATE_SESSION.blocks.map((block) => ({
+    label: block.label,
+    fromMinute: block.from,
+    toMinute: block.to,
+    warmUp: block.warmUp === true,
+    tricks: focus.filter((f) => block.reasons.includes(f.reason)).map(card),
+  }));
+}
+
+export interface SkateProposal {
+  skillId: string;
+  id: string;
+  name: string;
+  family: string;
+  level: number | null;
+  landed: number;
+  attempts: number;
+  /** The criterion, verbatim. Most gates are qualitative, so Jan judges it. */
+  gate: string;
+}
+
+/**
+ * A trick proposes mastery once it has been landed enough times in one session
+ * to be worth asking about. The app cannot evaluate the gate — most of them are
+ * judgements like "Can leave board calmly" — so it shows the gate and asks.
+ */
+export function skateProposals(tricks: Skill[], sets: SkateSet[], today: string): SkateProposal[] {
+  const cfg = SKATE_SESSION;
+  const proposals: SkateProposal[] = [];
+
+  for (const trick of tricks) {
+    if (trick.status !== 'current') continue;
+    if (trick.levelUpDeferred && daysBetween(trick.levelUpDeferred, today) < LEVELUP_DEFER_DAYS) continue;
+
+    // Grouped by session: landing it three times across three months is not the
+    // same claim as landing it three times in one go.
+    const bySession = new Map<string, { landed: number; attempts: number; date: string }>();
+    for (const set of sets) {
+      if (set.trick !== trick.skillId) continue;
+      const prior = bySession.get(set.session) ?? { landed: 0, attempts: 0, date: set.date };
+      bySession.set(set.session, {
+        landed: prior.landed + set.landed,
+        attempts: prior.attempts + set.attempts,
+        date: set.date,
+      });
+    }
+
+    const best = [...bySession.values()]
+      .filter((s) => s.landed >= cfg.landsToPropose && s.attempts >= cfg.minAttempts)
+      .sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+    if (!best) continue;
+
+    proposals.push({
+      skillId: trick.skillId,
+      id: trick.id,
+      name: trick.name,
+      family: trick.family,
+      level: trick.level,
+      landed: best.landed,
+      attempts: best.attempts,
+      gate: skateContent(trick.skillId)?.gate ?? '',
+    });
+  }
+
+  return proposals;
 }

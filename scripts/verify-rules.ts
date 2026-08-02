@@ -3,12 +3,13 @@
  * Not part of the app. Run with: npx tsx scripts/verify-rules.ts
  */
 import { readFileSync } from 'node:fs';
-import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow, strengthLevelUpProposals, unitOf, slotUnlockProposal, chooseProposal, assistedSlots, sessionsNeeded, flowsSinceUnlock, sessionsUntilNextSlot, nextSlotToUnlock } from '../lib/rules';
-import { MICRO_ASSIST, PLANNER, ROUND_RAMP, SLOT_UNLOCK, STRENGTH } from '../lib/config';
+import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow, strengthLevelUpProposals, unitOf, slotUnlockProposal, buildSkateSession, skateProposals, chooseProposal, assistedSlots, sessionsNeeded, flowsSinceUnlock, sessionsUntilNextSlot, nextSlotToUnlock } from '../lib/rules';
+import { MICRO_ASSIST, PLANNER, ROUND_RAMP, SKATE_SESSION, SLOT_UNLOCK, STRENGTH, TARGET_MINUTES } from '../lib/config';
+import { skateContent } from '../lib/skate-content';
 import { generateWeek } from '../lib/planner';
 import { weekStart } from '../lib/dates';
 import { parse, applyBaseline, SOURCE } from './skate-migration';
-import type { Micro, MicroLogEntry, SessionLog, Skill, Slot, StrengthSet } from '../lib/types';
+import type { Micro, MicroLogEntry, SessionLog, SkateSet, Skill, Slot, StrengthSet } from '../lib/types';
 
 const fixture = JSON.parse(readFileSync(new URL('./notion-snapshot.json', import.meta.url), 'utf8')) as {
   slots: Slot[];
@@ -571,6 +572,127 @@ check('Micro progress covers only active micros', progress.every((p) => micros.f
   // Freshly touched tricks must not read as rusty.
   const fresh = mid.map((t) => (t.status === 'mastered' ? { ...t, lastPracticed: today } : t));
   check('Nothing is rusty right after being confirmed', skateFocus(fresh, today).every((f) => f.reason !== 'rusty'), '');
+
+// --- the skate session, against the real library ---------------------------
+
+  const skateSkills: Skill[] = asSkills.map((t) =>
+    t.skillId === 'carve_turns' || t.skillId === 'switch_push_intro'
+      ? { ...t, status: 'current' as const }
+      : t.skillId === 'stance_discovery' || t.skillId === 'static_balance' || t.skillId === 'safe_bail_reflex'
+        ? { ...t, status: 'mastered' as const, lastPracticed: addDaysStr(today, -60) }
+        : t,
+  );
+
+  check(
+    'Every trick in the library has drills, mechanics and a gate',
+    asSkills.every((t) => {
+      const c = skateContent(t.skillId);
+      return Boolean(c && c.drills.length && c.mechanics.length && c.gate);
+    }),
+    `${asSkills.length} tricks`,
+  );
+
+  const blocks = buildSkateSession(skateSkills, [], today);
+  console.log(`\nSkate: ${blocks.length} blocks`);
+  blocks.forEach((b) =>
+    console.log(`  ${b.fromMinute}-${b.toMinute} ${b.label}: ${b.tricks.map((t) => t.name).join(', ') || '-'}`),
+  );
+
+  check('A skate session is planned in blocks', blocks.length === SKATE_SESSION.blocks.length, `${blocks.length}`);
+  check(
+    'Blocks cover the target minutes without gaps or overlap',
+    blocks.every((b, i) => (i === 0 ? b.fromMinute === 0 : b.fromMinute === blocks[i - 1].toMinute)) &&
+      blocks[blocks.length - 1].toMinute === TARGET_MINUTES.skate,
+    `${blocks[blocks.length - 1].toMinute} of ${TARGET_MINUTES.skate}`,
+  );
+  check(
+    'Every trick on the card carries its drills',
+    blocks.flatMap((b) => b.tricks).every((t) => t.drills.length > 0),
+    `${blocks.flatMap((b) => b.tricks).length} tricks carded`,
+  );
+  check(
+    'A trick appears in exactly one block',
+    (() => {
+      const ids = blocks.flatMap((b) => b.tricks.map((t) => t.id));
+      return new Set(ids).size === ids.length;
+    })(),
+    '',
+  );
+  check(
+    'The rusty block only holds mastered tricks, the projects block only current ones',
+    blocks.find((b) => b.label.includes('rusty'))!.tricks.every((t) => t.status === 'mastered') &&
+      blocks.find((b) => b.label === 'The projects')!.tricks.every((t) => t.status === 'current'),
+    '',
+  );
+
+  // The mastery rule.
+  const carve = skateSkills.find((t) => t.skillId === 'carve_turns')!;
+  const sets = (session: string, attempts: number, landed: number, date = today): SkateSet[] => [
+    { id: `ss-${session}`, name: '', date, trick: 'carve_turns', attempts, landed, session },
+  ];
+
+  check(
+    'Landing it enough times in one session proposes mastery',
+    skateProposals(skateSkills, sets('s1', 8, SKATE_SESSION.landsToPropose), today).some(
+      (p) => p.skillId === 'carve_turns',
+    ),
+    '',
+  );
+  check(
+    'One land short is not enough',
+    skateProposals(skateSkills, sets('s1', 8, SKATE_SESSION.landsToPropose - 1), today).length === 0,
+    '',
+  );
+  check(
+    'Landing everything off two attempts is not enough evidence',
+    skateProposals(skateSkills, sets('s1', SKATE_SESSION.minAttempts - 1, 99), today).length === 0,
+    `needs ${SKATE_SESSION.minAttempts} attempts`,
+  );
+  check(
+    'Lands spread across sessions do not add up',
+    skateProposals(
+      skateSkills,
+      [
+        ...sets('a', 5, 1, addDaysStr(today, -20)),
+        ...sets('b', 5, 1, addDaysStr(today, -10)),
+        ...sets('c', 5, 1, today),
+      ],
+      today,
+    ).length === 0,
+    '',
+  );
+  check(
+    'A mastered trick is never proposed again',
+    skateProposals(
+      skateSkills.map((t) => (t.skillId === 'carve_turns' ? { ...t, status: 'mastered' as const } : t)),
+      sets('s1', 8, 5),
+      today,
+    ).length === 0,
+    '',
+  );
+  check(
+    'A deferred trick stays quiet',
+    skateProposals(
+      skateSkills.map((t) => (t.skillId === 'carve_turns' ? { ...t, levelUpDeferred: today } : t)),
+      sets('s1', 8, 5),
+      today,
+    ).length === 0,
+    '',
+  );
+  check(
+    'The proposal carries the gate verbatim, because the app cannot judge it',
+    skateProposals(skateSkills, sets('s1', 8, 5), today)[0]?.gate === skateContent('carve_turns')?.gate,
+    `"${skateContent('carve_turns')?.gate}"`,
+  );
+  check(
+    'Skate sits last in the proposal order',
+    chooseProposal(null, [], [], skateProposals(skateSkills, sets('s1', 8, 5), today))?.kind === 'skate' &&
+      chooseProposal(null, movementProposal, [], skateProposals(skateSkills, sets('s1', 8, 5), today))?.kind ===
+        'movement',
+    '',
+  );
+  void carve;
+
 }
 
 console.log(`\n${failures === 0 ? 'All checks passed.' : `${failures} FAILED`}`);

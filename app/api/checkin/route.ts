@@ -1,6 +1,6 @@
 import { handle } from '@/lib/api';
 import { addDays, isValidDate, today as todayDate } from '@/lib/dates';
-import { adjustForCheckin, flowsSinceUnlock, planSession, rollingStatus, skateFocus } from '@/lib/rules';
+import { adjustForCheckin, flowsSinceUnlock, planSession, rollingStatus, buildSkateSession } from '@/lib/rules';
 import { suggestNext } from '@/lib/planner';
 import { getStore } from '@/lib/store';
 import type { SessionType } from '@/lib/types';
@@ -56,7 +56,11 @@ export async function POST(req: Request) {
     if (session.type === 'engine') {
       session.engine = { routes: await store.getRoutes() };
     } else if (session.type === 'skate') {
-      session.skate = { focus: skateFocus(await store.getSkills('skate'), date) };
+      const [tricks, skateSets] = await Promise.all([
+        store.getSkills('skate'),
+        store.getSkateSetsSince(addDays(date, -400)),
+      ]);
+      session.skate = { blocks: buildSkateSession(tricks, skateSets, date) };
     }
 
     return {

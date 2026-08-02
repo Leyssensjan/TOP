@@ -10,6 +10,7 @@ export const DATA_SOURCES = {
   microLog: 'b45bc1c1-16e9-4516-aefe-3bbc0ffb63a6',
   strengthLog: 'e2e0df58-be03-4c5e-bcab-df20881b6d45',
   milestones: 'c4df4d86-0085-4aa7-8722-1e1302801b33',
+  skateLog: '9ae58cb5-aaec-4b91-b4db-af77814165fe',
 } as const;
 
 // Data source IDs require 2025-09-03 or later.
@@ -174,7 +175,7 @@ export const MICRO_ASSIST = {
  * chore list. Breadth beats depth: a longer Form is worth more than a harder
  * one.
  */
-export const PROPOSAL_PRIORITY = ['slot', 'movement', 'strength'] as const;
+export const PROPOSAL_PRIORITY = ['slot', 'movement', 'strength', 'skate'] as const;
 
 /**
  * Which Form slots and strength families build each skate trick family, for
@@ -255,6 +256,36 @@ export const SKATE_FOCUS = {
 
 /** A trick counts as switch or fakie work if its id contains one of these. */
 export const SWITCH_FAKIE_MARKERS = ['switch', 'fakie', 'nollie'];
+
+/**
+ * The shape of a skate session, in the same form as STRENGTH.blocks. A skate
+ * session is not a free-for-all: rust first while the legs are fresh and the
+ * stakes are low, then the projects that need real attempts, then one stretch,
+ * then time left over to actually skate.
+ *
+ * Minutes are offsets from the start. Every number here is a guess.
+ */
+export const SKATE_SESSION = {
+  blocks: [
+    { from: 0, to: 5, label: 'Roll in', reasons: [] as string[], warmUp: true },
+    { from: 5, to: 15, label: 'Confirm the rusty ones', reasons: ['rusty'] },
+    { from: 15, to: 35, label: 'The projects', reasons: ['project'] },
+    { from: 35, to: 42, label: 'One stretch attempt', reasons: ['stretch'] },
+    { from: 42, to: 45, label: 'Switch and fakie', reasons: ['switch or fakie'] },
+  ],
+  /**
+   * A trick proposes mastery once it has been landed this many times inside one
+   * session. The gate text is what Jan actually judges against — most gates are
+   * qualitative ("Can leave board calmly") and no rule can evaluate them.
+   */
+  landsToPropose: 3,
+  /** And only once there is enough evidence to mean anything. */
+  minAttempts: 5,
+  /** Quick-pick counts on the attempt logger. */
+  attemptChoices: [1, 2, 3, 5],
+  /** A stretch attempt above this risk is offered with a warning, not silently. */
+  highRisk: 7,
+};
 
 /**
  * Micro rotation, section 6. Only a few micros carry a weekly goal at a time,

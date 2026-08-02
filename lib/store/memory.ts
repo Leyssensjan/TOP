@@ -13,6 +13,8 @@ import type {
   NewStrengthSet,
   NewMilestone,
   Milestone,
+  NewSkateSet,
+  SkateSet,
   PlanEntry,
   Route,
   SessionLog,
@@ -235,6 +237,7 @@ export class MemoryStore implements Store {
   private sessions: SessionLog[] = [];
   private strengthSets: StrengthSet[] = [];
   private milestones: Milestone[] = [];
+  private skateSets: SkateSet[] = [];
   private plan: PlanEntry[] = [];
   private microLog: MicroLogEntry[] = [];
   private seq = 0;
@@ -337,6 +340,24 @@ export class MemoryStore implements Store {
       session: input.session,
     };
     this.strengthSets.push(row);
+    return { ...row };
+  }
+
+  async getSkateSetsSince(since: string): Promise<SkateSet[]> {
+    return this.skateSets.filter((s) => s.date >= since).map((s) => ({ ...s }));
+  }
+
+  async createSkateSet(input: NewSkateSet): Promise<SkateSet> {
+    const row: SkateSet = {
+      id: this.nextId('skateset'),
+      name: `${input.trick} ${input.date}`,
+      date: input.date,
+      trick: input.trick,
+      attempts: input.attempts,
+      landed: input.landed,
+      session: input.session,
+    };
+    this.skateSets.push(row);
     return { ...row };
   }
 
