@@ -25,7 +25,6 @@ type Status = 'loading' | 'ready' | 'nokey' | 'error';
 const DOMAINS = [
   { label: 'Form', path: '/form' },
   { label: 'Strength', path: '/strength' },
-  { label: 'Micros', path: '/micros' },
   { label: 'Skate', path: '/skate' },
 ];
 
@@ -228,11 +227,7 @@ export default function TodayPage() {
         </div>
         {/* The most important small thing in the app: the only place the arc
             is stated every single morning. The horizon clause is amber. */}
-        {done && (
-          <p style={{ margin: '0 0 18px', color: 'var(--muted)' }}>
-            {payload.loggedToday.map((l) => titleCase(l.type)).join(' and ')}. But hey, done.
-          </p>
-        )}
+        {done && <p style={{ margin: '0 0 18px', color: 'var(--muted)' }}>Done!</p>}
 
         {!done && (
         <p style={{ margin: '0 0 22px', color: 'var(--muted)' }}>
@@ -288,9 +283,15 @@ export default function TodayPage() {
           tapped through the day, so a trip to another screen loses them. */}
       {payload.micros.length > 0 && (
         <div style={{ paddingTop: 22 }}>
-          <p className="label" style={{ margin: '0 0 10px' }}>
+          {/* The section label is the way through to the full list, so micros
+              no longer need a button of their own down in the nav. */}
+          <button
+            className="label"
+            onClick={() => router.push('/micros')}
+            style={{ margin: '0 0 10px', padding: '4px 0', display: 'block' }}
+          >
             This week&rsquo;s micros
-          </p>
+          </button>
           <div className="stack" style={{ gap: 8 }}>
             {payload.micros.map((m, i) => {
               const shown = m.count + (pendingTaps[m.name] ?? 0);
@@ -384,7 +385,7 @@ export default function TodayPage() {
                 <button
                   key={d.path}
                   className="btn btn-quiet"
-                  style={{ flex: '1 1 45%' }}
+                  style={{ flex: '1 1 0', padding: '16px 8px', minWidth: 0 }}
                   onClick={() => router.push(d.path)}
                 >
                   {d.label}
