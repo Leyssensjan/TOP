@@ -78,7 +78,13 @@ Browser (PWA on the home screen)      │  over plain data — Notion never leak
 
 ## 4. The data model
 
-Nine Notion databases. The app reads all of them and writes to six.
+Ten Notion databases. The app reads all of them and writes to seven.
+
+Plus one **generated file in the repo**, `lib/skate-content.ts`: the mechanics,
+two drills and the mastery gate for each of the 190 tricks, taken from the
+SkateQuest library by `scripts/skate-content.ts`. That is reference content
+rather than state — it was authored once and is not expected to change — so it
+ships with the app while progress stays in Notion.
 
 **Slots** (12 rows) — the twelve parts of the Form.
 `Name`, `Slot id` (stable identity), `Sequence` (position in the loop, freely
@@ -111,6 +117,10 @@ sequence 5.
 **Strength log** — one row per set: `Date`, `Skill`, `Set`, `Reps`, `Seconds`,
 `Session`. Written by the app during a Strength session. The `Session` column
 holds the client id, so an offline retry cannot double-log.
+
+**Skate log** — one row per trick worked in a session: `Date`, `Trick` (the
+skill id), `Attempts`, `Landed`, `Session`. Written by the app; drives the
+mastery proposal.
 
 **Milestones** — the app's memory. One row per advancement: `Date`, `Kind`
 (level up / slot unlock / rounds up / trick mastered / strength level up),
@@ -194,7 +204,7 @@ morning getting longer.** Deferring silences it for 14 days.
 
 **One proposal, ever.** All three axes can come due at once, and three decisions
 on a dark morning is a chore list. Priority: slot unlock, then Form level-up,
-then strength level-up. Everything else waits. A round-ramp crossing is never a
+then strength level-up, then a skate mastery. Everything else waits. A round-ramp crossing is never a
 proposal — it just happens and is stated once.
 At six active slots one round is 4:50, so a beginner's Flow is ~10 minutes and a
 seasoned one ~19.
@@ -284,6 +294,17 @@ The **session focus card** picks: 2–3 rusty tricks (mastered but not confirmed
 for 21+ days), 1–2 live projects, 1 stretch attempt (a locked trick with every
 prerequisite mastered), 1 switch/fakie item. Rust is the retention mechanic: a
 trick you have not touched in three weeks needs confirming again.
+
+Those picks are then **grouped into a session** — see 6.5 — with each trick
+carrying its own drills from the library.
+
+**Mastery is proposed, not computed.** A `current` trick that was landed 3 or
+more times inside one session, off at least 5 attempts, comes up on Today. The
+card reports the evidence and shows the gate verbatim: *"Landed 3 of 8. Can land
+5/10 stationary shuvits."* The app deliberately does not evaluate the gate —
+only 16 of the 190 are numeric, and the rest are judgements like *"Can leave
+board calmly"* that no rule can check. Lands spread across separate sessions do
+not add up.
 
 ### Planning, and the suggestion
 
@@ -478,18 +499,40 @@ reason (`No active slots. Tick Active on at least one slot in Notion.`), and a
 
 ---
 
-### 6.5 Runner — Engine and Skate
+### 6.5 Runner — Skate mode
 
-Neither has prescribed steps, so the clock **counts up** rather than down and the
-screen carries only the reference card that is actually useful.
+A skate session walks blocks the way Strength does, for the same reason: an hour
+at the park with a list of trick names is not a session.
+
+| Minutes | Block | What is on the card |
+| --- | --- | --- |
+| 0–5 | Roll in | nothing; push, carve, warm the feet up |
+| 5–15 | Confirm the rusty ones | mastered tricks not touched in 21 days |
+| 15–35 | The projects | the live `current` tricks |
+| 35–42 | One stretch attempt | a locked trick with every prerequisite mastered |
+| 42–45 | Switch and fakie | the switch/fakie item |
+
+- **Header**: `SKATE · BLOCK 2 OF 5`, `END`. A bar per block underneath, sized to
+  its duration.
+- **The block clock**, smaller than elsewhere because the cards matter more.
+- **One card per trick**: the name, the landed/attempted count on the right in
+  sage, why it is on the card (`rusty`, `project`, `stretch`), the terrain, and a
+  `high risk, pads` note above the configured risk threshold.
+- **The drills**, in full: `10 board-only scoops. · 25 full attempts.` This is
+  the part that makes it a session — what to actually go and do.
+- **Landed** and **Missed**: two taps, which is all the logging a cold hand at a
+  skatepark will tolerate. Every tap is persisted immediately.
+- **How** expands the mechanics, the mastery gate, and what happened last time.
+
+### 6.5a Runner — Engine
+
+No prescribed steps, so the clock **counts up** rather than down.
 
 - **Header**: `ENGINE · TARGET 30 MIN`, `END`.
-- **The stopwatch**, tap to pause, same treatment as everywhere else.
-- **Engine**: the three routes as a list, distance in condensed numerals then the
-  name. Tapping one selects it, which seeds the distance on the Close screen.
+- **The stopwatch**, tap to pause.
+- **The three routes** as a list, distance in condensed numerals then the name.
+  Tapping one selects it, which seeds the distance on the Close screen.
   Selecting nothing is fine.
-- **Skate**: the session focus card — the same rusty / project / stretch /
-  switch-or-fakie list the Skate screen shows.
 - **Finish** at the bottom.
 
 ### 6.6 Close — the log
@@ -766,6 +809,8 @@ Every action needed to run and record training is in the app:
 | Level up a Form movement | Today, proposal card |
 | Level up a strength ladder | Today, proposal card |
 | Move a skate trick between locked, in progress, mastered | Skate screen |
+| Log attempts and lands per trick | Runner, Skate mode |
+| Call a trick mastered | Today, proposal card |
 | Log micros | Micros screen |
 | Shorten or soften today's session | Today → Adjust |
 | Lay out the week's sessions and runs | Week |
@@ -926,7 +971,7 @@ loading spinners — screens that are loading say `LOADING` and nothing more.
 Jan is travelling for a month and cannot test any of this, so this section is
 deliberately blunt.
 
-**Verified against real Notion rows.** 67 automated checks run against a
+**Verified against real Notion rows.** 90 automated checks run against a
 snapshot of the actual database contents — the twelve slots, 48 movement skills,
 21 strength movements, 16 micros, and the real 190-trick skate graph. They
 cover: Form ordering by Sequence, movement resolution by Slot id, the closed
@@ -959,10 +1004,11 @@ back and checked link by link.
   the wake lock and the service worker are implemented and reasoned about, not
   observed.
 
-**Known gap, stated rather than hidden.** The skate `Built by` mapping is
+**Known gaps, stated rather than hidden.** The skate `Built by` mapping is
 family-level and lives in config, because the source data has no per-trick
-fitness mapping. It is the coarsest thing in the app and is expected to be
-wrong in places.
+fitness mapping — it is the coarsest thing in the app and expected to be wrong
+in places. And the skate block minutes are a straight guess: 10 minutes of rust
+confirmation and 20 on projects has never been tried.
 
 ---
 
