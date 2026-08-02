@@ -269,6 +269,19 @@ export default function TodayPage() {
             Resume
           </button>
         )}
+
+        <div className="stack" style={{ paddingTop: 14 }}>
+          {stale && <div className="banner">Showing the last saved copy. Not refreshed yet.</div>}
+          {pending > 0 && (
+            <div className="banner banner-warn">
+              {pending} {pending === 1 ? 'session has' : 'sessions have'} not reached Notion yet.
+            </div>
+          )}
+
+          {/* At most one proposal, ever, and it sits with the session because it
+              is a decision rather than a number to glance at. */}
+          {payload.proposal && <ProposalCard proposal={payload.proposal} onDone={() => void refresh()} />}
+        </div>
       </div>
 
       {/* Micros sit here, below the session and above everything else: they are
@@ -355,19 +368,7 @@ export default function TodayPage() {
         Give me a skate session
       </button>
 
-      <div className="stack" style={{ paddingTop: 18 }}>
-        {stale && <div className="banner">Showing the last saved copy. Not refreshed yet.</div>}
-        {pending > 0 && (
-          <div className="banner banner-warn">
-            {pending} {pending === 1 ? 'session has' : 'sessions have'} not reached Notion yet.
-          </div>
-        )}
-        {payload.alreadyLogged && <div className="banner">Already logged today.</div>}
-
-        {/* At most one proposal, ever. Three decisions on a dark morning is a
-            chore list, so everything else waits its turn. */}
-        {payload.proposal && <ProposalCard proposal={payload.proposal} onDone={() => void refresh()} />}
-
+      <div className="stack" style={{ paddingTop: 18, marginTop: 'auto' }}>
         {payload.suggestion && (
           <p style={{ margin: 0, color: 'var(--muted)', fontSize: 15 }}>{payload.suggestion.line}</p>
         )}

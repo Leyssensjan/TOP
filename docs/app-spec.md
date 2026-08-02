@@ -365,10 +365,12 @@ and it costs no new navigation model.
 The only screen Jan sees on most mornings. Above the fold: **what, how long, one
 button.** Nothing else.
 
+Drawn by Jan on paper first; this follows that sketch.
+
 **Layout, top to bottom:**
 
 1. A small uppercase letter-spaced label: `FLOW` / `STRENGTH` / `FLOW SHORT` /
-   `PLANNED REST`.
+   `PLANNED REST` / `TODAY` once the day is logged.
 2. **The number.** Session minutes, in condensed numerals at `clamp(92px, 34vw,
    150px)`, amber. A small muted `MIN` beside it. This is the loudest thing on
    any screen in the app.
@@ -405,6 +407,39 @@ Below the fold, in a stack:
    ten screens". No icons — invented glyphs are more to decode, not less.
 10. **A utility strip** in small uppercase text, not buttons: Adjust · Progress
     · Week · Routes.
+
+**Done for the day.** Once a session is logged the card does not gain a banner —
+it changes. The number shrinks to about a third, turns sage, and shows the
+minutes actually done; the line under it reads `Flow. But hey, done.` Everything
+else on the screen stays exactly where it was.
+
+**This week's micros**, between the session and the rest. They are tapped
+through the day, and making that a trip to another screen is the friction that
+loses them:
+
+```
+THIS WEEK'S MICROS
+1  Deep squat while the kettle boils          4/10
+   while the kettle boils
+2  Doorway hip flexor stretch                 7/7
+   getting up from your desk
+3  Kerb surfer                                1/3
+   passing any kerb
+```
+
+Tapping the **count** logs one — taps within 1.2 seconds collapse into a single
+write. Tapping the **name** opens the unified detail panel: the cue, when to do
+it, how long it takes, and the slot it feeds as a link. A micro at its target
+goes sage and dims slightly.
+
+**Finishing a micro brings a new one in behind it.** The finished row stays on
+screen for the rest of the week — finishing it is the point — but stops
+occupying one of the three to five active places, so the list refills rather
+than sitting there completed.
+
+**Give me a skate session** — its own quiet button, because skating is
+opportunistic. It asks for a skate session outright regardless of what was
+planned or suggested, and starts it. An hour by default.
 
 **Adjust** replaces the button grid in place with a check-in: `Minutes`
 (7/12/18/25) and `Energy` (low/ok/good), then Apply or Cancel. Low energy or ≤8
@@ -507,10 +542,10 @@ at the park with a list of trick names is not a session.
 | Minutes | Block | What is on the card |
 | --- | --- | --- |
 | 0–5 | Roll in | nothing; push, carve, warm the feet up |
-| 5–15 | Confirm the rusty ones | mastered tricks not touched in 21 days |
-| 15–35 | The projects | the live `current` tricks |
-| 35–42 | One stretch attempt | a locked trick with every prerequisite mastered |
-| 42–45 | Switch and fakie | the switch/fakie item |
+| 5–18 | Confirm the rusty ones | mastered tricks not touched in 21 days |
+| 18–45 | The projects | the live `current` tricks |
+| 45–54 | One stretch attempt | a locked trick with every prerequisite mastered |
+| 54–60 | Switch and fakie | the switch/fakie item |
 
 **Blocks with nothing on their card are dropped**, and their minutes handed to
 the blocks that do have something, in proportion. A young graph therefore gives
@@ -824,7 +859,8 @@ Every action needed to run and record training is in the app:
 | Move a skate trick between locked, in progress, mastered | Skate screen |
 | Log attempts and lands per trick | Runner, Skate mode |
 | Call a trick mastered | Today, proposal card |
-| Log micros | Micros screen |
+| Log micros | Today, or the Micros screen |
+| Ask for a skate session on the spot | Today |
 | Shorten or soften today's session | Today → Adjust |
 | Lay out the week's sessions and runs | Week |
 
@@ -984,7 +1020,7 @@ loading spinners — screens that are loading say `LOADING` and nothing more.
 Jan is travelling for a month and cannot test any of this, so this section is
 deliberately blunt.
 
-**Verified against real Notion rows.** 94 automated checks run against a
+**Verified against real Notion rows.** 98 automated checks run against a
 snapshot of the actual database contents — the twelve slots, 48 movement skills,
 21 strength movements, 16 micros, and the real 190-trick skate graph. They
 cover: Form ordering by Sequence, movement resolution by Slot id, the closed
