@@ -285,11 +285,17 @@ for 21+ days), 1–2 live projects, 1 stretch attempt (a locked trick with every
 prerequisite mastered), 1 switch/fakie item. Rust is the retention mechanic: a
 trick you have not touched in three weeks needs confirming again.
 
-### The suggestion
+### Planning, and the suggestion
 
-There is **no week-generation button and no form to fill in**. A week planner
-that asks you to type in your week defeats the point. Instead Today computes one
-line from what the app already knows:
+Two things, deliberately separate.
+
+**The week** is laid out by hand on the Week screen, one tap per day. `Suggest a
+week` offers a shape built from the constraint rules below, which is then
+corrected by tapping. Nothing is ever typed: no busy-day form, no availability
+questionnaire. A planner that asks you to describe your week defeats the point.
+
+**The suggestion** covers every day the week does not. Today computes one line
+from what the app already knows:
 
 > *2 of 3 this week. Last was Flow. Suggest Strength.*
 
@@ -298,7 +304,8 @@ Strength prefer Flow; strength never on consecutive days; never more than two
 strength sessions in a window; if the weekly target is already met, suggest the
 gentler Flow Short rather than pushing for more.
 
-A row in the Plan database, if one exists, always wins over the suggestion.
+A row in the Plan database always wins over the suggestion, so a planned week
+takes precedence and an unplanned day still opens on something sensible.
 
 ---
 
@@ -634,21 +641,40 @@ focus card and unlockable edges refresh from the response.
 
 ---
 
-### 6.12 Week — the plan, read-only
+### 6.12 Week — laying out the week
 
-- **Header**: `WEEK`, `TODAY`. Then `Week of 2026-08-03`.
-- One row per day: the weekday in condensed muted type, the session type
-  (amber for Flow and Flow Short, plain for everything else), a muted line with
-  location and reason, and the planned minutes on the right. Rest days are
+The Sunday screen. This is where runs and strength sessions get placed on days,
+and it is the one screen not designed for 6am.
+
+- **Header**: `WEEK`, `TODAY`.
+- **The count and the week picker**: `‹  3 of 3 planned · week of Aug 3  ›`. The
+  arrows move a week at a time. **On a Sunday it opens on the week ahead**, not
+  the one that is ending, because that is when the planning actually happens.
+- **Seven rows**, Mon to Sun: the weekday in condensed muted type, the session
+  type (amber for Flow and Flow Short, plain for everything else), a muted line
+  with location and reason, and the planned minutes on the right. Rest days are
   dimmed to 55% and lose their card background.
-- Below, the rationale — a few plain lines explaining why the week looks like
-  it does.
-- If there is no plan row for the week: `No plan for this week. Today suggests
-  the next session from what you have logged; there is nothing to fill in
-  here.`
+- **Tapping a day opens six choices in place**: Rest · Flow · Flow Short ·
+  Strength · Engine · Skate. Picking one writes that day immediately. There is
+  no Save button to forget and nothing is lost if the phone goes down halfway
+  through.
+- **Suggest a week** fills all seven days from the constraint rules: three
+  sessions, one strength, one run, strength never on back-to-back days, rest
+  days protected, a light morning before any skate window. It is a starting
+  point to correct by tapping, **not an answer to accept** — and it still asks
+  for nothing to be typed.
+- Below, the rationale — a few plain lines describing the plan that came out.
 
-There is **no generate button and no input form on this screen**. It reads a
-plan if one exists in Notion and otherwise says so.
+Planned minutes come from the type's target in config, so setting a day stays
+one tap and never becomes a form.
+
+**A planned day always wins over the daily suggestion**, so once the week is
+laid out Today simply opens on it. Days left untouched fall back to the
+suggestion rather than becoming rest — partial planning works.
+
+On a planned **rest** day Today stays honest: the big number goes muted, the
+detail line reads `Flow if you want it`, and the button becomes a quiet `Train
+anyway`. The plan is a decision already made, not a lock.
 
 ---
 
@@ -742,6 +768,7 @@ Every action needed to run and record training is in the app:
 | Move a skate trick between locked, in progress, mastered | Skate screen |
 | Log micros | Micros screen |
 | Shorten or soften today's session | Today → Adjust |
+| Lay out the week's sessions and runs | Week |
 
 Notion holds the content — movement names, cues, explanations, routes, micro
 definitions and the tuning numbers. Editing that is authoring, not logging, and
