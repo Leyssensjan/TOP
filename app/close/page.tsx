@@ -38,7 +38,14 @@ export default function ClosePage() {
     if (!active) return;
     setSaving(true);
 
-    const skillIds = Array.from(new Set(active.plan.movements.map((m) => m.skillId)));
+    // Strength keeps its work in blocks rather than in movements, so both are
+    // collected here. Otherwise a Strength session would log no skills at all.
+    const skillIds = Array.from(
+      new Set([
+        ...active.plan.movements.map((m) => m.skillId),
+        ...(active.plan.strength?.blocks.flatMap((b) => b.movements.map((m) => m.id)) ?? []),
+      ]),
+    );
 
     // Queue first, then try to send. If the phone is still offline the write
     // survives in the outbox and Today says plainly that it has not landed.

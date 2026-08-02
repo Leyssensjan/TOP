@@ -3,7 +3,8 @@
  * Not part of the app. Run with: npx tsx scripts/verify-rules.ts
  */
 import { readFileSync } from 'node:fs';
-import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow, buildStrength } from '../lib/rules';
+import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow } from '../lib/rules';
+import { STRENGTH } from '../lib/config';
 import { weekStart } from '../lib/dates';
 import { parse, applyBaseline, SOURCE } from './skate-migration';
 import type { Micro, MicroLogEntry, SessionLog, Skill, Slot } from '../lib/types';
@@ -114,6 +115,49 @@ check(
   'Empty Duration seconds falls back to config',
   flow.movements.find((m) => m.slot === 1)?.seconds === 60,
   `${flow.movements.find((m) => m.slot === 1)?.seconds}`,
+);
+
+// --- strength, against the 21 real ladder rows -----------------------------
+const strengthPlan = planSession(slots, skills, 'strength', today, 'default');
+const sBlocks = strengthPlan.strength?.blocks ?? [];
+console.log(`\nStrength: ${sBlocks.length} blocks`);
+sBlocks.forEach((b) =>
+  console.log(
+    `  ${b.fromMinute}-${b.toMinute} ${b.label}: ${b.movements.map((m) => `${m.family} ${m.name} L${m.level}`).join(' + ') || 'warm-up'}`,
+  ),
+);
+
+check('Strength plans blocks', sBlocks.length === STRENGTH.blocks.length, `${sBlocks.length}`);
+check(
+  'Every ladder has exactly one current movement',
+  STRENGTH.ladders.every(
+    (f) => skills.filter((s) => s.domain === 'strength' && s.family === f && s.status === 'current').length === 1,
+  ),
+  STRENGTH.ladders.map((f) => `${f}:${skills.filter((s) => s.domain === 'strength' && s.family === f && s.status === 'current').length}`).join(' '),
+);
+check(
+  'Every non-warm-up block resolves a movement per family',
+  sBlocks.filter((b) => !b.warmUp).every((b) => b.movements.length === b.families.length),
+  sBlocks.filter((b) => !b.warmUp).map((b) => `${b.movements.length}/${b.families.length}`).join(' '),
+);
+check(
+  'Strength blocks cover the target minutes without gaps or overlap',
+  sBlocks.every((b, i) => (i === 0 ? b.fromMinute === 0 : b.fromMinute === sBlocks[i - 1].toMinute)) &&
+    sBlocks[sBlocks.length - 1].toMinute === strengthPlan.targetMinutes,
+  `${sBlocks[sBlocks.length - 1]?.toMinute} of ${strengthPlan.targetMinutes}`,
+);
+// The Runner walks blocks, so an empty movement list on Strength is correct,
+// but only as long as every block still carries a positive duration.
+check(
+  'Every strength block has a positive duration',
+  sBlocks.every((b) => b.toMinute > b.fromMinute),
+  '',
+);
+check('Strength has no Form movements to walk', strengthPlan.movements.length === 0, '');
+check(
+  'Strength names the movements the Close screen will log',
+  sBlocks.flatMap((b) => b.movements.map((m) => m.id)).length === 5,
+  `${sBlocks.flatMap((b) => b.movements).length} lifts`,
 );
 
 // --- continuity of the real slot order ---

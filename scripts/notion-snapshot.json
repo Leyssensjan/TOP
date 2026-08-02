@@ -162,7 +162,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-1-2",
@@ -180,7 +181,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-1-3",
@@ -198,7 +200,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-1-4",
@@ -216,7 +219,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-2-1",
@@ -234,7 +238,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-2-2",
@@ -252,7 +257,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-2-3",
@@ -270,7 +276,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-2-4",
@@ -288,7 +295,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-3-1",
@@ -306,7 +314,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-3-2",
@@ -324,7 +333,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-3-3",
@@ -342,7 +352,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-3-4",
@@ -360,7 +371,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-4-1",
@@ -378,7 +390,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-4-2",
@@ -396,7 +409,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-4-3",
@@ -414,7 +428,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-4-4",
@@ -432,7 +447,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-5-1",
@@ -450,7 +466,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-5-2",
@@ -468,7 +485,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-5-3",
@@ -486,7 +504,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-5-4",
@@ -504,7 +523,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-6-1",
@@ -522,7 +542,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-6-2",
@@ -540,7 +561,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-6-3",
@@ -558,7 +580,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-6-4",
@@ -576,7 +599,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-7-1",
@@ -594,7 +618,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-7-2",
@@ -612,7 +637,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-7-3",
@@ -630,7 +656,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-7-4",
@@ -648,7 +675,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-8-1",
@@ -666,7 +694,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-8-2",
@@ -684,7 +713,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-8-3",
@@ -702,7 +732,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-8-4",
@@ -720,7 +751,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-9-1",
@@ -738,7 +770,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-9-2",
@@ -756,7 +789,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-9-3",
@@ -774,7 +808,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-9-4",
@@ -792,7 +827,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-10-1",
@@ -810,7 +846,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-10-2",
@@ -828,7 +865,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-10-3",
@@ -846,7 +884,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-10-4",
@@ -864,7 +903,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-11-1",
@@ -882,7 +922,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-11-2",
@@ -900,7 +941,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-11-3",
@@ -918,7 +960,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-11-4",
@@ -936,7 +979,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-12-1",
@@ -954,7 +998,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-12-2",
@@ -972,7 +1017,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-12-3",
@@ -990,7 +1036,8 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
   },
   {
    "id": "skill-12-4",
@@ -1008,7 +1055,407 @@
    "sessionsAtLevel": 0,
    "lastPracticed": null,
    "levelUpDeferred": null,
-   "durationSeconds": null
+   "durationSeconds": null,
+   "family": ""
+  },
+  {
+   "id": "3aeb7198-2759-8110-8808-f2864f567728",
+   "name": "Active hang",
+   "domain": "strength",
+   "slot": null,
+   "level": 2,
+   "status": "locked",
+   "cues": "Without bending the elbows, pull the shoulders down and the chest up. Small movement.",
+   "referenceTerm": "scapular pull up",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Hang"
+  },
+  {
+   "id": "3aeb7198-2759-8118-a3c5-d4d386d7cb75",
+   "name": "Full nordic negative",
+   "domain": "strength",
+   "slot": null,
+   "level": 3,
+   "status": "locked",
+   "cues": "All the way to the floor under control. Three reps is a real set.",
+   "referenceTerm": "nordic hamstring curl negative",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Hinge"
+  },
+  {
+   "id": "3aeb7198-2759-811c-93e2-de80ddd7b588",
+   "name": "Archer pull-up",
+   "domain": "strength",
+   "slot": null,
+   "level": 5,
+   "status": "locked",
+   "cues": "One arm bends, the other stays long. Alternate sides.",
+   "referenceTerm": "archer pull up",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Pull"
+  },
+  {
+   "id": "3aeb7198-2759-812a-929b-cfa493ca04c8",
+   "name": "Bar support hold",
+   "domain": "strength",
+   "slot": null,
+   "level": 1,
+   "status": "current",
+   "cues": "Parallel bars, arms locked, shoulders pressed down away from the ears. Thirty seconds.",
+   "referenceTerm": "parallel bar support hold",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Push"
+  },
+  {
+   "id": "3aeb7198-2759-812b-af76-d17634d646dc",
+   "name": "Dead hang",
+   "domain": "strength",
+   "slot": null,
+   "level": 1,
+   "status": "current",
+   "cues": "Relaxed hang, shoulders by the ears. Build to sixty seconds.",
+   "referenceTerm": "dead hang bar",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Hang"
+  },
+  {
+   "id": "3aeb7198-2759-8136-9e91-fc96a84a55e8",
+   "name": "Nordic curl",
+   "domain": "strength",
+   "slot": null,
+   "level": 4,
+   "status": "locked",
+   "cues": "Down and back up without pushing off the hands.",
+   "referenceTerm": "nordic hamstring curl",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Hinge"
+  },
+  {
+   "id": "3aeb7198-2759-8137-bc36-dda25b961377",
+   "name": "Parallel bar dip",
+   "domain": "strength",
+   "slot": null,
+   "level": 3,
+   "status": "locked",
+   "cues": "Shoulders to elbow height, no deeper at first. Slight forward lean.",
+   "referenceTerm": "parallel bar dip form",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Push"
+  },
+  {
+   "id": "3aeb7198-2759-813f-a617-c2b0ca320654",
+   "name": "L-sit dip",
+   "domain": "strength",
+   "slot": null,
+   "level": 4,
+   "status": "locked",
+   "cues": "Legs held out in front throughout. Fewer reps, much harder.",
+   "referenceTerm": "l sit dip",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Push"
+  },
+  {
+   "id": "3aeb7198-2759-8143-87d2-d7779f52fdda",
+   "name": "Horizontal body row",
+   "domain": "strength",
+   "slot": null,
+   "level": 2,
+   "status": "locked",
+   "cues": "Body flat, heels on a bench or second bar. Squeeze the shoulder blades before the arms bend.",
+   "referenceTerm": "horizontal row feet elevated",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Pull"
+  },
+  {
+   "id": "3aeb7198-2759-814a-b049-cb223eb88231",
+   "name": "Bulgarian split squat",
+   "domain": "strength",
+   "slot": null,
+   "level": 2,
+   "status": "locked",
+   "cues": "Rear foot on a bench. Front knee tracks over the middle toes.",
+   "referenceTerm": "bulgarian split squat",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Single leg"
+  },
+  {
+   "id": "3aeb7198-2759-8157-a57d-e8a1316c453c",
+   "name": "Single-leg RDL",
+   "domain": "strength",
+   "slot": null,
+   "level": 1,
+   "status": "current",
+   "cues": "Hinge at the hip, back flat, free leg extends behind as a counterweight. Slow.",
+   "referenceTerm": "single leg romanian deadlift bodyweight",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Hinge"
+  },
+  {
+   "id": "3aeb7198-2759-8166-8bf3-f2d7868eef78",
+   "name": "Pull-up",
+   "domain": "strength",
+   "slot": null,
+   "level": 4,
+   "status": "locked",
+   "cues": "Chin over the bar, full hang at the bottom. Half reps do not count.",
+   "referenceTerm": "pull up full range",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Pull"
+  },
+  {
+   "id": "3aeb7198-2759-816e-b90e-fc476c6a1e4a",
+   "name": "Incline bar row",
+   "domain": "strength",
+   "slot": null,
+   "level": 1,
+   "status": "current",
+   "cues": "Bar at hip height, feet on the ground, body at an angle. The more upright you stand, the easier it is. Chest to bar, elbows past the ribs, hips do not sag.",
+   "referenceTerm": "inverted row progression",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Pull"
+  },
+  {
+   "id": "3aeb7198-2759-8182-8e39-d19746725da1",
+   "name": "High step-up",
+   "domain": "strength",
+   "slot": null,
+   "level": 3,
+   "status": "locked",
+   "cues": "Box high enough that the knee starts above the hip. Do not push off the back foot.",
+   "referenceTerm": "high box step up",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Single leg"
+  },
+  {
+   "id": "3aeb7198-2759-819d-8bbd-f96a1a055030",
+   "name": "Hanging leg raise",
+   "domain": "strength",
+   "slot": null,
+   "level": 4,
+   "status": "locked",
+   "cues": "Straight legs, toes toward the bar. Control the way down or it does not count.",
+   "referenceTerm": "hanging leg raise toes to bar",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Hang"
+  },
+  {
+   "id": "3aeb7198-2759-81a4-98c8-eca5b8ce671c",
+   "name": "Split squat",
+   "domain": "strength",
+   "slot": null,
+   "level": 1,
+   "status": "current",
+   "cues": "Long stance, back knee to the floor, front shin vertical. Ten each side.",
+   "referenceTerm": "split squat form",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Single leg"
+  },
+  {
+   "id": "3aeb7198-2759-81af-ad9b-ecfe1d07d642",
+   "name": "Loaded Bulgarian split squat",
+   "domain": "strength",
+   "slot": null,
+   "level": 4,
+   "status": "locked",
+   "cues": "Backpack with books is fine. Add weight slowly.",
+   "referenceTerm": "weighted bulgarian split squat",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Single leg"
+  },
+  {
+   "id": "3aeb7198-2759-81bb-8f7e-d84ea37b4274",
+   "name": "Hanging knee raise",
+   "domain": "strength",
+   "slot": null,
+   "level": 3,
+   "status": "locked",
+   "cues": "Knees to chest, no swinging. Lower slowly.",
+   "referenceTerm": "hanging knee raise",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Hang"
+  },
+  {
+   "id": "3aeb7198-2759-81c0-acb3-f8f30d80162e",
+   "name": "Negative pull-up",
+   "domain": "strength",
+   "slot": null,
+   "level": 3,
+   "status": "locked",
+   "cues": "Jump or step to the top position, then lower for five slow seconds. Five reps is a set.",
+   "referenceTerm": "negative pull up eccentric",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Pull"
+  },
+  {
+   "id": "3aeb7198-2759-81c7-8d74-c97338c09363",
+   "name": "Dip negative",
+   "domain": "strength",
+   "slot": null,
+   "level": 2,
+   "status": "locked",
+   "cues": "Start at the top, lower for four seconds, step out and reset. Do not bounce out of the bottom.",
+   "referenceTerm": "dip negative eccentric",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Push"
+  },
+  {
+   "id": "3aeb7198-2759-81d3-b0e8-f1425ae195ce",
+   "name": "Assisted nordic negative",
+   "domain": "strength",
+   "slot": null,
+   "level": 2,
+   "status": "locked",
+   "cues": "Heels hooked under a low bar, hands ready to catch you. Lower only as far as you can control, then push back up.",
+   "referenceTerm": "assisted nordic curl",
+   "entryPosition": "",
+   "exitPosition": "",
+   "whyBuilds": "",
+   "whyUnlocks": "",
+   "sessionsAtLevel": 0,
+   "lastPracticed": null,
+   "levelUpDeferred": null,
+   "durationSeconds": null,
+   "family": "Hinge"
   }
  ],
  "micros": [
