@@ -599,12 +599,23 @@ export function skateFocus(tricks: Skill[], today: string): FocusTrick[] {
   projects.slice(0, cfg.projects).forEach((t) => add(t, 'project'));
 
   // One stretch attempt: a locked trick whose prerequisites are all mastered,
-  // so it is the nearest thing that is actually reachable.
+  // so every ingredient has already been confirmed. Of those, the one sitting
+  // closest to the current ceiling. Taking the lowest instead would offer a
+  // beginner drill to someone who can drop in; taking the highest would offer
+  // whatever happens to sit furthest out on one narrow branch. The ceiling is
+  // where the next real attempt lives.
   const statusOf = new Map(tricks.map((t) => [t.skillId, t.status]));
+  const ceiling = tricks
+    .filter((t) => t.status === 'mastered')
+    .reduce((max, t) => Math.max(max, t.level ?? 0), 0);
   const reachable = tricks
     .filter((t) => t.status === 'locked')
     .filter((t) => t.prereqs.length > 0 && t.prereqs.every((p) => statusOf.get(p) === 'mastered'))
-    .sort((a, b) => (a.level ?? 0) - (b.level ?? 0));
+    .sort(
+      (a, b) =>
+        Math.abs((a.level ?? 0) - ceiling) - Math.abs((b.level ?? 0) - ceiling) ||
+        (a.level ?? 0) - (b.level ?? 0),
+    );
   reachable.slice(0, cfg.stretch).forEach((t) => add(t, 'stretch'));
 
   // One switch or fakie item, because that gap closes only if it is scheduled.
