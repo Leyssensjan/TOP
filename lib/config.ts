@@ -243,19 +243,31 @@ export const SKATE_BASELINE_CURRENT = ['rolling_ollie', 'frontside_180', 'switch
  */
 export const PLANNER = {
   /** Aim for this many sessions, never exceed the maximum. */
-  sessions: 3,
+  sessions: 4,
   maxSessions: 4,
   strength: 1,
   maxStrength: 2,
   engine: 1,
   minRestDays: 1,
+  /**
+   * Weekdays the planner may use, Monday = 0. The weekend is deliberately
+   * absent: it is left free so a spur-of-the-moment skate has somewhere to
+   * land, and a planned session there would only be one more thing to skip.
+   */
+  planDays: [0, 1, 2, 3, 4],
   /** Strength carries the plyometric work, so it never runs on back-to-back days. */
   strengthNeverConsecutive: true,
   /** A light morning before any planned skate window, so the legs are fresh. */
   lightBeforeSkate: true,
-  /** Preferred weekday for each type, Monday = 0. First workable day wins. */
-  strengthDays: [1, 4],
-  engineDays: [5, 2],
+  /**
+   * Preferred weekday for each type, Monday = 0. First workable day wins.
+   * Strength on Tuesday and the run on Thursday puts a clear day between
+   * them; Flow takes Monday and Friday, which leaves Wednesday to recover in
+   * the middle rather than at the end.
+   */
+  strengthDays: [1, 3],
+  engineDays: [3, 4],
+  flowDays: [0, 4, 2],
   /** Rabotpark works April to October. Winter is unsolved and says so. */
   outdoorMonths: [4, 5, 6, 7, 8, 9, 10],
   outdoorLocation: 'Rabotpark',

@@ -53,7 +53,11 @@ export function generateWeek(input: PlannerInput): PlannedWeek {
     type[d] = 'rest';
   });
 
-  const workable = (d: string) => !blocked.has(d);
+  // A day outside planDays is not a rest day the planner chose, it is a day
+  // the planner does not own. Both look like rest in the output; only this one
+  // can never be filled.
+  const plannable = new Set(cfg.planDays.map((i) => days[i]));
+  const workable = (d: string) => !blocked.has(d) && plannable.has(d);
   // The morning before a skate window stays light, so it cannot carry strength.
   const dayBeforeSkate = (d: string) => cfg.lightBeforeSkate && skateWindows.has(addDays(d, 1));
 
@@ -89,8 +93,11 @@ export function generateWeek(input: PlannerInput): PlannedWeek {
   }
 
   // 3. Fill up to the session target with Flow, leaving the rest days alone.
+  //    Preference order first, so the recovery day lands mid-week rather than
+  //    wherever the calendar happens to run out.
   const counted = () => days.filter((d) => type[d] !== 'rest').length;
-  for (const d of days) {
+  const flowOrder = [...cfg.flowDays.map((i) => days[i]), ...days];
+  for (const d of flowOrder) {
     if (counted() >= cfg.sessions) break;
     if (!workable(d) || type[d] !== 'rest') continue;
     if (days.filter((x) => type[x] === 'rest' && workable(x)).length <= cfg.minRestDays) break;
@@ -125,8 +132,14 @@ export function generateWeek(input: PlannerInput): PlannedWeek {
   if (shortened) {
     rationale.push(`${shortened} short ${shortened === 1 ? 'day' : 'days'} dropped to Flow Short rather than skipped.`);
   }
-  const restCount = days.filter((d) => type[d] === 'rest').length;
-  rationale.push(`${counted()} sessions planned against a target of ${cfg.sessions}, and ${restCount} rest days.`);
+  // Rest days are counted only where the planner could have put something.
+  // The days it never owned are free, which is a different thing to say.
+  const restCount = days.filter((d) => type[d] === 'rest' && plannable.has(d)).length;
+  const freeCount = days.length - plannable.size;
+  rationale.push(
+    `${counted()} sessions planned against a target of ${cfg.sessions}, ${restCount} rest ${restCount === 1 ? 'day' : 'days'}` +
+      (freeCount ? `, and ${freeCount} days left free.` : '.'),
+  );
   rationale.push('An executed twenty minutes beats a skipped sixty.');
 
   const entries: NewPlanEntry[] = days.map((day, i) => {
