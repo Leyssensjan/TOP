@@ -3,7 +3,7 @@
  * Not part of the app. Run with: npx tsx scripts/verify-rules.ts
  */
 import { readFileSync } from 'node:fs';
-import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow, strengthLevelUpProposals, unitOf, slotUnlockProposal, buildSkateSession, skateProposals, chooseProposal, assistedSlots, sessionsNeeded, flowsSinceUnlock, sessionsUntilNextSlot, nextSlotToUnlock } from '../lib/rules';
+import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow, strengthLevelUpProposals, unitOf, levelUpTargetOf, slotUnlockProposal, buildSkateSession, skateProposals, chooseProposal, assistedSlots, sessionsNeeded, flowsSinceUnlock, sessionsUntilNextSlot, nextSlotToUnlock } from '../lib/rules';
 import { MICRO_ASSIST, MICRO_ROTATION, PLANNER, ROUND_RAMP, SKATE_FOCUS, SKATE_SESSION, SLOT_UNLOCK, STRENGTH, TARGET_MINUTES } from '../lib/config';
 import { skateContent } from '../lib/skate-content';
 import { generateWeek } from '../lib/planner';
@@ -247,6 +247,31 @@ check(
     strengthLevelUpProposals(skills, setsOf('abc123', hangCurrent.name, [8, 8, 8], 'reps'), [cleanSession], today).length === 0,
   '',
 );
+// A cue that says "five reps is a set" must not be judged against a global
+// eight. Five of the twenty-one movements name their own count.
+{
+  const withTarget = skills.map((s) =>
+    s.id === pullCurrent.id ? { ...s, levelUpTarget: 5 } : s,
+  );
+  const fives = setsOf('abc123', pullCurrent.name, [5, 5, 5], 'reps');
+  check(
+    'A movement with its own target is judged against that target',
+    strengthLevelUpProposals(withTarget, fives, [cleanSession], today).some((p) => p.family === 'Pull'),
+    `${levelUpTargetOf({ unit: 'reps', levelUpTarget: 5 })} instead of ${STRENGTH.levelUpReps}`,
+  );
+  check(
+    'And without it the global default still applies',
+    strengthLevelUpProposals(skills, fives, [cleanSession], today).length === 0,
+    '',
+  );
+  check(
+    'A hold with its own target uses seconds, not the global 45',
+    levelUpTargetOf({ unit: 'seconds', levelUpTarget: 60 }) === 60 &&
+      levelUpTargetOf({ unit: 'seconds', levelUpTarget: null }) === STRENGTH.levelUpSeconds,
+    '',
+  );
+}
+
 check(
   'A deferred strength level-up stays quiet',
   strengthLevelUpProposals(
@@ -592,7 +617,7 @@ check('Micro progress covers only active micros', progress.every((p) => micros.f
     id: `t-${r.skillId}`, name: r.name, domain: 'skate', slot: null, level: r.level,
     status: r.status, cues: '', referenceTerm: '', entryPosition: '', exitPosition: '',
     whyBuilds: '', whyUnlocks: '', whySkate: '', sessionsAtLevel: 0, lastPracticed: null,
-    levelUpDeferred: null, durationSeconds: null, unit: null, servesSlot: null, skillId: r.skillId, family: r.family,
+    levelUpDeferred: null, durationSeconds: null, unit: null, servesSlot: null, levelUpTarget: null, skillId: r.skillId, family: r.family,
     prereqs: r.prereqs, attempts: 0,
   }));
 

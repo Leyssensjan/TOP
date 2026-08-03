@@ -31,6 +31,12 @@ export interface Skill {
   unit: 'reps' | 'seconds' | null;
   /** Strength only: the Form slot id this ladder feeds. Null serves nothing. */
   servesSlot: number | null;
+  /**
+   * Reps or seconds per set that count towards a level-up, in this movement's
+   * own Unit. Overrides the config default, because a cue that says "five reps
+   * is a set" must not be judged against a global eight.
+   */
+  levelUpTarget: number | null;
   /** Skate fields. Empty for movement skills. */
   skillId: string;
   family: string;

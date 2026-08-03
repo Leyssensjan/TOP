@@ -139,6 +139,7 @@ function toSkill(page: NotionPage): Skill {
     durationSeconds: rNum(p['Duration seconds']),
     unit: (rSelect(p['Unit']) as Skill['unit']) ?? null,
     servesSlot: rNum(p['Serves slot']),
+    levelUpTarget: rNum(p['Level up target']),
     skillId: rText(p['Skill id']),
     family: rText(p['Family']),
     prereqs: rText(p['Prereqs'])

@@ -14,6 +14,7 @@ interface Ladder {
   currentLevel: number;
   maxLevel: number;
   unit: 'reps' | 'seconds';
+  levelUpTarget: number;
   current: {
     id: string;
     name: string;
@@ -161,7 +162,7 @@ export default function StrengthPage() {
                           </button>
                         ) : null
                       }
-                      progress={`Levels up at 3 sets of ${l.unit === 'seconds' ? '45 seconds' : '8'}${
+                      progress={`Levels up at 3 sets of ${l.levelUpTarget}${l.unit === 'seconds' ? ' seconds' : ''}${
                         l.current.lastPracticed ? ` · last ${l.current.lastPracticed}` : ''
                       }`}
                       referenceTerm={l.current.referenceTerm}

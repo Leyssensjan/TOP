@@ -54,6 +54,8 @@ export interface StrengthBlock {
     cues: string;
     referenceTerm: string;
     unit: 'reps' | 'seconds';
+    /** Reps or seconds one set has to reach to count towards a level-up. */
+    levelUpTarget: number;
   }>;
 }
 
@@ -130,6 +132,7 @@ export function buildStrength(skills: Skill[]): StrengthBlock[] {
               cues: skill.cues,
               referenceTerm: skill.referenceTerm,
               unit: unitOf(skill),
+              levelUpTarget: levelUpTargetOf(skill),
             }
           : null;
       })
@@ -142,11 +145,23 @@ export function unitOf(skill: Pick<Skill, 'unit'>): 'reps' | 'seconds' {
   return skill.unit ?? STRENGTH.defaultUnit;
 }
 
+/**
+ * What one set has to reach to count towards a level-up, in the movement's own
+ * unit. Notion wins: several cues name a rep or second count of their own, and
+ * judging "five reps is a set" against a global eight would be nonsense.
+ */
+export function levelUpTargetOf(skill: Pick<Skill, 'unit' | 'levelUpTarget'>): number {
+  if (skill.levelUpTarget !== null && skill.levelUpTarget > 0) return skill.levelUpTarget;
+  return unitOf(skill) === 'seconds' ? STRENGTH.levelUpSeconds : STRENGTH.levelUpReps;
+}
+
 /** A set is good enough to count towards a level-up. */
-export function setClears(set: StrengthSet, unit: 'reps' | 'seconds'): boolean {
-  return unit === 'seconds'
-    ? (set.seconds ?? 0) >= STRENGTH.levelUpSeconds
-    : (set.reps ?? 0) >= STRENGTH.levelUpReps;
+export function setClears(
+  set: StrengthSet,
+  skill: Pick<Skill, 'unit' | 'levelUpTarget'>,
+): boolean {
+  const target = levelUpTargetOf(skill);
+  return unitOf(skill) === 'seconds' ? (set.seconds ?? 0) >= target : (set.reps ?? 0) >= target;
 }
 
 export interface StrengthProposal {
@@ -203,7 +218,7 @@ export function strengthLevelUpProposals(
     for (const set of sets) {
       if (set.skill !== current.name) continue;
       if (!cleanSessions.has(set.session)) continue;
-      if (!setClears(set, unit)) continue;
+      if (!setClears(set, current)) continue;
       const list = bySession.get(set.session) ?? [];
       list.push(set);
       bySession.set(set.session, list);

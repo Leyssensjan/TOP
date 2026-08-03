@@ -10,6 +10,7 @@ import {
   sessionsUntilNextSlot,
   nextSlotToUnlock,
   unitOf,
+  levelUpTargetOf,
 } from '@/lib/rules';
 import { getStore } from '@/lib/store';
 
@@ -121,6 +122,7 @@ export async function GET(req: Request) {
         currentLevel: current?.level ?? 0,
         maxLevel: ladder.length,
         unit: current ? unitOf(current) : 'reps',
+        levelUpTarget: current ? levelUpTargetOf(current) : STRENGTH.levelUpReps,
         current: current && {
           id: current.id,
           name: current.name,

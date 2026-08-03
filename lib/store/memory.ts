@@ -189,6 +189,7 @@ export class MemoryStore implements Store {
       prereqs: [],
       attempts: 0,
       servesSlot: null,
+    levelUpTarget: null,
     };
   });
 
@@ -228,6 +229,7 @@ export class MemoryStore implements Store {
     durationSeconds: null,
     unit: null,
     servesSlot: null,
+    levelUpTarget: null,
     skillId,
     family,
     prereqs: prereqs ? prereqs.split(',') : [],
@@ -271,13 +273,14 @@ export class MemoryStore implements Store {
       exitPosition: '',
       whyBuilds: '',
       whyUnlocks: '',
-    whySkate: '',
+      whySkate: '',
       sessionsAtLevel: 0,
       lastPracticed: null,
       levelUpDeferred: null,
       durationSeconds: null,
       unit: null,
-    servesSlot: null,
+      servesSlot: null,
+      levelUpTarget: null,
       skillId: input.skillId,
       family: input.family,
       prereqs: input.prereqs.split(',').map((v) => v.trim()).filter(Boolean),
