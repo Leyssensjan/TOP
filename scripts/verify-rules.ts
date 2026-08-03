@@ -373,9 +373,30 @@ check(
 );
 check(
   'The horizon counts down and never goes negative',
-  (sessionsUntilNextSlot(slots, ready(3)) ?? -1) === SLOT_UNLOCK.minSessions - 3 &&
+  (sessionsUntilNextSlot(slots, ready(3)) ?? -1) > 0 &&
     (sessionsUntilNextSlot(slots, manyFlows) ?? -1) === 0,
   `${sessionsUntilNextSlot(slots, ready(3))} then ${sessionsUntilNextSlot(slots, manyFlows)}`,
+);
+// The horizon has to survive the session it names: promising a slot in ten
+// sessions and delivering it in fifteen is exactly the kind of small lie that
+// makes the arc stop being believable.
+check(
+  'The horizon never lands before the unlock can actually fire',
+  (() => {
+    for (const n of [0, 3, 9, 10, 12, 13, 14]) {
+      const at = sessionsUntilNextSlot(deepSlots, ready(n));
+      if (at === null) continue;
+      const banked = ready(n + at);
+      if (slotUnlockProposal(deepSlots, banked, today) === null) return false;
+    }
+    return true;
+  })(),
+  '',
+);
+check(
+  'And it accounts for the ramp, not only the session count',
+  (sessionsUntilNextSlot(deepSlots, ready(0)) ?? 0) >= SLOT_UNLOCK.minSessions,
+  `${sessionsUntilNextSlot(deepSlots, ready(0))} from a standing start`,
 );
 
 // One proposal, ever. Breadth beats depth beats strength.

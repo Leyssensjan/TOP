@@ -837,11 +837,30 @@ export function flowsSinceUnlock(slots: Slot[], sessions: SessionLog[]): number 
   return since ? flows.filter((s) => s.date >= since).length : flows.length;
 }
 
-/** How many more Flow sessions before the next slot can be proposed. */
+/**
+ * How many more Flow sessions before the next slot can be proposed.
+ *
+ * Both session gates count, not just the obvious one: volume has to be maxed
+ * before breadth increases, and reaching the top of the round ramp usually
+ * takes longer than the minimum session count. Reporting only the smaller of
+ * the two would put a number on Today that nothing happens on.
+ *
+ * The depth condition is not forecast here — it is a state, not a countdown,
+ * and it can be met or lost between now and then.
+ */
 export function sessionsUntilNextSlot(slots: Slot[], sessions: SessionLog[]): number | null {
   const next = nextSlotToUnlock(slots);
   if (!next) return null;
-  return Math.max(0, SLOT_UNLOCK.minSessions - flowsSinceUnlock(slots, sessions));
+
+  const flows = flowsSinceUnlock(slots, sessions);
+  const bySessionCount = Math.max(0, SLOT_UNLOCK.minSessions - flows);
+  if (!SLOT_UNLOCK.requireTopOfRamp) return bySessionCount;
+
+  const topRounds = ROUND_RAMP[ROUND_RAMP.length - 1].rounds;
+  let byRamp = 0;
+  while (roundsForFlow(flows + byRamp) < topRounds && byRamp <= 500) byRamp += 1;
+
+  return Math.max(bySessionCount, byRamp);
 }
 
 /** The locked slot whose turn it is, by Unlock order. */
