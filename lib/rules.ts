@@ -688,10 +688,16 @@ export function rotateMicros(
   // It only starts applying once the log itself is old enough to distinguish
   // "ignored for three weeks" from "the app is three days old". Without this
   // guard a fresh install retires every micro on its first rotation.
+  //
+  // And it needs something logged inside the window too. A month away is not
+  // three weeks of ignoring these micros — it is three weeks of nobody being
+  // asked. Retiring the lot on the first morning back is the opposite of what
+  // this rule is for.
   const retireFrom = addDays(weekStartDate, -cfg.retireAfterUntouchedWeeks * ROLLING_WINDOW_DAYS);
   const firstLogged = log.map((l) => l.date).sort()[0];
   const historyIsLongEnough = Boolean(firstLogged && firstLogged <= retireFrom);
-  const retire = historyIsLongEnough
+  const wasUsedInWindow = log.some((l) => l.date >= retireFrom);
+  const retire = historyIsLongEnough && wasUsedInWindow
     ? micros.filter((m) => m.active && !m.retired && countSince(m.name, retireFrom) === 0)
     : [];
   const retiredIds = new Set(retire.map((m) => m.id));

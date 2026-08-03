@@ -7,7 +7,7 @@ import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgre
 import { MICRO_ASSIST, MICRO_ROTATION, PLANNER, ROUND_RAMP, SKATE_FOCUS, SKATE_SESSION, SLOT_UNLOCK, STRENGTH, TARGET_MINUTES } from '../lib/config';
 import { skateContent } from '../lib/skate-content';
 import { generateWeek } from '../lib/planner';
-import { weekStart } from '../lib/dates';
+import { addDays, weekStart } from '../lib/dates';
 import { parse, applyBaseline, SOURCE } from './skate-migration';
 import type { Micro, MicroLogEntry, SessionLog, SkateSet, Skill, Slot, StrengthSet } from '../lib/types';
 
@@ -562,10 +562,20 @@ check('Rotation lands within 3 to 5 active', activeAfter.length >= 3 && activeAf
 check('Nothing retired while the log is younger than the window', rot.retire.length === 0, `${rot.retire.length}`);
 check('Retired micros are never selected', rot.activate.every((m) => !m.retired), '');
 
-// Retirement must engage once the log is old enough.
-const oldLog: MicroLogEntry[] = [{ id: 'old', name: micros[0].name, date: '2026-05-01', count: 1, weekStart: '2026-04-27' }];
+// Retirement must engage once the log is old enough — but only for someone who
+// was actually here. The recent entry is what says the app was being used.
+const recent = addDays(week, -3);
+const oldLog: MicroLogEntry[] = [
+  { id: 'old', name: micros[0].name, date: '2026-05-01', count: 1, weekStart: '2026-04-27' },
+  { id: 'recent', name: micros[1].name, date: recent, count: 1, weekStart: week },
+];
 const rot2 = rotateMicros(micros, oldLog, slots, skills, week, false);
 check('Retirement engages once history is long enough', rot2.retire.length > 0, `${rot2.retire.length} retired`);
+
+// A month away is not a month of ignoring them.
+const awayLog: MicroLogEntry[] = [{ id: 'old', name: micros[0].name, date: '2026-05-01', count: 1, weekStart: '2026-04-27' }];
+const rot2b = rotateMicros(micros, awayLog, slots, skills, week, false);
+check('Nothing is retired over a break with no activity at all', rot2b.retire.length === 0, `${rot2b.retire.length}`);
 
 // --- finishing a micro brings in a new one ---------------------------------
 {
