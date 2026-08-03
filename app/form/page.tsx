@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Detail from '@/components/Detail';
 import { ApiError, api, getKey } from '@/lib/client/store';
+import { useState as useLocalState } from 'react';
 
 interface LadderEntry {
   id: string;
@@ -153,7 +154,9 @@ export default function FormPage() {
                       </span>
                     )}
                   </button>
-                  {isOpen && <SlotDetail slot={slot} onGo={(path) => router.push(path)} />}
+                  {isOpen && (
+                    <SlotDetail slot={slot} onGo={(path) => router.push(path)} onChanged={() => void load()} />
+                  )}
                 </div>
               );
             })}
@@ -164,9 +167,31 @@ export default function FormPage() {
   );
 }
 
-function SlotDetail({ slot, onGo }: { slot: FormSlot; onGo: (path: string) => void }) {
+function SlotDetail({
+  slot,
+  onGo,
+  onChanged,
+}: {
+  slot: FormSlot;
+  onGo: (path: string) => void;
+  onChanged: () => void;
+}) {
+  const [busy, setBusy] = useLocalState(false);
   const current = slot.current;
   if (!current) return <div className="panel">No movement set for this slot.</div>;
+
+  // Levelling only ever went up, which made a level set too high a trip back to
+  // whoever set it. Correcting one is not a failure worth recording, so this
+  // writes no milestone.
+  const stepDown = async () => {
+    setBusy(true);
+    try {
+      await api('/levelup', { method: 'POST', body: { slot: slot.slotId, action: 'down' } });
+      onChanged();
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <Detail
@@ -189,9 +214,23 @@ function SlotDetail({ slot, onGo }: { slot: FormSlot; onGo: (path: string) => vo
         },
       ]}
       footnote={
-        slot.assisted ? (
-          <>Micros have lowered the bar here: {slot.sessionsNeeded} sessions instead of 8.</>
-        ) : null
+        <>
+          {slot.assisted && (
+            <span style={{ display: 'block', marginBottom: 8 }}>
+              Micros have lowered the bar here: {slot.sessionsNeeded} sessions instead of 8.
+            </span>
+          )}
+          {slot.active && slot.currentLevel > 1 && (
+            <button
+              className="label"
+              disabled={busy}
+              onClick={() => void stepDown()}
+              style={{ color: 'var(--muted)', padding: '6px 0' }}
+            >
+              Too hard · drop to level {slot.currentLevel - 1}
+            </button>
+          )}
+        </>
       }
       progress={
         slot.active

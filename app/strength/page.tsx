@@ -38,6 +38,18 @@ export default function StrengthPage() {
   const [ladders, setLadders] = useState<Ladder[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // Same correction as the Form: a ladder set too high has to be reversible.
+  const stepDown = async (family: string) => {
+    setBusy(true);
+    try {
+      await api('/levelup', { method: 'POST', body: { family, action: 'down' } });
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const load = useCallback(async () => {
     if (!getKey()) {
@@ -137,6 +149,18 @@ export default function StrengthPage() {
                         },
                         { label: 'Skate', value: l.current.whySkate },
                       ]}
+                      footnote={
+                        l.currentLevel > 1 ? (
+                          <button
+                            className="label"
+                            disabled={busy}
+                            onClick={() => void stepDown(l.family)}
+                            style={{ color: 'var(--muted)', padding: '6px 0' }}
+                          >
+                            Too hard · drop to level {l.currentLevel - 1}
+                          </button>
+                        ) : null
+                      }
                       progress={`Levels up at 3 sets of ${l.unit === 'seconds' ? '45 seconds' : '8'}${
                         l.current.lastPracticed ? ` · last ${l.current.lastPracticed}` : ''
                       }`}
