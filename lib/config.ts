@@ -274,7 +274,13 @@ export const PLANNER = {
  */
 export const SKATE_FOCUS = {
   rusty: 3,
-  projects: 2,
+  /**
+   * Live projects shown per session. Three rather than two because coming back
+   * after a long break leaves several things half-there at once: the card sorts
+   * by level, so the shakiest fundamentals get the attention first and the
+   * showier tricks surface once those are confirmed.
+   */
+  projects: 3,
   stretch: 1,
   switchOrFakie: 1,
   rustAfterDays: 21,
