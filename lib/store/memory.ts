@@ -107,7 +107,7 @@ const MICRO_SEED: MicroSeed[] = [
   ['Tempo twenty', 'skate', 4, 3, 'Any excuse, anywhere', '20 slow squats: three seconds down, pause, up.', '2 minutes', true],
   ['Wrist prep at the desk', 'movement', 5, 5, 'Sitting down at your desk in the morning', 'Palms down, fingers back, rock gently. Your wrists carry the whole middle of the Form.', '45 seconds', true],
   ['Coffee calves', 'skate', null, 5, 'While the coffee brews', '25 slow single-leg calf raises per side.', '2 minutes', true],
-  ['Kerb surfer', 'skate', 1, 3, 'Walking anywhere with a kerb', 'Balance-walk a kerb edge for two minutes total. Heel-to-toe on the way back.', '2 minutes', true],
+  ['Curb surfer', 'skate', 1, 3, 'Walking anywhere with a curb', 'Balance-walk a curb edge for two minutes total. Heel-to-toe on the way back.', '2 minutes', true],
   ['Hip circles', 'movement', 3, 5, 'Standing around waiting for anything', 'Five slow, max-range standing hip circles per side.', '2 minutes', true],
   ['Counter push-up', 'movement', 6, 7, 'Waiting at the kitchen counter', 'Chest to the counter, elbows back not flared. Ten slow reps.', '30 seconds', true],
   ['Snapdown x5', 'skate', null, 2, 'Before you leave the house', 'Five snapdowns: jump tall, land frozen in the ollie crouch, silent feet. Not on a plyo-rest morning.', '1 minute', true],

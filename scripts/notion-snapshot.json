@@ -1594,11 +1594,11 @@
   },
   {
    "id": "micro-8",
-   "name": "Kerb surfer",
+   "name": "Curb surfer",
    "domain": "skate",
    "feedsSlot": 1,
    "weeklyTarget": 3,
-   "trigger": "Walking anywhere with a kerb",
+   "trigger": "Walking anywhere with a curb",
    "cue": "",
    "duration": "",
    "referenceTerm": "",

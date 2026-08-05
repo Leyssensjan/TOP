@@ -423,8 +423,8 @@ THIS WEEK'S MICROS  ← the label is the link to the full screen
    while the kettle boils
 2  Doorway hip flexor stretch                 7/7
    getting up from your desk
-3  Kerb surfer                                1/3
-   passing any kerb
+3  Curb surfer                                1/3
+   passing any curb
 ```
 
 Tapping the **count** logs one — taps within 1.2 seconds collapse into a single

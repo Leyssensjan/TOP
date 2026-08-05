@@ -688,7 +688,7 @@ export const SKATE_CONTENT: Record<string, SkateContent> = {
   },
   "firecracker": {
     mechanics: ["Approach stairs straight, moderate speed.","Lift nose so tail taps each step down.","Stay centered, absorb each tap with knees."],
-    drills: ["Single kerb tail-tap first.","2-stair, then longer sets.","Keep shoulders level throughout."],
+    drills: ["Single curb tail-tap first.","2-stair, then longer sets.","Keep shoulders level throughout."],
     gate: "Can ride down a 3+ stair firecracker without stepping off.",
     terrain: ["stairs"],
     obstacles: ["2 stair","3 stair"],
@@ -1246,7 +1246,7 @@ export const SKATE_CONTENT: Record<string, SkateContent> = {
   },
   "nose_stall": {
     mechanics: ["Approach coping with speed to just reach it.","Lift tail, set the nose on the coping, weight over front truck.","Rock back in like a fakie tail stall entry."],
-    drills: ["Nose pivots on a kerb.","Tail stall to nose touch without committing.","Full stall, 1-second hold, back in."],
+    drills: ["Nose pivots on a curb.","Tail stall to nose touch without committing.","Full stall, 1-second hold, back in."],
     gate: "Can nose stall and come back in cleanly 3x in a row.",
     terrain: ["mini ramp"],
     obstacles: [],
@@ -1309,7 +1309,7 @@ export const SKATE_CONTENT: Record<string, SkateContent> = {
   },
   "feeble_stall": {
     mechanics: ["Back truck locks on coping, front truck dips over the far side.","Board points slightly down into the ramp.","Lift and turn back in off the back truck."],
-    drills: ["Axle stall to front-truck dip.","Kerb feeble position practice.","Commit the front foot lower each rep."],
+    drills: ["Axle stall to front-truck dip.","Curb feeble position practice.","Commit the front foot lower each rep."],
     gate: "Locked feeble stall with controlled re-entry 3x.",
     terrain: ["mini ramp"],
     obstacles: [],
@@ -1552,7 +1552,7 @@ export const SKATE_CONTENT: Record<string, SkateContent> = {
   },
   "nosegrind": {
     mechanics: ["Ollie into front-truck-only lock on the ledge.","Weight stacked over the nose, back truck floating.","Slight pop or let it run off the end."],
-    drills: ["Nose manual pads first.","5-0 to nose-shift on a kerb.","Short nosegrinds, grow the distance."],
+    drills: ["Nose manual pads first.","5-0 to nose-shift on a curb.","Short nosegrinds, grow the distance."],
     gate: "Locked nosegrind the length of a board 3x.",
     terrain: ["ledge","curb"],
     obstacles: ["curb","low ledge"],
@@ -1624,7 +1624,7 @@ export const SKATE_CONTENT: Record<string, SkateContent> = {
   },
   "feeble_grind": {
     mechanics: ["Back truck grinds, front truck hangs over the far side.","Nose points slightly down and across.","Straighten out to exit."],
-    drills: ["Feeble stall on kerb (or quarter).","Boardslide-to-feeble shift on a low bar.","Commit front foot over, not on top."],
+    drills: ["Feeble stall on curb (or quarter).","Boardslide-to-feeble shift on a low bar.","Commit front foot over, not on top."],
     gate: "Locked feeble the length of a board with rideaway 3x.",
     terrain: ["rail","ledge"],
     obstacles: ["square flat bar","low ledge"],
@@ -1669,7 +1669,7 @@ export const SKATE_CONTENT: Record<string, SkateContent> = {
   },
   "smith_grind": {
     mechanics: ["Back truck grinds, front truck dips down the near side.","Front foot pushes the nose down and forward.","Pop or lift out to flat."],
-    drills: ["5-0 with progressive nose dip.","Kerb smith stalls.","Low square rail before ledges."],
+    drills: ["5-0 with progressive nose dip.","Curb smith stalls.","Low square rail before ledges."],
     gate: "Locked smith grind with clean exit 3x.",
     terrain: ["ledge","rail"],
     obstacles: ["low ledge","square flat bar"],
@@ -1696,7 +1696,7 @@ export const SKATE_CONTENT: Record<string, SkateContent> = {
   },
   "bluntslide": {
     mechanics: ["Pop high enough to lock tail-and-back-wheels on top.","Slide with weight stacked over the tail.","Small pop-out to exit, shoulders lead."],
-    drills: ["Blunt stalls on kerb.","Tailslide higher lock each session.","Short bluntslides on waxed low ledge."],
+    drills: ["Blunt stalls on curb.","Tailslide higher lock each session.","Short bluntslides on waxed low ledge."],
     gate: "Locked bluntslide with pop-out rideaway 3x.",
     terrain: ["ledge","rail"],
     obstacles: ["low ledge","square flat bar"],

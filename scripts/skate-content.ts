@@ -53,11 +53,21 @@ const lines: string[] = [
   'export const SKATE_CONTENT: Record<string, SkateContent> = {',
 ];
 
+/**
+ * The library mixes British and American spellings of the same piece of
+ * concrete. Skating writes it "curb" everywhere — the trick names in this very
+ * file are curb_ride_off and slappy_curb_grind — so the drills should not say
+ * something else. Applied here rather than in the generated file, which is
+ * overwritten on every run.
+ */
+const spell = (text: string): string => text.replace(/([Kk])erb/g, (_, k: string) => `${k === 'K' ? 'C' : 'c'}urb`);
+const spellAll = (texts: string[]): string[] => texts.map(spell);
+
 for (const s of rows) {
   lines.push(`  ${JSON.stringify(s.id)}: {`);
-  lines.push(`    mechanics: ${JSON.stringify(s.mechanics ?? [])},`);
-  lines.push(`    drills: ${JSON.stringify(s.drills ?? [])},`);
-  lines.push(`    gate: ${JSON.stringify(s.mastery_gate ?? '')},`);
+  lines.push(`    mechanics: ${JSON.stringify(spellAll(s.mechanics ?? []))},`);
+  lines.push(`    drills: ${JSON.stringify(spellAll(s.drills ?? []))},`);
+  lines.push(`    gate: ${JSON.stringify(spell(s.mastery_gate ?? ''))},`);
   lines.push(`    terrain: ${JSON.stringify(s.terrain ?? [])},`);
   lines.push(`    obstacles: ${JSON.stringify(s.obstacles ?? [])},`);
   lines.push(`    stances: ${JSON.stringify(s.stances ?? [])},`);
