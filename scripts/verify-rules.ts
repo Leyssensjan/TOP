@@ -3,8 +3,8 @@
  * Not part of the app. Run with: npx tsx scripts/verify-rules.ts
  */
 import { readFileSync } from 'node:fs';
-import { planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow, strengthLevelUpProposals, unitOf, levelUpTargetOf, slotUnlockProposal, buildSkateSession, skateProposals, chooseProposal, assistedSlots, sessionsNeeded, flowsSinceUnlock, sessionsUntilNextSlot, nextSlotToUnlock } from '../lib/rules';
-import { MICRO_ASSIST, MICRO_ROTATION, PLANNER, ROUND_RAMP, SKATE_FOCUS, SKATE_SESSION, SLOT_UNLOCK, STRENGTH, TARGET_MINUTES } from '../lib/config';
+import { profileStats, planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow, strengthLevelUpProposals, unitOf, levelUpTargetOf, slotUnlockProposal, buildSkateSession, skateProposals, chooseProposal, assistedSlots, sessionsNeeded, flowsSinceUnlock, sessionsUntilNextSlot, nextSlotToUnlock } from '../lib/rules';
+import { MICRO_ASSIST, MICRO_ROTATION, PLANNER, PROFILE, ROUND_RAMP, SKATE_FOCUS, SKATE_SESSION, SLOT_UNLOCK, STRENGTH, TARGET_MINUTES } from '../lib/config';
 import { skateContent } from '../lib/skate-content';
 import { generateWeek } from '../lib/planner';
 import { addDays, weekStart } from '../lib/dates';
@@ -813,6 +813,84 @@ check('Micro progress covers only active micros', progress.every((p) => micros.f
         'movement',
     '',
   );
+
+  // --- the profile ---------------------------------------------------------
+  console.log('');
+  const movementSkills = skills.filter((s) => s.domain === 'movement');
+  const strengthSkills = skills.filter((s) => s.domain === 'strength');
+
+  // The partition is the thing that rots. A family added to the graph without
+  // being assigned to a spoke would vanish from the profile in silence.
+  const claimed = PROFILE.axes.flatMap((a) => a.skate);
+  const families = [...new Set(asSkills.map((t) => t.family))];
+  const unclaimed = families.filter((f) => !claimed.includes(f));
+  const doubleClaimed = claimed.filter((f, i) => claimed.indexOf(f) !== i);
+  const phantom = claimed.filter((f) => !families.includes(f));
+  check('Every skate family belongs to a spoke', unclaimed.length === 0, unclaimed.join(', ') || `${families.length} families`);
+  check('No family feeds two spokes', doubleClaimed.length === 0, doubleClaimed.join(', '));
+  check('No spoke names a family that does not exist', phantom.length === 0, phantom.join(', '));
+
+  const allLockedProfile = profileStats(slots, movementSkills, strengthSkills, allLocked, [], today);
+  const skateOnly = PROFILE.axes.filter((a) => !a.slots.length && !a.strength.length).map((a) => a.key);
+  console.log(`  all locked: ${allLockedProfile.axes.map((a) => `${a.label} ${a.level}`).join(', ')} — ${allLockedProfile.rank}`);
+  check(
+    'A graph with nothing mastered scores zero on the skate-only spokes',
+    allLockedProfile.axes.filter((a) => skateOnly.includes(a.key)).every((a) => a.level === 0),
+    skateOnly.join(', '),
+  );
+
+  const allMastered: Skill[] = asSkills.map((t) => ({ ...t, status: 'mastered' as const }));
+  const toppedOut = profileStats(slots, movementSkills, strengthSkills, allMastered, [], today);
+  check(
+    'Mastering the whole graph tops out the skate-only spokes',
+    toppedOut.axes.filter((a) => skateOnly.includes(a.key)).every((a) => a.level === 10),
+    toppedOut.axes.filter((a) => skateOnly.includes(a.key)).map((a) => `${a.label} ${a.level}`).join(', '),
+  );
+  check(
+    'Every spoke stays inside 0 to 10 and carries a name',
+    toppedOut.axes.every((a) => a.level >= 0 && a.level <= 10 && a.tier.length > 0),
+    '',
+  );
+
+  // Nerve is the one spoke that reads the risk rating, so the trick that moves
+  // it must be the committing one and not merely the next one along.
+  const nerveOf = (tricks: Skill[]) =>
+    profileStats(slots, movementSkills, strengthSkills, tricks, [], today).axes.find((a) => a.key === 'nerve')!.level;
+  const nerveFamilies = PROFILE.axes.find((a) => a.key === 'nerve')!.skate;
+  const inNerve = asSkills.filter((t) => nerveFamilies.includes(t.family));
+  const byRisk = inNerve
+    .slice()
+    .sort((a, b) => (skateContent(b.skillId)?.risk ?? 0) - (skateContent(a.skillId)?.risk ?? 0));
+  const scariest = byRisk[0];
+  const safest = byRisk[byRisk.length - 1];
+  const withScariest = allLocked.map((t) => (t.skillId === scariest.skillId ? { ...t, status: 'mastered' as const } : t));
+  const withSafest = allLocked.map((t) => (t.skillId === safest.skillId ? { ...t, status: 'mastered' as const } : t));
+  check(
+    'Nerve answers to the risk rating, not to the level',
+    nerveOf(withScariest) > nerveOf(withSafest),
+    `${scariest.name} (risk ${skateContent(scariest.skillId)?.risk}) gives ${nerveOf(withScariest)}, ${safest.name} (risk ${skateContent(safest.skillId)?.risk}) gives ${nerveOf(withSafest)}`,
+  );
+
+  // A trick still in progress is not evidence. Only mastery moves a spoke.
+  const inProgress = allLocked.map((t) => (nerveFamilies.includes(t.family) ? { ...t, status: 'current' as const } : t));
+  check('Work in progress does not move a spoke', nerveOf(inProgress) === 0, `${nerveOf(inProgress)}`);
+
+  // Engine is counted rather than levelled, so it has to answer to runs.
+  const runs: SessionLog[] = Array.from({ length: PROFILE.engineTarget }, (_, i) => ({
+    id: `run-${i}`, name: `run ${i}`, date: addDaysStr(today, -i * 2), type: 'engine' as const,
+    plannedMinutes: 30, actualMinutes: 30, completed: true, difficulty: 'right' as const,
+    soreness: '', notes: '', skillsPracticed: [], distanceKm: 5, route: '',
+  }));
+  const engineOf = (log: SessionLog[]) =>
+    profileStats(slots, movementSkills, strengthSkills, allLocked, log, today).axes.find((a) => a.key === 'engine')!.level;
+  check('Runs move the Engine spoke', engineOf(runs) > engineOf([]), `${engineOf([])} with none, ${engineOf(runs)} with ${runs.length}`);
+
+  // The profile reads state and writes none, which is the whole argument for
+  // it being a safe screen to add. Freezing the inputs proves it.
+  const before = JSON.stringify({ slots, skills, sessions });
+  profileStats(slots, movementSkills, strengthSkills, asSkills, sessions, today);
+  check('Reading the profile mutates nothing', JSON.stringify({ slots, skills, sessions }) === before, '');
+
   void carve;
 
 }

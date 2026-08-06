@@ -369,3 +369,112 @@ export const MICRO_ROTATION = {
    */
   replaceOnComplete: true,
 };
+
+/**
+ * The profile, section 12: one screen that says where Jan is across everything
+ * he trains, as seven spokes rather than three separate ladder screens.
+ *
+ * Two rules held the whole design:
+ *
+ * 1. A spoke is a *depth*, never a percentage of the graph. "34 of 190 tricks"
+ *    reads as 18% and would still read 25% at Christmas — a number that cannot
+ *    move in a month is decoration. Depth reached against depth available moves
+ *    the moment something levels up, which is the thing he already does.
+ * 2. Nothing here is a new measurement. Every spoke is derived from state that
+ *    already exists, so this screen writes nothing and can be deleted without
+ *    trace.
+ *
+ * Every family in the skate graph is assigned to exactly one spoke. Adding a
+ * family to the graph without adding it here would silently drop it, so the
+ * verify script asserts the partition covers all of them.
+ */
+export const PROFILE = {
+  /** Level 0-10 maps to a name by the last threshold it clears. */
+  tierThresholds: [0, 1, 3, 5, 7, 9],
+  /** Weight given to a run count relative to a ladder, in ladder-steps. */
+  engineWeight: 8,
+  /** Engine sessions over this window that would count as a full spoke. */
+  engineWindowDays: 90,
+  engineTarget: 12,
+  axes: [
+    {
+      key: 'balance',
+      label: 'Balance',
+      // Slot *ids*, not sequence: Centering, Squat and ankle, Arm balance.
+      slots: [1, 4, 11],
+      strength: [] as string[],
+      skate: [
+        'Foundation',
+        'Balance',
+        'Manual',
+        'Rail / primo foundation',
+        'Truck stand foundation',
+        'Truck stand tricks',
+        'Freestyle foundation',
+      ],
+      tiers: ['Wobbler', 'Steady', 'Planted', 'Poised', 'Unshakeable', 'Cat'],
+    },
+    {
+      key: 'power',
+      label: 'Power',
+      // Quadruped load, Ground push, Posterior chain, Compression core.
+      slots: [5, 6, 8, 10],
+      strength: ['Pull', 'Push', 'Single leg', 'Hinge'],
+      skate: [] as string[],
+      tiers: ['Soft', 'Working', 'Solid', 'Strong', 'Powerful', 'Hydraulic'],
+    },
+    {
+      key: 'mobility',
+      label: 'Mobility',
+      // Spinal wave, Hip opener, Spinal extension.
+      slots: [2, 3, 9],
+      strength: [] as string[],
+      skate: [] as string[],
+      tiers: ['Stiff', 'Loosening', 'Supple', 'Fluid', 'Elastic', 'Liquid'],
+    },
+    {
+      key: 'pop',
+      label: 'Pop',
+      slots: [] as number[],
+      strength: [] as string[],
+      skate: ['Pop prep', 'Pop', 'Scoop', 'Flip', 'Freestyle flip foundation'],
+      tiers: ['Flat', 'Scraping', 'Popping', 'Springy', 'Snappy', 'Detonator'],
+    },
+    {
+      key: 'control',
+      label: 'Board control',
+      // Transition and Rise: the two slots that are about moving between
+      // shapes rather than holding one.
+      slots: [7, 12],
+      strength: [] as string[],
+      skate: ['Rolling', 'Turning', 'Stance', 'Stopping', 'Rotation', 'Freestyle footwork', 'Freestyle'],
+      tiers: ['Passenger', 'Steering', 'Driving', 'Precise', 'Surgical', 'Telepathic'],
+    },
+    {
+      key: 'nerve',
+      label: 'Nerve',
+      slots: [] as number[],
+      strength: [] as string[],
+      skate: ['Terrain', 'Terrain variant', 'Transition', 'Street', 'Old school'],
+      /**
+       * The one spoke measured by the risk rating rather than by level. Nerve
+       * is not how far up the graph you are, it is how committed the hardest
+       * thing you have actually landed was.
+       */
+      useRisk: true,
+      tiers: ['Careful', 'Willing', 'Committed', 'Bold', 'Fearless', 'No Brakes'],
+    },
+    {
+      key: 'engine',
+      label: 'Engine',
+      slots: [] as number[],
+      strength: ['Hang'],
+      skate: [] as string[],
+      /** The only spoke fed by session count, because nothing else measures it. */
+      useEngineSessions: true,
+      tiers: ['Winded', 'Ticking', 'Steady', 'Deep', 'Relentless', 'Diesel'],
+    },
+  ],
+  /** The headline, from the average of the spokes. */
+  ranks: ['Kook', 'Roller', 'Park Regular', 'Local', 'Ripper', 'Legend'],
+};

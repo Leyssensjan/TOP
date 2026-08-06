@@ -820,6 +820,65 @@ it feeds), **what it opens** (the thing downstream it unlocks).
 
 ---
 
+### Profile — `/profile`
+
+Reached from the utilities row on Today. Seven spokes on a radar, drawn at whole
+levels, over state that already exists. **This screen reads and never writes.**
+
+```
+        3  overall · Park Regular
+
+              Balance
+     Engine  ·   ·   ·  Power
+        ·  ╱‾‾‾‾‾‾‾╲  ·
+    Nerve  │   web   │  Mobility
+        ·  ╲_______╱  ·
+      Board control   Pop
+
+  Planted        4/10
+  Balance
+  Solid          4/10
+  Power
+  ...
+```
+
+Tapping a spoke opens the detail panel and shows exactly what fed the number —
+every slot, ladder and trick family with its reached-over-available — because a
+stat nobody can audit is a stat nobody believes.
+
+**The number is a depth, never a percentage of the graph.** "34 of 190 tricks
+mastered" is 18%, and would still read 25% at Christmas; a number that cannot
+move in a month is decoration. Each source contributes *depth reached over depth
+available*, weighted by how much there is to reach, so a twelve-level ladder
+counts for more than a three-level one and a family of twenty-six tricks counts
+for more than a family of one. A level-up visibly moves one spoke, which ties
+the reward to the thing already being done.
+
+| Spoke | Fed by |
+|---|---|
+| Balance | Slots 1, 4, 11 · Foundation, Balance, Manual, Rail, Truck stand, Freestyle foundation |
+| Power | Slots 5, 6, 8, 10 · Pull, Push, Single leg, Hinge |
+| Mobility | Slots 2, 3, 9 |
+| Pop | Pop prep, Pop, Scoop, Flip, Freestyle flip foundation |
+| Board control | Slots 7, 12 · Rolling, Turning, Stance, Stopping, Rotation, Freestyle, Freestyle footwork |
+| Nerve | Terrain, Terrain variant, Transition, Street, Old school — **measured by the risk rating, not by level** |
+| Engine | Hang ladder · engine sessions in the last 90 days |
+
+Three deliberate limits:
+
+- **Only mastery counts.** A trick in progress is not evidence, which is what
+  "mastered" means everywhere else in the app.
+- **Nerve reads risk.** It is not how far up the graph you are, it is how
+  committing the hardest thing you have actually landed was.
+- **Engine is coarse and says so.** It is a count of runs, because the session
+  log holds no distance or pace. One honest coarse spoke beats a fake precise
+  one, and flexibility is deliberately absent for the same reason — nothing
+  measures range of motion.
+
+Every skate family belongs to exactly one spoke. The verify script asserts the
+partition covers all 24, so a family added to the graph cannot vanish from the
+profile in silence.
+
 ## 7. A morning, end to end
 
 1. Jan opens the app from his home screen. The service worker serves the shell;

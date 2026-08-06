@@ -9,6 +9,7 @@ import {
   FLOW_SHORT_ROUNDS,
   MICRO_ASSIST,
   MICRO_ROTATION,
+  PROFILE,
   PROPOSAL_PRIORITY,
   SLOT_UNLOCK,
   ROUND_RAMP,
@@ -1125,4 +1126,137 @@ export function skateProposals(tricks: Skill[], sets: SkateSet[], today: string)
   }
 
   return proposals;
+}
+
+/** One spoke of the profile. */
+export interface AxisStat {
+  key: string;
+  label: string;
+  /** 0 to 10. */
+  level: number;
+  tier: string;
+  /** Exactly what fed the number, so the screen never has to assert it. */
+  sources: Array<{ label: string; reached: number; available: number }>;
+}
+
+export interface Profile {
+  axes: AxisStat[];
+  overall: number;
+  rank: string;
+}
+
+/** The name for a level: the last tier whose threshold it clears. */
+function tierOf(level: number, names: string[]): string {
+  const bands = PROFILE.tierThresholds;
+  let picked = 0;
+  bands.forEach((min, i) => {
+    if (level >= min && i < names.length) picked = i;
+  });
+  return names[picked] ?? names[0] ?? '';
+}
+
+/**
+ * The profile, section 12. Seven spokes over state that already exists — no
+ * new measurement, nothing written.
+ *
+ * Every spoke is a weighted average of "depth reached over depth available",
+ * where the weight is how much there is to reach: a twelve-level ladder counts
+ * for more than a three-level one, and a family of twenty-six tricks counts for
+ * more than a family of one. Percent-of-graph-completed is deliberately not
+ * used anywhere — see the note in PROFILE.
+ */
+export function profileStats(
+  slots: Slot[],
+  movement: Skill[],
+  strength: Skill[],
+  skate: Skill[],
+  sessions: SessionLog[],
+  today: string,
+): Profile {
+  const axes = PROFILE.axes.map((axis) => {
+    const parts: Array<{ weight: number; score: number; label: string; reached: number; available: number }> = [];
+
+    // Form slots: the level standing now, against the ladder that exists.
+    for (const slotId of axis.slots) {
+      const slot = slots.find((s) => (s.slotId || s.sequence) === slotId);
+      if (!slot) continue;
+      const available = movement.filter((s) => s.slot === slotId).length;
+      if (!available) continue;
+      parts.push({
+        weight: available,
+        score: Math.min(1, slot.currentLevel / available),
+        label: slot.name,
+        reached: slot.currentLevel,
+        available,
+      });
+    }
+
+    // Strength ladders: same shape, different table.
+    for (const family of axis.strength) {
+      const ladder = strength.filter((s) => s.family === family);
+      if (!ladder.length) continue;
+      const current = ladder.find((s) => s.status === 'current');
+      const reached = current?.level ?? 0;
+      parts.push({
+        weight: ladder.length,
+        score: Math.min(1, reached / ladder.length),
+        label: family,
+        reached,
+        available: ladder.length,
+      });
+    }
+
+    // Skate families. Depth is the deepest thing *confirmed* — a trick still
+    // in progress is not evidence, which is the whole meaning of "mastered".
+    const useRisk = 'useRisk' in axis && axis.useRisk === true;
+    for (const family of axis.skate) {
+      const tricks = skate.filter((s) => s.family === family);
+      if (!tricks.length) continue;
+      const value = (s: Skill) => (useRisk ? (skateContent(s.skillId)?.risk ?? 0) : (s.level ?? 0) + 1);
+      const available = tricks.reduce((max, s) => Math.max(max, value(s)), 0);
+      const mastered = tricks.filter((s) => s.status === 'mastered');
+      const reached = mastered.reduce((max, s) => Math.max(max, value(s)), 0);
+      if (!available) continue;
+      parts.push({
+        weight: tricks.length,
+        score: Math.min(1, reached / available),
+        label: family,
+        reached,
+        available,
+      });
+    }
+
+    // Runs. The one spoke with no ladder behind it, so it is counted rather
+    // than levelled, and it is honest about being coarse.
+    if ('useEngineSessions' in axis && axis.useEngineSessions === true) {
+      const since = addDays(today, -PROFILE.engineWindowDays);
+      const runs = sessions.filter((s) => s.completed && s.type === 'engine' && s.date >= since).length;
+      parts.push({
+        weight: PROFILE.engineWeight,
+        score: Math.min(1, runs / PROFILE.engineTarget),
+        label: `Runs in ${PROFILE.engineWindowDays} days`,
+        reached: runs,
+        available: PROFILE.engineTarget,
+      });
+    }
+
+    const totalWeight = parts.reduce((sum, p) => sum + p.weight, 0);
+    const level = totalWeight
+      ? Math.round((10 * parts.reduce((sum, p) => sum + p.weight * p.score, 0)) / totalWeight)
+      : 0;
+
+    return {
+      key: axis.key,
+      label: axis.label,
+      level,
+      tier: tierOf(level, axis.tiers),
+      sources: parts.map((p) => ({ label: p.label, reached: p.reached, available: p.available })),
+    };
+  });
+
+  const overall = axes.length
+    ? Math.round(axes.reduce((sum, a) => sum + a.level, 0) / axes.length)
+    : 0;
+
+  return { axes, overall, rank: tierOf(overall, PROFILE.ranks) };
 }

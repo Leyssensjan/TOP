@@ -30,6 +30,7 @@ const DOMAINS = [
 ];
 
 const UTILITIES = [
+  { label: 'Profile', path: '/profile' },
   { label: 'Progress', path: '/progress' },
   { label: 'Week', path: '/week' },
   { label: 'Routes', path: '/routes' },
