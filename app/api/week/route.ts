@@ -9,7 +9,10 @@ import type { NewPlanEntry, PlanSessionType } from '@/lib/types';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const PLAN_TYPES: PlanSessionType[] = ['flow', 'flow short', 'strength', 'engine', 'skate', 'rest'];
+// Skate is deliberately absent. Skating happens in the evening and is logged
+// on the Skate screen; the week here is the morning training routine, and a
+// skate day in it would be a session the Runner cannot run.
+const PLAN_TYPES: PlanSessionType[] = ['flow', 'flow short', 'strength', 'engine', 'rest'];
 
 export async function GET(req: Request) {
   return handle(req, async () => {
@@ -26,6 +29,10 @@ export async function GET(req: Request) {
       // The shape of the week, so the screen never has to recount it.
       sessions: entries.filter((e) => e.sessionType && e.sessionType !== 'rest').length,
       target: PLANNER.sessions,
+      // The weekdays the planner owns by default, so the availability row can
+      // open pre-marked on a normal week without the screen holding its own
+      // copy of the config.
+      planDays: PLANNER.planDays,
       store: store.name,
     };
   });
@@ -46,10 +53,12 @@ export async function POST(req: Request) {
     // then locks; it is never re-planned by the daily check-in.
     if (body?.generate === true) {
       const dates = (v: unknown) => (Array.isArray(v) ? v.filter(isValidDate) : []);
+      const skateWindows = dates(body?.skateWindows);
       const planned = generateWeek({
         weekStart: week,
+        availableDays: dates(body?.availableDays),
         busyDays: dates(body?.busyDays),
-        skateWindows: dates(body?.skateWindows),
+        skateWindows,
         blockedDays: dates(body?.blockedDays),
       });
 
@@ -77,7 +86,9 @@ export async function POST(req: Request) {
         store.getSlots(),
         store.getSkills('movement'),
       ]);
-      const hasSkateProject = planned.entries.some((e) => e.sessionType === 'skate');
+      // A skate project is driven by the evenings earmarked for skating, not by
+      // a skate day in the plan: the week no longer holds one.
+      const hasSkateProject = skateWindows.length > 0;
       const rotation = rotateMicros(micros, microLog, slots, skills, week, hasSkateProject);
       await Promise.all([
         ...rotation.activate.map((m) => store.updateMicro(m.id, { active: true })),
@@ -89,6 +100,11 @@ export async function POST(req: Request) {
         weekStart: week,
         entries: written,
         rationale: planned.rationale,
+        // The same count the manual write returns. Without these the header
+        // reads "of planned" with two holes in it the moment a week is made.
+        sessions: written.filter((e) => e.sessionType && e.sessionType !== 'rest').length,
+        target: PLANNER.sessions,
+        planDays: PLANNER.planDays,
         micros: {
           activated: rotation.activate.map((m) => m.name),
           deactivated: rotation.deactivate.length,

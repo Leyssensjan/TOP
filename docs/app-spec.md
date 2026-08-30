@@ -310,10 +310,13 @@ not add up.
 
 Two things, deliberately separate.
 
-**The week** is laid out by hand on the Week screen, one tap per day. `Suggest a
-week` offers a shape built from the constraint rules below, which is then
-corrected by tapping. Nothing is ever typed: no busy-day form, no availability
-questionnaire. A planner that asks you to describe your week defeats the point.
+**The week** is laid out on the Week screen in three steps: mark the mornings
+that work, `Generate week`, then correct any single day by tapping it. Marking
+availability is seven taps on a row of weekday chips — still nothing typed, no
+busy-day form, no questionnaire. The planner used to skip that step and assume
+Monday to Friday, which is the one thing it cannot know, and a plan laid over
+mornings that do not exist is one you rewrite by hand every Sunday. Asking for
+the days is not the same as asking you to describe your week.
 
 **The suggestion** covers every day the week does not. Today computes one line
 from what the app already knows:
@@ -745,19 +748,40 @@ and it is the one screen not designed for 6am.
   type (amber for Flow and Flow Short, plain for everything else), a muted line
   with location and reason, and the planned minutes on the right. Rest days are
   dimmed to 55% and lose their card background.
-- **Tapping a day opens six choices in place**: Rest · Flow · Flow Short ·
-  Strength · Engine · Skate. Picking one writes that day immediately. There is
-  no Save button to forget and nothing is lost if the phone goes down halfway
+- **Mornings that work**: a row of seven weekday chips under the count, amber
+  when marked. It opens on the days an already planned week uses, and on
+  `PLANNER.planDays` for a week with nothing in it yet, so a normal week is
+  already correct and needs no taps at all. The weekend is markable like any
+  other day — the configured weekdays are a default here, not a limit.
+- **Generate week** fills the marked mornings and only those, from the
+  constraint rules: up to four sessions, one strength, one run, strength never
+  on back-to-back days, a light morning before any skate window. Preferred
+  weekdays are a preference that can lose — strength moves off Tuesday rather
+  than not happening. Marking fewer mornings than the target plans fewer
+  sessions; marking more plans no more than the maximum and leaves the rest
+  alone. The button is disabled, and says `Mark a morning first`, while nothing
+  is marked.
+- **Tapping a day opens five choices in place**: Rest · Flow · Flow Short ·
+  Strength · Engine. Picking one writes that day immediately, which is how a
+  single session gets swapped out without regenerating the week. There is no
+  Save button to forget and nothing is lost if the phone goes down halfway
   through.
-- **Suggest a week** fills all seven days from the constraint rules: three
-  sessions, one strength, one run, strength never on back-to-back days, rest
-  days protected, a light morning before any skate window. It is a starting
-  point to correct by tapping, **not an answer to accept** — and it still asks
-  for nothing to be typed.
+- **Skate is not one of the choices.** Skating happens in the evening and is
+  logged on the Skate screen; this week is the morning routine. A skate day in
+  the plan was a session Today could open on and the Runner could not run. The
+  evening still reaches the morning in one place — `skateWindows` keeps the
+  morning before a skate window light — and that input has no screen yet.
+- Generating a week is not the last word on it: **the plan it writes is a
+  starting point to correct by tapping**, not an answer to accept.
 - Below, the rationale — a few plain lines describing the plan that came out.
 
 Planned minutes come from the type's target in config, so setting a day stays
 one tap and never becomes a form.
+
+The availability row is an input to generation, not a second copy of the plan:
+correcting a day by tapping it does not change what is marked, and generating
+does not fold the marks back to whatever the planner managed to place. A
+morning marked available that the session target left empty stays marked.
 
 **A planned day always wins over the daily suggestion**, so once the week is
 laid out Today simply opens on it. Days left untouched fall back to the

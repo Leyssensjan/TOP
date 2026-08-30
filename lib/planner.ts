@@ -16,6 +16,13 @@ import type { NewPlanEntry, PlanSessionType, SessionLog } from '@/lib/types';
 
 export interface PlannerInput {
   weekStart: string;
+  /**
+   * The mornings that work this week, chosen by hand before generating. Given,
+   * the planner owns these days and no others. Omitted, it falls back to
+   * PLANNER.planDays, which is a guess about a normal week rather than a read
+   * of this one.
+   */
+  availableDays?: string[];
   /** Days with little time available. They get the short fallback, not a skip. */
   busyDays?: string[];
   /** Evenings earmarked for skating, from the forecast. */
@@ -53,22 +60,50 @@ export function generateWeek(input: PlannerInput): PlannedWeek {
     type[d] = 'rest';
   });
 
-  // A day outside planDays is not a rest day the planner chose, it is a day
-  // the planner does not own. Both look like rest in the output; only this one
-  // can never be filled.
-  const plannable = new Set(cfg.planDays.map((i) => days[i]));
+  // A day outside the plannable set is not a rest day the planner chose, it is
+  // a day the planner does not own. Both look like rest in the output; only
+  // this one can never be filled.
+  //
+  // Availability given by hand replaces the configured weekdays outright rather
+  // than narrowing them: a Saturday marked available is workable even though
+  // planDays has never included the weekend.
+  const declared = new Set((input.availableDays ?? []).filter((d) => days.includes(d)));
+  const plannable = declared.size ? declared : new Set(cfg.planDays.map((i) => days[i]));
   const workable = (d: string) => !blocked.has(d) && plannable.has(d);
   // The morning before a skate window stays light, so it cannot carry strength.
   const dayBeforeSkate = (d: string) => cfg.lightBeforeSkate && skateWindows.has(addDays(d, 1));
 
+  // Preferred weekdays first, then every other day of the week. The preference
+  // has to be able to lose: if Tuesday is the ideal day for strength and
+  // Tuesday is not available, a strength session on Thursday beats no strength
+  // session at all.
+  const inOrder = (preferred: readonly number[]): string[] => {
+    const out: string[] = [];
+    for (const d of [...preferred.map((i) => days[i]), ...days]) {
+      if (!out.includes(d)) out.push(d);
+    }
+    return out;
+  };
+
+  // The premise first, so the plan is read against the week it was given
+  // rather than against an imagined full one.
+  if (declared.size) {
+    rationale.push(
+      `${declared.size} ${declared.size === 1 ? 'morning' : 'mornings'} marked available.`,
+    );
+  }
+
   // 1. Strength first: it is the part that keeps the system honest, and it has
   //    the tightest constraints.
   const strengthPlaced: string[] = [];
-  for (const weekday of cfg.strengthDays) {
+  for (const d of inOrder(cfg.strengthDays)) {
     if (strengthPlaced.length >= cfg.strength) break;
-    const d = days[weekday];
     if (!workable(d) || busy.has(d) || dayBeforeSkate(d)) continue;
-    if (cfg.strengthNeverConsecutive && strengthPlaced.some((p) => Math.abs(days.indexOf(p) - weekday) === 1)) continue;
+    if (
+      cfg.strengthNeverConsecutive &&
+      strengthPlaced.some((p) => Math.abs(days.indexOf(p) - days.indexOf(d)) === 1)
+    )
+      continue;
     type[d] = 'strength';
     const winter = !cfg.outdoorMonths.includes(monthOf(d));
     note[d] = winter
@@ -84,9 +119,8 @@ export function generateWeek(input: PlannerInput): PlannedWeek {
 
   // 2. Engine.
   let enginePlaced = 0;
-  for (const weekday of cfg.engineDays) {
+  for (const d of inOrder(cfg.engineDays)) {
     if (enginePlaced >= cfg.engine) break;
-    const d = days[weekday];
     if (!workable(d) || type[d] !== 'rest' || busy.has(d) || dayBeforeSkate(d)) continue;
     type[d] = 'engine';
     enginePlaced += 1;
@@ -96,11 +130,18 @@ export function generateWeek(input: PlannerInput): PlannedWeek {
   //    Preference order first, so the recovery day lands mid-week rather than
   //    wherever the calendar happens to run out.
   const counted = () => days.filter((d) => type[d] !== 'rest').length;
-  const flowOrder = [...cfg.flowDays.map((i) => days[i]), ...days];
-  for (const d of flowOrder) {
+  for (const d of inOrder(cfg.flowDays)) {
     if (counted() >= cfg.sessions) break;
     if (!workable(d) || type[d] !== 'rest') continue;
-    if (days.filter((x) => type[x] === 'rest' && workable(x)).length <= cfg.minRestDays) break;
+    // The guard that keeps a rest day back only applies when the planner chose
+    // the days itself. Availability given by hand has already named the rest
+    // days by leaving them out, and quietly holding one of the few mornings
+    // that do work would be the planner overruling that.
+    if (
+      !declared.size &&
+      days.filter((x) => type[x] === 'rest' && workable(x)).length <= cfg.minRestDays
+    )
+      break;
     type[d] = 'flow';
   }
 

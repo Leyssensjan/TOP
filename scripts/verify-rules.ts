@@ -551,6 +551,80 @@ check(
   '',
 );
 
+// --- the week against the mornings that actually work -----------------------
+// Availability is marked by hand before generating. The planner owns those days
+// and no others, which is the whole point: a plan laid over days Jan cannot
+// train is a plan he rewrites by hand every Sunday.
+const weekDays = Array.from({ length: 7 }, (_, i) => addDaysStr(weekStart(today), i));
+const typeOn = (w: ReturnType<typeof generateWeek>, day: string): string =>
+  (w.entries.find((e) => e.day === day)?.sessionType as string) ?? 'rest';
+
+// Wed, Thu, Sat: two of them outside PLANNER.planDays entirely.
+const awkward = [weekDays[2], weekDays[3], weekDays[5]];
+const onAwkward = generateWeek({ weekStart: today, availableDays: awkward });
+console.log(`Available ${awkward.join(', ')}: ${plannedTypes(onAwkward).join(', ')}`);
+
+check(
+  'Nothing is planned on a morning that was not marked available',
+  weekDays.every((d) => awkward.includes(d) || typeOn(onAwkward, d) === 'rest'),
+  plannedTypes(onAwkward).join(', '),
+);
+check(
+  'Every marked morning is used when there are fewer of them than the target',
+  awkward.every((d) => typeOn(onAwkward, d) !== 'rest'),
+  `${awkward.filter((d) => typeOn(onAwkward, d) !== 'rest').length} of ${awkward.length} used`,
+);
+check(
+  'A marked weekend day is workable even though planDays excludes the weekend',
+  typeOn(onAwkward, weekDays[5]) !== 'rest',
+  `Sat is ${typeOn(onAwkward, weekDays[5])}`,
+);
+check(
+  'Strength still lands when its preferred weekday is not available',
+  plannedTypes(onAwkward).filter((t) => t === 'strength').length >= PLANNER.strength,
+  `${plannedTypes(onAwkward).filter((t) => t === 'strength').length} strength`,
+);
+check(
+  'The rationale opens on the week it was given',
+  onAwkward.rationale.some((line) => line.includes(`${awkward.length} mornings marked available`)),
+  onAwkward.rationale[0] ?? '',
+);
+
+// More availability than the target: the load cap holds, rest is what is left.
+const wideOpen = generateWeek({ weekStart: today, availableDays: weekDays });
+check(
+  'Marking every morning available never plans past the maximum',
+  plannedTypes(wideOpen).filter((t) => t !== 'rest').length <= PLANNER.maxSessions,
+  `${plannedTypes(wideOpen).filter((t) => t !== 'rest').length} sessions of 7 mornings offered`,
+);
+check(
+  'Strength still never lands on back-to-back days under full availability',
+  !plannedTypes(wideOpen).some((t, i) => t === 'strength' && plannedTypes(wideOpen)[i + 1] === 'strength'),
+  '',
+);
+
+// A single morning is still a week, not an error.
+const oneDay = generateWeek({ weekStart: today, availableDays: [weekDays[3]] });
+check(
+  'One available morning plans exactly one session, on that morning',
+  plannedTypes(oneDay).filter((t) => t !== 'rest').length === 1 && typeOn(oneDay, weekDays[3]) !== 'rest',
+  `${typeOn(oneDay, weekDays[3])} on Thu`,
+);
+
+// Omitting availability must keep the old behaviour intact.
+check(
+  'Without availability the planner still falls back to its configured weekdays',
+  weekDays.every((d, i) => PLANNER.planDays.includes(i) || typeOn(planned, d) === 'rest'),
+  plannedTypes(planned).join(', '),
+);
+
+// Skate is no longer a session the week can hold.
+check(
+  'No generated week plans a skate day',
+  [planned, onAwkward, wideOpen, oneDay].every((w) => !plannedTypes(w).includes('skate')),
+  '',
+);
+
 // --- micro rotation on the real micros ---
 const rot = rotateMicros(micros, microLog, slots, skills, week, false);
 const activeAfter = micros.filter((m) => (m.active && !rot.deactivate.some((d) => d.id === m.id)) || rot.activate.some((a) => a.id === m.id));

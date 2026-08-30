@@ -20,28 +20,37 @@ interface WeekPayload {
   entries: PlanEntry[];
   sessions: number;
   target: number;
+  planDays?: number[];
   rationale?: string[];
 }
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-/** Rest first, because clearing a day is the most common correction. */
-const CHOICES = ['rest', 'flow', 'flow short', 'strength', 'engine', 'skate'] as const;
+/**
+ * Rest first, because clearing a day is the most common correction.
+ *
+ * Skate is not here. Skating happens in the evening and lives on the Skate
+ * screen; this week is the morning routine, and mixing the two put a session
+ * in the plan that Today could not open on.
+ */
+const CHOICES = ['rest', 'flow', 'flow short', 'strength', 'engine'] as const;
 
 const COLOUR: Record<string, string> = {
   flow: 'var(--amber)',
   'flow short': 'var(--amber)',
   strength: 'var(--text)',
   engine: 'var(--text)',
-  skate: 'var(--text)',
   rest: 'var(--muted)',
 };
 
 /**
- * The week, laid out on Sunday for the days ahead. Tapping a day sets what it
- * is; there is no form and nothing to type. Suggest fills all seven from the
- * constraint rules, which is a starting point to correct rather than an answer
- * to accept.
+ * The week, laid out on Sunday for the days ahead.
+ *
+ * Three steps, in the order they are actually done: mark the mornings that
+ * work, generate, then correct any single day by tapping it. The middle step
+ * used to run on PLANNER.planDays — a guess that every week is Monday to
+ * Friday — which made the result something to rewrite rather than something to
+ * accept. Availability is still seven taps and nothing typed.
  *
  * A planned day always wins over the daily suggestion, so once this is set
  * Today simply opens on it.
@@ -53,6 +62,7 @@ export default function WeekPage() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [available, setAvailable] = useState<Set<string>>(new Set());
 
   // Planning happens on Sunday for the week ahead, so on the last day of the
   // week the screen opens on next week rather than on the one that is ending.
@@ -63,6 +73,7 @@ export default function WeekPage() {
       .then((res) => {
         setWeek(res.weekStart);
         setData(res);
+        setAvailable(availabilityFor(res));
       })
       .catch((err) => {
         if (err instanceof ApiError && err.status === 401) router.replace('/');
@@ -80,6 +91,10 @@ export default function WeekPage() {
         const res = await api<WeekPayload>(`/week?weekStart=${start}`);
         setWeek(res.weekStart);
         setData(res);
+        // Only on load. Generating must not fold the selection back to whatever
+        // the planner managed to place, or a marked day the target left empty
+        // would silently unmark itself.
+        setAvailable(availabilityFor(res));
         setError(null);
       } catch (err) {
         if (err instanceof ApiError && err.status === 401) router.replace('/');
@@ -113,17 +128,33 @@ export default function WeekPage() {
     }
   };
 
-  const suggest = async () => {
-    if (!week) return;
+  const toggleAvailable = (day: string) => {
+    setAvailable((prev) => {
+      const next = new Set(prev);
+      if (next.has(day)) next.delete(day);
+      else next.add(day);
+      return next;
+    });
+  };
+
+  const generate = async () => {
+    if (!week || available.size === 0) return;
     setBusy(true);
+    setEditing(null);
     try {
       const res = await api<WeekPayload>('/week', {
         method: 'POST',
-        body: { weekStart: week, generate: true, replace: true },
+        body: {
+          weekStart: week,
+          generate: true,
+          replace: true,
+          availableDays: [...available].sort(),
+        },
       });
       setData(res);
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not suggest');
+      setError(err instanceof Error ? err.message : 'Could not generate');
     } finally {
       setBusy(false);
     }
@@ -162,6 +193,32 @@ export default function WeekPage() {
               ›
             </button>
           </div>
+
+          <div>
+            <span className="label">Mornings that work</span>
+            <div style={{ display: 'flex', gap: 6, paddingTop: 10 }}>
+              {days.map((day, i) => (
+                <button
+                  key={day}
+                  className="btn"
+                  disabled={busy}
+                  aria-pressed={available.has(day)}
+                  onClick={() => toggleAvailable(day)}
+                  style={{ flex: 1, minWidth: 0, padding: '14px 0', fontSize: 15 }}
+                >
+                  {DAY_NAMES[i]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            className="btn btn-primary"
+            disabled={busy || available.size === 0}
+            onClick={() => void generate()}
+          >
+            {available.size === 0 ? 'Mark a morning first' : 'Generate week'}
+          </button>
 
           <div className="stack">
             {days.map((day, i) => {
@@ -231,10 +288,6 @@ export default function WeekPage() {
             })}
           </div>
 
-          <button className="btn btn-quiet" disabled={busy} onClick={() => void suggest()}>
-            Suggest a week
-          </button>
-
           {data.rationale?.length ? (
             <div className="panel" style={{ padding: '4px 2px' }}>
               {data.rationale.map((line) => (
@@ -246,12 +299,27 @@ export default function WeekPage() {
           ) : null}
 
           <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 'auto' }}>
-            Tap a day to set it. A planned day wins over the daily suggestion, so Today just opens on it.
+            Tap any day to swap that one session. A planned day wins over the daily suggestion, so
+            Today just opens on it. Skating stays on the Skate screen.
           </p>
         </>
       )}
     </main>
   );
+}
+
+/**
+ * Which mornings open pre-marked: the days an already planned week uses, so
+ * returning to a planned week shows the availability it was built from, and
+ * otherwise the weekdays the planner owns by default. The literal is only a
+ * fallback for a response that predates planDays.
+ */
+function availabilityFor(res: WeekPayload): Set<string> {
+  const planned = res.entries
+    .filter((e) => e.day && e.sessionType && e.sessionType !== 'rest')
+    .map((e) => e.day as string);
+  if (planned.length) return new Set(planned);
+  return new Set((res.planDays ?? [0, 1, 2, 3, 4]).map((i) => addDays(res.weekStart, i)));
 }
 
 function isoToday(): string {
