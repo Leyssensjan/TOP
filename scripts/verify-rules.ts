@@ -570,7 +570,7 @@ check(
   plannedTypes(onAwkward).join(', '),
 );
 check(
-  'Every marked morning is used when there are fewer of them than the target',
+  'Every marked morning is used',
   awkward.every((d) => typeOn(onAwkward, d) !== 'rest'),
   `${awkward.filter((d) => typeOn(onAwkward, d) !== 'rest').length} of ${awkward.length} used`,
 );
@@ -590,17 +590,33 @@ check(
   onAwkward.rationale[0] ?? '',
 );
 
-// More availability than the target: the load cap holds, rest is what is left.
+// More mornings than the configured target. The target is an aim for a week the
+// planner shaped itself, and it does not get to turn down a morning offered:
+// SESSIONS_PER_WINDOW is a floor of three per seven days, not a ceiling.
+const fiveDays = weekDays.slice(0, 5);
+const onFive = generateWeek({ weekStart: today, availableDays: fiveDays });
+check(
+  'Five mornings marked plans five sessions, past the configured target of four',
+  plannedTypes(onFive).filter((t) => t !== 'rest').length === 5 && 5 > PLANNER.sessions,
+  `${plannedTypes(onFive).filter((t) => t !== 'rest').length} sessions, target ${PLANNER.sessions}`,
+);
+
 const wideOpen = generateWeek({ weekStart: today, availableDays: weekDays });
 check(
-  'Marking every morning available never plans past the maximum',
-  plannedTypes(wideOpen).filter((t) => t !== 'rest').length <= PLANNER.maxSessions,
-  `${plannedTypes(wideOpen).filter((t) => t !== 'rest').length} sessions of 7 mornings offered`,
+  'Marking every morning available plans every morning',
+  plannedTypes(wideOpen).every((t) => t !== 'rest'),
+  `${plannedTypes(wideOpen).filter((t) => t !== 'rest').length} of 7 mornings filled`,
 );
 check(
-  'Strength still never lands on back-to-back days under full availability',
-  !plannedTypes(wideOpen).some((t, i) => t === 'strength' && plannedTypes(wideOpen)[i + 1] === 'strength'),
-  '',
+  'The limits that are real limits survive a full week',
+  plannedTypes(wideOpen).filter((t) => t === 'strength').length <= PLANNER.maxStrength &&
+    !plannedTypes(wideOpen).some((t, i) => t === 'strength' && plannedTypes(wideOpen)[i + 1] === 'strength'),
+  `${plannedTypes(wideOpen).filter((t) => t === 'strength').length} strength, cap ${PLANNER.maxStrength}`,
+);
+check(
+  'The extra mornings past the target come in as Flow, not as more strength',
+  plannedTypes(wideOpen).filter((t) => t === 'flow' || t === 'flow short').length >= 7 - PLANNER.maxStrength - PLANNER.engine,
+  plannedTypes(wideOpen).join(', '),
 );
 
 // A single morning is still a week, not an error.

@@ -753,14 +753,21 @@ and it is the one screen not designed for 6am.
   `PLANNER.planDays` for a week with nothing in it yet, so a normal week is
   already correct and needs no taps at all. The weekend is markable like any
   other day — the configured weekdays are a default here, not a limit.
-- **Generate week** fills the marked mornings and only those, from the
-  constraint rules: up to four sessions, one strength, one run, strength never
-  on back-to-back days, a light morning before any skate window. Preferred
-  weekdays are a preference that can lose — strength moves off Tuesday rather
-  than not happening. Marking fewer mornings than the target plans fewer
-  sessions; marking more plans no more than the maximum and leaves the rest
-  alone. The button is disabled, and says `Mark a morning first`, while nothing
-  is marked.
+- **Generate week** fills the marked mornings — all of them, and only them —
+  from the constraint rules: one strength, one run, strength never on
+  back-to-back days, a light morning before any skate window. Preferred weekdays
+  are a preference that can lose: strength moves off Tuesday rather than not
+  happening. The button is disabled, and says `Mark a morning first`, while
+  nothing is marked.
+- **`PLANNER.sessions` does not cap a marked week.** Four is what to aim for on
+  a week the planner shapes itself, and it sits above `SESSIONS_PER_WINDOW`,
+  which is a floor of three per rolling seven days — not a ceiling on anything.
+  Mark five mornings and five get planned; mark seven and the week is full. The
+  limits that are real limits still hold: strength keeps its cap of two and its
+  day of clearance, and the mornings past the target come in as Flow, which is
+  what the Form was always meant to be doing most days. The count in the header
+  is measured against the mornings marked, not against the config, so a full
+  week reads `7 of 7 planned` rather than `7 of 4`.
 - **Tapping a day opens five choices in place**: Rest · Flow · Flow Short ·
   Strength · Engine. Picking one writes that day immediately, which is how a
   single session gets swapped out without regenerating the week. There is no

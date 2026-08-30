@@ -186,7 +186,10 @@ export default function WeekPage() {
                 {data.sessions}
               </span>
               <span style={{ color: 'var(--muted)', marginLeft: 8 }}>
-                of {data.target} planned · week of {shortDate(week)}
+                {/* The mornings marked are what the week is measured against, so
+                    the denominator follows them rather than the config target.
+                    Without this, marking five reads "5 of 4 planned". */}
+                of {available.size || data.target} planned · week of {shortDate(week)}
               </span>
             </span>
             <button className="label" onClick={() => shift(1)} style={{ padding: '10px 6px' }}>

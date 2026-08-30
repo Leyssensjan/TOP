@@ -242,7 +242,12 @@ export const SKATE_BASELINE_CURRENT = ['rolling_ollie', 'frontside_180', 'switch
  * Replacing it should mean rewriting one file.
  */
 export const PLANNER = {
-  /** Aim for this many sessions, never exceed the maximum. */
+  /**
+   * Aim for this many sessions, never exceed the maximum — on a week the
+   * planner shapes itself. Availability marked by hand overrides both: every
+   * morning offered gets filled. These sit above SESSIONS_PER_WINDOW, which is
+   * a floor of three per rolling seven days and not a ceiling on anything.
+   */
   sessions: 4,
   maxSessions: 4,
   strength: 1,
