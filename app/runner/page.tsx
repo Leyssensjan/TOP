@@ -7,7 +7,7 @@ import { mmss, titleCase } from '@/lib/format';
 import type { Movement, SkateBlock, SkateTrickCard, StrengthBlock } from '@/lib/rules';
 import { getActive, saveActive, type ActiveSession, type LoggedSet, type LoggedTrick } from '@/lib/client/store';
 import { SKATE_SESSION, SOUND, STRENGTH } from '@/lib/config';
-import { cue, isMuted, setMuted } from '@/lib/client/sound';
+import { cue, isMuted, setMuted, unlockSound } from '@/lib/client/sound';
 
 interface Step extends Movement {
   round: number;
@@ -120,6 +120,19 @@ function Runner({ active }: { active: ActiveSession }) {
   const step = timeline[index];
 
   useWakeLock();
+
+  // Audio is unlocked by the Start tap on Today, which is a gesture this screen
+  // never sees when a session is resumed or the phone reloads mid-Flow. The
+  // first touch here stands in for it, so a recovered session is not a silent
+  // one.
+  useEffect(() => {
+    const once = () => {
+      unlockSound();
+      window.removeEventListener('pointerdown', once);
+    };
+    window.addEventListener('pointerdown', once);
+    return () => window.removeEventListener('pointerdown', once);
+  }, []);
 
   // Timing runs off a deadline, not off a tick count, so a backgrounded phone
   // does not silently stretch the session.

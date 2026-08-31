@@ -94,10 +94,29 @@ function tone(frequency: number, ms: number, volume: number, delay = 0): void {
 
 export type Cue = 'warn' | 'next' | 'round' | 'rest' | 'done';
 
-/** Play a pacing cue. Silent when muted, and never throws. */
+/**
+ * Play a pacing cue. Silent when muted, and never throws.
+ *
+ * The context is resumed on the way in. Unlocking it once on the Start tap is
+ * not enough to keep it awake: iOS suspends it again whenever the tab loses the
+ * foreground — a glance at a notification mid-Flow is enough — and a suspended
+ * context accepts every scheduled tone and plays none of them, without an error
+ * anywhere. The session carries on looking correct and goes quiet, which is
+ * exactly the failure that is hardest to notice from the code and impossible to
+ * miss on the mat.
+ */
 export function cue(name: Cue): void {
   if (isMuted()) return;
   const spec = SOUND.cues[name];
   if (!spec) return;
-  spec.tones.forEach((t, i) => tone(t.hz, t.ms, SOUND.volume * t.gain, i * (SOUND.gapMs / 1000)));
+  const play = () =>
+    spec.tones.forEach((t, i) => tone(t.hz, t.ms, SOUND.volume * t.gain, i * (SOUND.gapMs / 1000)));
+
+  const c = context();
+  if (c && c.state === 'suspended') {
+    // A few milliseconds late is nothing measured against not arriving.
+    void c.resume().then(play).catch(play);
+    return;
+  }
+  play();
 }
