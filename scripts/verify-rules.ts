@@ -4,8 +4,9 @@
  */
 import { readFileSync } from 'node:fs';
 import { profileStats, planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow, strengthLevelUpProposals, unitOf, levelUpTargetOf, slotUnlockProposal, buildSkateSession, skateProposals, chooseProposal, assistedSlots, sessionsNeeded, flowsSinceUnlock, sessionsUntilNextSlot, nextSlotToUnlock } from '../lib/rules';
-import { MICRO_ASSIST, MICRO_ROTATION, PLANNER, PROFILE, ROUND_RAMP, SKATE_FOCUS, SKATE_SESSION, SLOT_UNLOCK, STRENGTH, TARGET_MINUTES } from '../lib/config';
+import { MICRO_ASSIST, MICRO_ROTATION, PLANNER, PROFILE, ROUND_RAMP, SKATE_FOCUS, SKATE_SESSION, SLOT_UNLOCK, SOUND, STRENGTH, TARGET_MINUTES } from '../lib/config';
 import { skateContent } from '../lib/skate-content';
+import { renderWav } from '../lib/client/sound';
 import { generateWeek } from '../lib/planner';
 import { addDays, weekStart } from '../lib/dates';
 import { parse, applyBaseline, SOURCE } from './skate-migration';
@@ -773,6 +774,36 @@ check(
   new Set(weeklyPicks).size > 1,
   weeklyPicks.join(' → '),
 );
+
+// --- the pacing cues, as playable audio --------------------------------------
+// They are rendered to WAV and played through an <audio> element, because iOS
+// mutes Web Audio with the ring/silent switch and a phone kept on silent runs
+// the whole Form without a cue. A malformed header fails by the element quietly
+// declining to play, which on that same phone is indistinguishable from the bug
+// this replaced — so the bytes are checked rather than trusted.
+for (const [name, spec] of Object.entries(SOUND.cues)) {
+  const bytes = Buffer.from(renderWav(spec.tones).split(',')[1], 'base64');
+  const wantMs = spec.tones.reduce((sum, t, i) => sum + t.ms + (i ? SOUND.gapMs : 0), 0);
+  const samples = bytes.readUInt32LE(40) / 2;
+  const gotMs = Math.round((samples / bytes.readUInt32LE(24)) * 1000);
+  let peak = 0;
+  for (let i = 0; i < samples; i += 1) peak = Math.max(peak, Math.abs(bytes.readInt16LE(44 + i * 2)));
+
+  check(
+    `Cue "${name}" renders a valid mono 16-bit WAV`,
+    bytes.toString('ascii', 0, 4) === 'RIFF' &&
+      bytes.toString('ascii', 8, 12) === 'WAVE' &&
+      bytes.readUInt16LE(22) === 1 &&
+      bytes.readUInt16LE(34) === 16,
+    `${bytes.toString('ascii', 0, 4)}/${bytes.toString('ascii', 8, 12)}, ${bytes.length} bytes`,
+  );
+  check(`Cue "${name}" is as long as it is configured to be`, gotMs === wantMs, `${gotMs}ms of ${wantMs}ms`);
+  check(
+    `Cue "${name}" carries sound, and never above the configured level`,
+    peak > 0 && peak / 0x7fff <= SOUND.volume + 0.001,
+    `peak ${(peak / 0x7fff).toFixed(3)}, cap ${SOUND.volume}`,
+  );
+}
 
 // --- micro progress ---
 const progress = microProgress(micros, microLog, week);
