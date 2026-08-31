@@ -686,19 +686,24 @@ export function rotateMicros(
   // Retire anything that was carrying a goal and was ignored throughout the
   // window. This is the rule that stops a graveyard of dead targets forming.
   //
-  // It only starts applying once the log itself is old enough to distinguish
-  // "ignored for three weeks" from "the app is three days old". Without this
-  // guard a fresh install retires every micro on its first rotation.
+  // It only applies to someone who was actually here for all of it. Asking
+  // whether the log merely reaches back that far, and whether anything at all
+  // landed inside it, is far too weak a test: two stray taps in early August
+  // and one the night before satisfied both, and retired four micros on an app
+  // that had been used, in earnest, for a single day.
   //
-  // And it needs something logged inside the window too. A month away is not
-  // three weeks of ignoring these micros — it is three weeks of nobody being
-  // asked. Retiring the lot on the first morning back is the opposite of what
-  // this rule is for.
+  // So every week of the window has to show activity of its own. A week with
+  // nothing logged in it is a week nobody was asked, and it stops the clock
+  // rather than counting against the micro. A month away is not a month of
+  // ignoring these; neither is a fortnight of building the thing on holiday.
   const retireFrom = addDays(weekStartDate, -cfg.retireAfterUntouchedWeeks * ROLLING_WINDOW_DAYS);
-  const firstLogged = log.map((l) => l.date).sort()[0];
-  const historyIsLongEnough = Boolean(firstLogged && firstLogged <= retireFrom);
-  const wasUsedInWindow = log.some((l) => l.date >= retireFrom);
-  const retire = historyIsLongEnough && wasUsedInWindow
+  const askedEveryWeek = Array.from({ length: cfg.retireAfterUntouchedWeeks }, (_, i) =>
+    addDays(weekStartDate, -(i + 1) * ROLLING_WINDOW_DAYS),
+  ).every((start) => {
+    const end = addDays(start, ROLLING_WINDOW_DAYS - 1);
+    return log.some((l) => l.date >= start && l.date <= end);
+  });
+  const retire = askedEveryWeek
     ? micros.filter((m) => m.active && !m.retired && countSince(m.name, retireFrom) === 0)
     : [];
   const retiredIds = new Set(retire.map((m) => m.id));

@@ -652,15 +652,25 @@ check('Rotation lands within 3 to 5 active', activeAfter.length >= 3 && activeAf
 check('Nothing retired while the log is younger than the window', rot.retire.length === 0, `${rot.retire.length}`);
 check('Retired micros are never selected', rot.activate.every((m) => !m.retired), '');
 
-// Retirement must engage once the log is old enough — but only for someone who
-// was actually here. The recent entry is what says the app was being used.
-const recent = addDays(week, -3);
-const oldLog: MicroLogEntry[] = [
-  { id: 'old', name: micros[0].name, date: '2026-05-01', count: 1, weekStart: '2026-04-27' },
-  { id: 'recent', name: micros[1].name, date: recent, count: 1, weekStart: week },
-];
-const rot2 = rotateMicros(micros, oldLog, slots, skills, week, false);
-check('Retirement engages once history is long enough', rot2.retire.length > 0, `${rot2.retire.length} retired`);
+// Retirement must engage for someone who was actually here every week of the
+// window and ignored a micro throughout it anyway. That is the case the rule
+// exists for, and the only one.
+const everyWeek: MicroLogEntry[] = [1, 2, 3].map((w) => ({
+  id: `w${w}`,
+  name: micros[1].name,
+  date: addDaysStr(week, -w * 7),
+  count: 1,
+  weekStart: addDaysStr(week, -w * 7),
+}));
+const rot2 = rotateMicros(micros, everyWeek, slots, skills, week, false);
+check('Retirement engages when every week of the window was used', rot2.retire.length > 0, `${rot2.retire.length} retired`);
+
+// One quiet week stops it. This is the case that bit Jan: a couple of taps in
+// early August, one the night before, nothing in between, and the app retired
+// four micros before he had trained with it once.
+const gapped = everyWeek.filter((l) => l.id !== 'w2');
+const rot2Gap = rotateMicros(micros, gapped, slots, skills, week, false);
+check('A single unused week in the window stops retirement', rot2Gap.retire.length === 0, `${rot2Gap.retire.length}`);
 
 // A month away is not a month of ignoring them.
 const awayLog: MicroLogEntry[] = [{ id: 'old', name: micros[0].name, date: '2026-05-01', count: 1, weekStart: '2026-04-27' }];
