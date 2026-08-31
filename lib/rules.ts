@@ -742,12 +742,26 @@ export function rotateMicros(
   }
 
   // One wildcard that has not been active recently.
+  //
+  // Whether the micro is currently active is deliberately NOT a filter here.
+  // It used to be (`!m.active`), and that made the rotation oscillate: Today
+  // reconciles on every load, so the micro chosen last load was ineligible the
+  // next one, a different one took its place, and the pair swapped forever —
+  // two Notion writes per page load, and a week count that fell back to zero
+  // every time a fresh micro arrived.
+  //
+  // The week decides instead. The pick holds for as long as the week does and
+  // moves on when a new one starts, which is the rotation this was always
+  // meant to be, rather than a coin flipped on every reload.
   const quietFrom = addDays(weekStartDate, -cfg.wildcardQuietWeeks * ROLLING_WINDOW_DAYS);
   const wildcards = eligible
-    .filter((m) => !m.active && countSince(m.name, quietFrom) === 0)
+    .filter((m) => countSince(m.name, quietFrom) === 0)
     .sort((a, b) => a.name.localeCompare(b.name));
+  const weekIndex = Math.floor(
+    Date.parse(`${weekStartDate}T00:00:00Z`) / (ROLLING_WINDOW_DAYS * 24 * 60 * 60 * 1000),
+  );
   for (let i = 0; i < cfg.wildcard; i += 1) {
-    take(wildcards[i], 'wildcard, quiet lately');
+    take(wildcards.length ? wildcards[(weekIndex + i) % wildcards.length] : undefined, 'wildcard, quiet lately');
   }
 
   // Top up to the minimum with whatever feeds an active slot. Completed ones

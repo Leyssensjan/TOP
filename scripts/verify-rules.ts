@@ -705,6 +705,65 @@ check('Nothing is retired over a break with no activity at all', rot2b.retire.le
   );
 }
 
+// --- rotation must not churn -------------------------------------------------
+// Today reconciles micros on every load, so a rotation that does not settle
+// rewrites Notion on every page view and keeps swapping the set under Jan. A
+// freshly activated micro shows a week count of zero, which reads as the count
+// resetting on reload. Stability inside the week is not a nicety here.
+function settle(start: Micro[], atWeek: string, loads: number): { micros: Micro[]; writes: number[] } {
+  let current = start.map((m) => ({ ...m }));
+  const writes: number[] = [];
+  for (let i = 0; i < loads; i += 1) {
+    const r = rotateMicros(current, microLog, slots, skills, atWeek, false);
+    writes.push(r.activate.length + r.deactivate.length + r.retire.length);
+    const want = new Map(current.map((m) => [m.id, { active: m.active, retired: m.retired }]));
+    r.activate.forEach((m) => want.set(m.id, { active: true, retired: false }));
+    r.deactivate.forEach((m) => want.set(m.id, { active: false, retired: false }));
+    r.retire.forEach((m) => want.set(m.id, { active: false, retired: true }));
+    current = current.map((m) => ({ ...m, ...want.get(m.id)! }));
+  }
+  return { micros: current, writes };
+}
+
+const settled = settle(micros, week, 6);
+check(
+  'Rotation settles: repeated Today loads stop writing to Notion',
+  settled.writes.slice(1).every((w) => w === 0),
+  `writes per load: ${settled.writes.join(', ')}`,
+);
+const activeNamesOf = (ms: Micro[]) => ms.filter((m) => m.active).map((m) => m.name).sort().join(' | ');
+check(
+  // Consecutive load counts, not 2 against 6: an alternating set is identical
+  // every second load, so comparing two even counts sees a stable week that
+  // is not there.
+  'The active set is the same after two loads, three, and four',
+  activeNamesOf(settle(micros, week, 2).micros) === activeNamesOf(settle(micros, week, 3).micros) &&
+    activeNamesOf(settle(micros, week, 3).micros) === activeNamesOf(settle(micros, week, 4).micros),
+  activeNamesOf(settled.micros),
+);
+
+// --- and it must still move on when the week does ----------------------------
+// Stability within the week is what stops the churn; changing between weeks is
+// what makes them fresh. Both, or the fix for one breaks the other.
+const wildcardOf = (ms: Micro[], atWeek: string): string | null => {
+  const r = rotateMicros(ms, microLog, slots, skills, atWeek, false);
+  const hit = Object.entries(r.reasons).find(([, why]) => why.startsWith('wildcard'));
+  return hit ? hit[0] : null;
+};
+const weeklyPicks: string[] = [];
+let carried = micros.map((m) => ({ ...m }));
+for (let w = 0; w < 6; w += 1) {
+  const atWeek = addDaysStr(week, w * 7);
+  carried = settle(carried, atWeek, 4).micros;
+  const pick = wildcardOf(carried, atWeek);
+  if (pick) weeklyPicks.push(pick);
+}
+check(
+  'The wildcard is a different micro from one week to the next',
+  new Set(weeklyPicks).size > 1,
+  weeklyPicks.join(' → '),
+);
+
 // --- micro progress ---
 const progress = microProgress(micros, microLog, week);
 check('Micro progress covers only active micros', progress.every((p) => micros.find((m) => m.name === p.name)?.active === true), `${progress.length} rows`);
