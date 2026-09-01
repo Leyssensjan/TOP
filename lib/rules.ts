@@ -758,15 +758,35 @@ export function rotateMicros(
   // The week decides instead. The pick holds for as long as the week does and
   // moves on when a new one starts, which is the rotation this was always
   // meant to be, rather than a coin flipped on every reload.
+  // Quiet is judged on the weeks BEFORE this one, and the pool is drawn from
+  // every micro rather than from `eligible`. Both exist to keep this week's own
+  // activity out of a decision about this week. Counting today's taps made
+  // logging the wildcard the very thing that evicted it — tap the micro the app
+  // just introduced and it is no longer quiet, so it drops out of the
+  // candidates and something else arrives in its place, which is precisely
+  // backwards: using it is the point of putting it there. Drawing from
+  // `eligible` had the same shape more quietly, since a micro finishing its
+  // target elsewhere on the list shortened the pool and shifted the index.
   const quietFrom = addDays(weekStartDate, -cfg.wildcardQuietWeeks * ROLLING_WINDOW_DAYS);
-  const wildcards = eligible
-    .filter((m) => countSince(m.name, quietFrom) === 0)
+  const quietBeforeThisWeek = (name: string) =>
+    log
+      .filter((l) => l.name === name && l.date >= quietFrom && l.date < weekStartDate)
+      .reduce((sum, l) => sum + (l.count || 0), 0) === 0;
+  const pool = micros
+    .filter((m) => !m.retired && !retiredIds.has(m.id) && quietBeforeThisWeek(m.name))
     .sort((a, b) => a.name.localeCompare(b.name));
   const weekIndex = Math.floor(
     Date.parse(`${weekStartDate}T00:00:00Z`) / (ROLLING_WINDOW_DAYS * 24 * 60 * 60 * 1000),
   );
-  for (let i = 0; i < cfg.wildcard; i += 1) {
-    take(wildcards.length ? wildcards[(weekIndex + i) % wildcards.length] : undefined, 'wildcard, quiet lately');
+  for (let i = 0; i < cfg.wildcard && pool.length; i += 1) {
+    // Walk on from the week's index, so a candidate already chosen for another
+    // reason costs a step rather than the week's wildcard.
+    for (let n = 0; n < pool.length; n += 1) {
+      const candidate = pool[(weekIndex + i + n) % pool.length];
+      if (chosen.some((c) => c.id === candidate.id)) continue;
+      take(candidate, 'wildcard, quiet lately');
+      break;
+    }
   }
 
   // Top up to the minimum with whatever feeds an active slot. Completed ones

@@ -721,11 +721,16 @@ check('Nothing is retired over a break with no activity at all', rot2b.retire.le
 // rewrites Notion on every page view and keeps swapping the set under Jan. A
 // freshly activated micro shows a week count of zero, which reads as the count
 // resetting on reload. Stability inside the week is not a nicety here.
-function settle(start: Micro[], atWeek: string, loads: number): { micros: Micro[]; writes: number[] } {
+function settle(
+  start: Micro[],
+  atWeek: string,
+  loads: number,
+  withLog: MicroLogEntry[] = microLog,
+): { micros: Micro[]; writes: number[] } {
   let current = start.map((m) => ({ ...m }));
   const writes: number[] = [];
   for (let i = 0; i < loads; i += 1) {
-    const r = rotateMicros(current, microLog, slots, skills, atWeek, false);
+    const r = rotateMicros(current, withLog, slots, skills, atWeek, false);
     writes.push(r.activate.length + r.deactivate.length + r.retire.length);
     const want = new Map(current.map((m) => [m.id, { active: m.active, retired: m.retired }]));
     r.activate.forEach((m) => want.set(m.id, { active: true, retired: false }));
@@ -752,6 +757,38 @@ check(
     activeNamesOf(settle(micros, week, 3).micros) === activeNamesOf(settle(micros, week, 4).micros),
   activeNamesOf(settled.micros),
 );
+
+// --- logging one must not evict it -------------------------------------------
+// Tapping the micro the app had just introduced was what removed it: the tap
+// made it no longer quiet, so it fell out of the wildcard candidates and
+// something else took the place. The whole reason it was put there is to be
+// used, so using it cannot be what costs it its slot.
+{
+  const shownBefore = activeNamesOf(settled.micros);
+  const tapped = settled.micros.find((m) => m.active && (m.weeklyTarget ?? 0) > 1);
+  check('There is an active micro to tap', Boolean(tapped), tapped?.name ?? 'none');
+  if (tapped) {
+    const afterOneTap = [
+      ...microLog,
+      { id: 'tap', name: tapped.name, date: week, count: 1, weekStart: week } as MicroLogEntry,
+    ];
+    const shownAfter = activeNamesOf(settle(settled.micros, week, 3, afterOneTap).micros);
+    check(
+      `Logging "${tapped.name}" leaves the same micros on the screen`,
+      shownAfter === shownBefore,
+      shownAfter === shownBefore ? shownAfter : `${shownBefore}  →  ${shownAfter}`,
+    );
+
+    // Every active micro, not just the one that happens to be the wildcard.
+    const eachHolds = settled.micros
+      .filter((m) => m.active)
+      .every((m) => {
+        const log = [...microLog, { id: 't', name: m.name, date: week, count: 1, weekStart: week } as MicroLogEntry];
+        return activeNamesOf(settle(settled.micros, week, 3, log).micros) === shownBefore;
+      });
+    check('The same holds whichever of them is tapped', eachHolds, shownBefore);
+  }
+}
 
 // --- and it must still move on when the week does ----------------------------
 // Stability within the week is what stops the churn; changing between weeks is
