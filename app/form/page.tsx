@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Detail from '@/components/Detail';
+import { Header, HeaderAction, Hero, TabBar } from '@/components/Chrome';
 import { ApiError, api, getKey } from '@/lib/client/store';
 import { useState as useLocalState } from 'react';
 
@@ -88,32 +89,41 @@ export default function FormPage() {
   const horizon = state?.horizon;
 
   return (
-    <main className="screen" style={{ gap: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span className="label">The Form</span>
-        <button className="label" onClick={() => router.push('/')} style={{ padding: '8px 0 8px 16px' }}>
-          Today
-        </button>
-      </div>
+    <main className="app">
+      <Header
+        title="The Form"
+        right={
+          /* The designed fact here — "6 of 12 slots" — is the hero repeated a
+             line above it, so the slot goes to Strength, which the tab bar
+             otherwise leaves with no way in. The two belong together anyway:
+             Strength is what the Form cannot do. */
+          <HeaderAction onClick={() => router.push('/strength')}>Strength</HeaderAction>
+        }
+      />
 
-      {error && <div className="banner banner-warn">{error}</div>}
-      {!form && !error && <p className="label">Loading</p>}
+      <div className="app-content" style={{ gap: 18 }}>
+        {error && <div className="banner banner-warn">{error}</div>}
+        {!form && !error && <p className="eyebrow">Loading</p>}
 
-      {form && (
-        <>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-            <span className="num" style={{ fontSize: 46, color: 'var(--amber)' }}>
-              {active}
-            </span>
-            <span style={{ color: 'var(--muted)' }}>
-              of 12 slots · {levels} levels deep
-              {horizon && horizon.inSessions !== null && (
-                <span style={{ color: 'var(--amber)' }}> · slot {horizon.slot} in {horizon.inSessions} sessions</span>
-              )}
-            </span>
-          </div>
+        {form && (
+          <>
+            <Hero
+              value={active}
+              unit="of 12 slots"
+              meta={
+                <>
+                  {levels} levels deep
+                  {horizon && horizon.inSessions !== null && (
+                    <span style={{ color: 'var(--amber)' }}>
+                      {' · '}
+                      slot {horizon.slot} in {horizon.inSessions} sessions
+                    </span>
+                  )}
+                </>
+              }
+            />
 
-          <div className="spine">
+            <div className="spine">
             {form.map((slot) => {
               const isOpen = open === slot.slot;
               return (
@@ -126,31 +136,37 @@ export default function FormPage() {
                     onClick={() => setOpen(isOpen ? null : slot.slot)}
                   >
                     <span className="spine-node mass" data-level={slot.active ? slot.currentLevel : 0} />
-                    <span className="num spine-num" style={{ fontSize: 21 }}>
-                      {slot.slot}
-                    </span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span className="spine-name" style={{ display: 'block' }}>
+                    <span className="num spine-num">{slot.slot}</span>
+                    {/* Name and tag on one baseline. The tag is what truncates. */}
+                    <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+                      <span className="spine-name" style={{ fontSize: 16, whiteSpace: 'nowrap', flex: 'none' }}>
                         {slot.active && slot.current ? slot.current.name : slot.name}
                       </span>
                       <span
                         style={{
-                          display: 'block',
                           fontSize: 13,
-                          color: slot.isNextToUnlock ? 'var(--amber-dim)' : 'var(--muted)',
+                          minWidth: 0,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          color: slot.isNextToUnlock ? 'var(--amber-dim)' : 'var(--dim)',
                         }}
                       >
-                        {slot.active
-                          ? slot.name
-                          : slot.isNextToUnlock
-                            ? `unlocks next${slot.sessionsAway !== null ? ` · ${slot.sessionsAway} sessions away` : ''}`
-                            : `unlocks ${ordinal(slot.unlockOrder)}`}
+                        {slot.active ? slot.name : slot.isNextToUnlock ? 'unlocks next' : `unlocks ${ordinal(slot.unlockOrder)}`}
                       </span>
                     </span>
-                    {slot.active && (
-                      <span className="num" style={{ fontSize: 21, color: 'var(--amber)' }}>
+                    {slot.active ? (
+                      <span className="row-value" style={{ fontSize: 22 }}>
                         {slot.currentLevel}
-                        <span style={{ color: 'var(--muted)', fontSize: '0.7em' }}>/{slot.maxLevel}</span>
+                        <span>/{slot.maxLevel}</span>
+                      </span>
+                    ) : slot.isNextToUnlock && slot.sessionsAway !== null ? (
+                      <span className="row-status" style={{ color: 'var(--amber-dim)' }}>
+                        {slot.sessionsAway} away
+                      </span>
+                    ) : (
+                      <span className="row-status" style={{ color: 'var(--dimmest)' }}>
+                        Locked
                       </span>
                     )}
                   </button>
@@ -160,9 +176,12 @@ export default function FormPage() {
                 </div>
               );
             })}
-          </div>
-        </>
-      )}
+            </div>
+          </>
+        )}
+      </div>
+
+      <TabBar />
     </main>
   );
 }

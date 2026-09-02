@@ -573,31 +573,39 @@ button {
 
 .spine {
   position: relative;
-  padding-left: 34px;
+  padding-left: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 /* One unbroken line behind every slot, because the sequence is unbroken. */
 .spine::before {
   content: '';
   position: absolute;
-  left: 10px;
-  top: 14px;
-  bottom: 14px;
+  left: 9px;
+  top: 22px;
+  bottom: 22px;
   width: 2px;
-  background: var(--ink-line);
+  background: #22314a;
   border-radius: 2px;
 }
 
+/* Fixed height, and the name and its tag share one baseline row. That is what
+   spaces the twelve nodes evenly: a row that grows because a name wrapped puts
+   its node out of step with the other eleven, and the eye reads the gap as
+   meaning something it does not. */
 .spine-row {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: 22px 1fr 56px;
   align-items: center;
   gap: 12px;
   width: 100%;
   text-align: left;
-  min-height: var(--tap);
-  padding: 10px 12px;
-  border-radius: 12px;
+  height: 44px;
+  padding: 0 8px 0 0;
+  border-radius: 10px;
   border: 1px solid transparent;
 }
 
@@ -608,7 +616,7 @@ button {
 
 .spine-node {
   position: absolute;
-  left: -24px;
+  left: -25px;
   top: 50%;
   width: 11px;
   height: 11px;
@@ -622,7 +630,7 @@ button {
 .spine-row[data-active='false'] .spine-node {
   width: 6px;
   height: 6px;
-  left: -21.5px;
+  left: -22px;
   margin-top: -3px;
   border-width: 0;
   background: var(--ink-line);
@@ -640,7 +648,7 @@ button {
   background: transparent;
   width: 11px;
   height: 11px;
-  left: -24px;
+  left: -25px;
   margin-top: -5.5px;
 }
 
@@ -648,11 +656,17 @@ button {
   color: var(--muted);
 }
 
+/* .mass sets position:relative and lands later in the file, which quietly took
+   the node out of its absolute placement and made it a fourth grid item —
+   pushing the value column onto a row of its own. Two classes beat one. */
+.spine-row .spine-node {
+  position: absolute;
+}
+
 .spine-num {
-  width: 26px;
-  flex: none;
   text-align: right;
-  color: var(--muted);
+  color: var(--dimmer);
+  font-size: 15px;
 }
 
 .detail {
