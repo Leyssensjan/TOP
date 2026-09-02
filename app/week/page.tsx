@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError, api, getKey } from '@/lib/client/store';
+import { Header, HeaderAction, Section, TabBar } from '@/components/Chrome';
 import { titleCase } from '@/lib/format';
 
 interface PlanEntry {
@@ -164,152 +165,152 @@ export default function WeekPage() {
   const byDay = new Map((data?.entries ?? []).filter((e) => e.day).map((e) => [e.day as string, e]));
 
   return (
-    <main className="screen" style={{ gap: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span className="label">Week</span>
-        <button className="label" onClick={() => router.push('/')} style={{ padding: '8px 0 8px 16px' }}>
-          Today
-        </button>
+    <main className="app">
+      <Header
+        title="Week"
+        right={
+          /* The design put a fictional "Edit" here. Routes is real, and the
+             week is where engine days get placed, so it earns the slot. */
+          <HeaderAction onClick={() => router.push('/routes')}>Routes</HeaderAction>
+        }
+      />
+
+      <div className="app-content" style={{ gap: 14 }}>
+        {error && <div className="banner banner-warn">{error}</div>}
+        {!data && !error && <p className="eyebrow">Loading</p>}
+
+        {data && week && (
+          <>
+            {/* Three columns, so the date cannot wrap around the arrows. */}
+            <div style={{ display: 'grid', gridTemplateColumns: '44px 1fr 44px', alignItems: 'center', gap: 8 }}>
+              <button className="btn" onClick={() => shift(-1)} style={STEP}>
+                ‹
+              </button>
+              <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div style={{ fontSize: 16, fontWeight: 600 }}>Week of {shortDate(week)}</div>
+                <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+                  {data.sessions} of {available.size || data.target} planned
+                </div>
+              </div>
+              <button className="btn" onClick={() => shift(1)} style={STEP}>
+                ›
+              </button>
+            </div>
+
+            <Section title="Mornings that work">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+                {days.map((day, i) => (
+                  <button
+                    key={day}
+                    className="btn"
+                    disabled={busy}
+                    aria-pressed={available.has(day)}
+                    onClick={() => toggleAvailable(day)}
+                    style={{ minHeight: 46, height: 46, padding: 0, borderRadius: 12, fontSize: 13 }}
+                  >
+                    {DAY_NAMES[i]}
+                  </button>
+                ))}
+              </div>
+            </Section>
+
+            <button
+              className="btn btn-primary"
+              disabled={busy || available.size === 0}
+              onClick={() => void generate()}
+            >
+              {available.size === 0 ? 'Mark a morning first' : 'Generate week'}
+            </button>
+
+            {/* One 52px label column down the whole week, so Mon to Sun line
+                up rather than each row starting wherever its name ends. */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {days.map((day, i) => {
+                const entry = byDay.get(day);
+                const type = entry?.sessionType ?? 'rest';
+                const isRest = type === 'rest';
+                const isEditing = editing === day;
+
+                return (
+                  <div key={day}>
+                    <button
+                      disabled={busy}
+                      aria-expanded={isEditing}
+                      onClick={() => setEditing(isEditing ? null : day)}
+                      className={`row${isRest ? ' row-quiet' : ''}`}
+                      style={{ gridTemplateColumns: '52px 1fr auto', minHeight: 52, padding: '0 16px' }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 13,
+                          letterSpacing: '0.1em',
+                          textTransform: 'uppercase',
+                          fontWeight: 600,
+                          color: isRest ? 'var(--dimmer)' : 'var(--muted)',
+                        }}
+                      >
+                        {DAY_NAMES[i]}
+                      </span>
+                      <span style={{ minWidth: 0 }}>
+                        <span
+                          style={{
+                            display: 'block',
+                            fontSize: 16,
+                            color: isRest ? 'var(--dimmer)' : (COLOUR[type] ?? 'var(--text)'),
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {titleCase(type)}
+                        </span>
+                        {(entry?.location || entry?.reasonNote) && (
+                          <span className="row-sub" style={{ display: 'block' }}>
+                            {[entry.location, entry.reasonNote].filter(Boolean).join(' · ')}
+                          </span>
+                        )}
+                      </span>
+                      {/* The design shows a clock time here. The plan holds
+                          minutes, not a time of day, so it shows the minutes. */}
+                      <span style={{ fontSize: 13, color: isRest ? 'var(--dimmest)' : 'var(--dim)' }}>
+                        {isRest || entry?.plannedMinutes == null ? '—' : `${entry.plannedMinutes} min`}
+                      </span>
+                    </button>
+
+                    {isEditing && (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, padding: '8px 0 2px' }}>
+                        {CHOICES.map((c) => (
+                          <button
+                            key={c}
+                            className="btn btn-inline"
+                            disabled={busy}
+                            aria-pressed={type === c}
+                            onClick={() => void setDay(day, c)}
+                          >
+                            {titleCase(c)}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="pinned" style={{ color: 'var(--muted)', fontSize: 13, margin: 0 }}>
+              Tap any day to swap that one session. Skating stays on the Skate screen.
+            </p>
+          </>
+        )}
       </div>
 
-      {error && <div className="banner banner-warn">{error}</div>}
-      {!data && !error && <p className="label">Loading</p>}
-
-      {data && week && (
-        <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button className="label" onClick={() => shift(-1)} style={{ padding: '10px 6px' }}>
-              ‹
-            </button>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span className="num" style={{ fontSize: 30, color: 'var(--amber)' }}>
-                {data.sessions}
-              </span>
-              <span style={{ color: 'var(--muted)', marginLeft: 8 }}>
-                {/* The mornings marked are what the week is measured against, so
-                    the denominator follows them rather than the config target.
-                    Without this, marking five reads "5 of 4 planned". */}
-                of {available.size || data.target} planned · week of {shortDate(week)}
-              </span>
-            </span>
-            <button className="label" onClick={() => shift(1)} style={{ padding: '10px 6px' }}>
-              ›
-            </button>
-          </div>
-
-          <div>
-            <span className="label">Mornings that work</span>
-            <div style={{ display: 'flex', gap: 6, paddingTop: 10 }}>
-              {days.map((day, i) => (
-                <button
-                  key={day}
-                  className="btn"
-                  disabled={busy}
-                  aria-pressed={available.has(day)}
-                  onClick={() => toggleAvailable(day)}
-                  style={{ flex: 1, minWidth: 0, padding: '14px 0', fontSize: 15 }}
-                >
-                  {DAY_NAMES[i]}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <button
-            className="btn btn-primary"
-            disabled={busy || available.size === 0}
-            onClick={() => void generate()}
-          >
-            {available.size === 0 ? 'Mark a morning first' : 'Generate week'}
-          </button>
-
-          <div className="stack">
-            {days.map((day, i) => {
-              const entry = byDay.get(day);
-              const type = entry?.sessionType ?? 'rest';
-              const isRest = type === 'rest';
-              const isEditing = editing === day;
-
-              return (
-                <div key={day}>
-                  <button
-                    disabled={busy}
-                    aria-expanded={isEditing}
-                    onClick={() => setEditing(isEditing ? null : day)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 14,
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '14px 16px',
-                      borderRadius: 12,
-                      background: isRest ? 'transparent' : 'var(--ink-raised)',
-                      border: '1px solid var(--ink-line)',
-                      opacity: isRest ? 0.55 : 1,
-                      minHeight: 'var(--tap)',
-                    }}
-                  >
-                    <span className="num" style={{ fontSize: 19, width: 42, flex: 'none', color: 'var(--muted)' }}>
-                      {DAY_NAMES[i]}
-                    </span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: 'block', color: COLOUR[type] ?? 'var(--text)' }}>
-                        {titleCase(type)}
-                      </span>
-                      {(entry?.location || entry?.reasonNote) && (
-                        <span style={{ display: 'block', fontSize: 13, color: 'var(--muted)' }}>
-                          {[entry.location, entry.reasonNote].filter(Boolean).join(' · ')}
-                        </span>
-                      )}
-                    </span>
-                    {!isRest && entry?.plannedMinutes != null && (
-                      <span className="num" style={{ fontSize: 21, color: 'var(--muted)', flex: 'none' }}>
-                        {entry.plannedMinutes}
-                      </span>
-                    )}
-                  </button>
-
-                  {isEditing && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '10px 0 4px' }}>
-                      {CHOICES.map((c) => (
-                        <button
-                          key={c}
-                          className="btn"
-                          disabled={busy}
-                          aria-pressed={type === c}
-                          style={{ width: 'auto', flex: '1 1 30%', padding: '14px 8px', fontSize: 15 }}
-                          onClick={() => void setDay(day, c)}
-                        >
-                          {titleCase(c)}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {data.rationale?.length ? (
-            <div className="panel" style={{ padding: '4px 2px' }}>
-              {data.rationale.map((line) => (
-                <p key={line} style={{ margin: '0 0 8px', color: 'var(--muted)', fontSize: 15 }}>
-                  {line}
-                </p>
-              ))}
-            </div>
-          ) : null}
-
-          <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 'auto' }}>
-            Tap any day to swap that one session. A planned day wins over the daily suggestion, so
-            Today just opens on it. Skating stays on the Skate screen.
-          </p>
-        </>
-      )}
+      <TabBar />
     </main>
   );
 }
+
+/** The week stepper's two arrow buttons. */
+const STEP = { minHeight: 44, height: 44, padding: 0, borderRadius: 12, fontSize: 18 } as const;
 
 /**
  * Which mornings open pre-marked: the days an already planned week uses, so
