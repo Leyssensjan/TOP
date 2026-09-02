@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Detail from '@/components/Detail';
+import { Cell, Cells, Header, HeaderAction, Segmented, TabBar } from '@/components/Chrome';
 import { ApiError, api, getKey } from '@/lib/client/store';
 import { SKATE_FIRST_RUN_TIERS } from '@/lib/config';
 
@@ -142,142 +143,151 @@ export default function SkatePage() {
   };
 
   return (
-    <main className="screen" style={{ gap: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span className="label">Skate</span>
-        <button className="label" onClick={() => router.push('/')} style={{ padding: '8px 0 8px 16px' }}>
-          Today
-        </button>
-      </div>
+    <main className="app">
+      <Header
+        title="Skate"
+        right={<HeaderAction onClick={() => router.push('/')}>Session</HeaderAction>}
+      />
 
-      {error && <div className="banner banner-warn">{error}</div>}
-      {!data && !error && <p className="label">Loading</p>}
+      <div className="app-content" style={{ gap: 16 }}>
+        {error && <div className="banner banner-warn">{error}</div>}
+        {!data && !error && <p className="eyebrow">Loading</p>}
 
-      {data && (
-        <>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span className="num" style={{ fontSize: 40, color: 'var(--sage)' }}>
-              {data.counts.mastered}
-            </span>
-            <span style={{ color: 'var(--muted)' }}>
-              mastered · {data.counts.current} in progress · {data.counts.total} tricks
-            </span>
-          </div>
+        {data && (
+          <>
+            {/* Three numbers strung along one line became three equal cells, so
+                the counts read against each other rather than as a sentence. */}
+            <Cells columns={3}>
+              <Cell value={data.counts.mastered} caption="Mastered" tone="sage" />
+              <Cell value={data.counts.current} caption="In progress" tone="amber" />
+              <Cell value={data.counts.total} caption="Tricks" tone="text" />
+            </Cells>
 
-          {firstRun && (
-            <div className="banner" style={{ color: 'var(--text)' }}>
-              <p style={{ margin: '0 0 8px' }}>Everything starts locked.</p>
-              <p style={{ margin: '0 0 12px', color: 'var(--muted)', fontSize: 15 }}>
-                Go through the first {SKATE_FIRST_RUN_TIERS} tiers and tap anything you can already do until it
-                reads mastered. Skip it and set them later if you would rather.
-              </p>
-              <button className="btn" onClick={endFirstRun}>
-                Done, show everything
-              </button>
-            </div>
-          )}
-
-          {!firstRun && data.focus.length > 0 && (
-            <div className="banner" style={{ color: 'var(--text)' }}>
-              <p className="label" style={{ margin: '0 0 10px' }}>
-                Session focus
-              </p>
-              {data.focus.map((f) => (
-                <p key={f.id} style={{ margin: '0 0 6px', fontSize: 15 }}>
-                  {f.name}
-                  <span style={{ color: 'var(--muted)' }}> · {f.reason}</span>
+            {firstRun && (
+              <div className="note" style={{ color: 'var(--text)' }}>
+                <p style={{ margin: '0 0 8px' }}>Everything starts locked.</p>
+                <p style={{ margin: '0 0 12px', color: 'var(--muted)', fontSize: 14 }}>
+                  Go through the first {SKATE_FIRST_RUN_TIERS} tiers and tap anything you can already do until
+                  it reads mastered. Skip it and set them later if you would rather.
                 </p>
-              ))}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
-            {levels.map((l) => (
-              <button
-                key={l}
-                className="btn"
-                aria-pressed={level === l}
-                style={{ width: 'auto', flex: 'none', padding: '10px 16px', minHeight: 44 }}
-                onClick={() => setLevel(l)}
-              >
-                <span className="num" style={{ fontSize: 18 }}>
-                  {l}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          <div className="stack">
-            {shown.map((trick) => (
-              <div key={trick.id}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    width: '100%',
-                    borderRadius: 12,
-                    background: 'var(--ink-raised)',
-                    border: `1px solid ${trick.unlockable && trick.status === 'locked' ? 'var(--amber-dim)' : 'var(--ink-line)'}`,
-                  }}
-                >
-                  {/* Tapping the name opens the detail; tapping the status
-                      cycles it. Two targets, so neither is accidental. */}
-                  <button
-                    onClick={() => setOpen(open === trick.id ? null : trick.id)}
-                    aria-expanded={open === trick.id}
-                    style={{ flex: 1, minWidth: 0, textAlign: 'left', padding: '14px 0 14px 16px', minHeight: 'var(--tap)' }}
-                  >
-                    <span style={{ display: 'block', color: trick.status === 'locked' ? 'var(--muted)' : 'var(--text)' }}>
-                      {trick.name}
-                    </span>
-                    <span style={{ display: 'block', fontSize: 13, color: 'var(--muted)' }}>{trick.family}</span>
+                <div className="pair">
+                  <button className="btn btn-inline" onClick={endFirstRun}>
+                    Later
                   </button>
-                  <button
-                    className="label"
-                    disabled={busy === trick.id}
-                    onClick={() => void cycle(trick)}
-                    style={{ color: COLOUR[trick.status], flex: 'none', padding: '18px 16px' }}
-                  >
-                    {trick.status}
+                  <button className="btn btn-inline btn-amber-outline" onClick={endFirstRun}>
+                    Done
                   </button>
                 </div>
-
-                {open === trick.id && (
-                  <Detail
-                    rows={[
-                      { label: 'Mechanics', value: trick.mechanics.join(' ') },
-                      // The drills are what turns a trick name into something
-                      // you can actually go and do at the park.
-                      { label: 'Drills', value: trick.drills.join(' · ') },
-                      { label: 'Gate', value: trick.gate },
-                      { label: 'Terrain', value: trick.terrain.join(', ') },
-                      { label: 'Skate', value: trick.whySkate },
-                      {
-                        label: 'Built by',
-                        links: [
-                          ...trick.builtBy.slots.map((name) => ({ label: name, onClick: () => router.push('/form') })),
-                          ...trick.builtBy.families.map((f) => ({ label: f, onClick: () => router.push('/strength') })),
-                        ],
-                      },
-                      { label: 'Needs', value: trick.prereqs.join(', ') },
-                    ]}
-                    progress={`Level ${trick.level} · risk ${trick.risk} of 10${
-                      trick.attempts ? ` · ${trick.attempts} attempts` : ''
-                    }${trick.lastPracticed ? ` · last ${trick.lastPracticed}` : ''}`}
-                    referenceTerm={trick.name}
-                  />
-                )}
               </div>
-            ))}
-          </div>
+            )}
 
-          <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 'auto' }}>
-            Tap the status to move a trick on: locked, in progress, mastered. An amber edge means every
-            prerequisite is mastered.
-          </p>
-        </>
-      )}
+            {!firstRun && data.focus.length > 0 && (
+              <div className="note" style={{ color: 'var(--text)' }}>
+                <p className="eyebrow" style={{ margin: '0 0 8px' }}>
+                  Session focus
+                </p>
+                {data.focus.map((f) => (
+                  <p key={f.id} style={{ margin: '0 0 4px', fontSize: 15 }}>
+                    {f.name}
+                    <span style={{ color: 'var(--muted)' }}> · {f.reason}</span>
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {/* The tier picker was three small pills adrift on the left. It is
+                the full width now, so it reads as a choice over the list it
+                filters rather than as decoration above it. */}
+            {levels.length > 0 && (
+              <Segmented
+                options={levels.map((l) => ({ value: String(l), label: `Tier ${l}` }))}
+                value={String(level)}
+                onChange={(v) => setLevel(Number(v))}
+              />
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0, overflowY: 'auto' }}>
+              {shown.map((trick) => {
+                const open_ = open === trick.id;
+                const ready = trick.unlockable && trick.status === 'locked';
+                return (
+                  <div key={trick.id}>
+                    <div
+                      className={`row row-dense${ready ? ' row-live' : ''}`}
+                      style={{ gridTemplateColumns: '1fr 96px', padding: 0 }}
+                    >
+                      {/* Tapping the name opens the detail; tapping the status
+                          cycles it. Two targets, so neither is accidental. */}
+                      <button
+                        onClick={() => setOpen(open_ ? null : trick.id)}
+                        aria-expanded={open_}
+                        style={{ minWidth: 0, textAlign: 'left', padding: '10px 0 10px 16px', minHeight: 58 }}
+                      >
+                        <span
+                          className="row-title"
+                          style={{ display: 'block', color: trick.status === 'locked' ? 'var(--muted)' : 'var(--text)' }}
+                        >
+                          {trick.name}
+                        </span>
+                        <span className="row-sub" style={{ display: 'block' }}>
+                          {trick.family}
+                        </span>
+                      </button>
+                      <button
+                        className="row-status"
+                        disabled={busy === trick.id}
+                        onClick={() => void cycle(trick)}
+                        style={{
+                          color: ready ? 'var(--amber)' : COLOUR[trick.status],
+                          padding: '10px 16px 10px 0',
+                          minHeight: 58,
+                          justifyContent: 'flex-end',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {ready ? 'Start' : trick.status}
+                      </button>
+                    </div>
+
+                    {open_ && (
+                      <Detail
+                        rows={[
+                          { label: 'Mechanics', value: trick.mechanics.join(' ') },
+                          // The drills are what turns a trick name into
+                          // something you can go and do at the park.
+                          { label: 'Drills', value: trick.drills.join(' · ') },
+                          { label: 'Gate', value: trick.gate },
+                          { label: 'Terrain', value: trick.terrain.join(', ') },
+                          { label: 'Skate', value: trick.whySkate },
+                          {
+                            label: 'Built by',
+                            links: [
+                              ...trick.builtBy.slots.map((name) => ({ label: name, onClick: () => router.push('/form') })),
+                              ...trick.builtBy.families.map((f) => ({ label: f, onClick: () => router.push('/strength') })),
+                            ],
+                          },
+                          { label: 'Needs', value: trick.prereqs.join(', ') },
+                        ]}
+                        progress={`Level ${trick.level} · risk ${trick.risk} of 10${
+                          trick.attempts ? ` · ${trick.attempts} attempts` : ''
+                        }${trick.lastPracticed ? ` · last ${trick.lastPracticed}` : ''}`}
+                        referenceTerm={trick.name}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="pinned" style={{ color: 'var(--muted)', fontSize: 13, margin: 0 }}>
+              Tap the status to move a trick on. An amber edge means every prerequisite is mastered.
+            </p>
+          </>
+        )}
+      </div>
+
+      <TabBar />
     </main>
   );
 }
