@@ -3,7 +3,7 @@
  * Not part of the app. Run with: npx tsx scripts/verify-rules.ts
  */
 import { readFileSync } from 'node:fs';
-import { profileStats, planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow, strengthLevelUpProposals, unitOf, levelUpTargetOf, slotUnlockProposal, buildSkateSession, skateProposals, chooseProposal, assistedSlots, sessionsNeeded, flowsSinceUnlock, sessionsUntilNextSlot, nextSlotToUnlock } from '../lib/rules';
+import { nextUnlock, profileStats, planSession, levelUpProposals, rollingStatus, rotateMicros, microProgress, skateFocus, unlockableTricks, roundsForFlow, strengthLevelUpProposals, unitOf, levelUpTargetOf, slotUnlockProposal, buildSkateSession, skateProposals, chooseProposal, assistedSlots, sessionsNeeded, flowsSinceUnlock, sessionsUntilNextSlot, nextSlotToUnlock } from '../lib/rules';
 import { MICRO_ASSIST, MICRO_ROTATION, PLANNER, PROFILE, ROUND_RAMP, SKATE_FOCUS, SKATE_SESSION, SLOT_UNLOCK, SOUND, STRENGTH, TARGET_MINUTES } from '../lib/config';
 import { skateContent } from '../lib/skate-content';
 import { renderWav } from '../lib/client/sound';
@@ -811,6 +811,47 @@ check(
   new Set(weeklyPicks).size > 1,
   weeklyPicks.join(' → '),
 );
+
+// --- the profile's XP ---------------------------------------------------------
+// XP has to be the rank measured finer, not a second opinion about it. If the
+// two can disagree the bar becomes decoration, which is the thing the profile
+// was built to avoid.
+{
+  const prof = profileStats(slots, skills.filter((s) => s.domain === 'movement'), skills.filter((s) => s.domain === 'strength'), skills.filter((s) => s.domain === 'skate'), sessions, today);
+  const perLevel = (prof.axes.length * 100) / 10;
+
+  check(
+    'XP agrees with the overall level it is derived from',
+    Math.abs(prof.xp / perLevel - prof.axes.reduce((sum, a) => sum + a.score * 10, 0) / prof.axes.length) < 0.01,
+    `xp ${prof.xp}, overall ${prof.overall}`,
+  );
+  check(
+    'XP sits between the current rank and the next',
+    prof.xp >= prof.xpFloor && (prof.nextRank === null || prof.xpToNext >= 0),
+    `${prof.xpFloor} ≤ ${prof.xp}, ${prof.xpToNext} to ${prof.nextRank ?? 'the top'}`,
+  );
+  check(
+    'Levelling one slot moves XP even when it does not move the rank',
+    (() => {
+      const bumped = slots.map((s) => (s.active && s.currentLevel < 4 ? { ...s, currentLevel: s.currentLevel + 1 } : s));
+      const after = profileStats(bumped, skills.filter((s) => s.domain === 'movement'), skills.filter((s) => s.domain === 'strength'), skills.filter((s) => s.domain === 'skate'), sessions, today);
+      return after.xp > prof.xp;
+    })(),
+    `${prof.xp} before`,
+  );
+  check(
+    'The rank is one of the configured names, and knows its place in the list',
+    PROFILE.ranks.includes(prof.rank) && prof.rankIndex >= 0 && prof.rankCount === PROFILE.ranks.length,
+    `${prof.rank}, ${prof.rankIndex + 1} of ${prof.rankCount}`,
+  );
+
+  const door = nextUnlock(skills.filter((s) => s.domain === 'skate'));
+  check(
+    'The next unlock is a trick that is genuinely still shut',
+    door === null || (door.have < door.need && door.need > 0),
+    door ? `${door.name} — ${door.have}/${door.need}${door.axis ? ` · ${door.axis}` : ''}` : 'nothing locked',
+  );
+}
 
 // --- the pacing cues, as playable audio --------------------------------------
 // They are rendered to WAV and played through an <audio> element, because iOS

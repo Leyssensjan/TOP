@@ -1,6 +1,6 @@
 import { handle } from '@/lib/api';
 import { addDays, today as todayDate } from '@/lib/dates';
-import { profileStats } from '@/lib/rules';
+import { nextUnlock, profileStats } from '@/lib/rules';
 import { getStore } from '@/lib/store';
 
 export const runtime = 'nodejs';
@@ -19,6 +19,13 @@ export async function GET(req: Request) {
       store.getSessionsSince(addDays(date, -1200)),
     ]);
 
-    return { date, ...profileStats(slots, movement, strength, skate, sessions, date), store: store.name };
+    return {
+      date,
+      ...profileStats(slots, movement, strength, skate, sessions, date),
+      // The nearest closed door, resolved here rather than in the component:
+      // the screen reads state, it does not walk the graph.
+      nextUnlock: nextUnlock(skate),
+      store: store.name,
+    };
   });
 }

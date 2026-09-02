@@ -1173,6 +1173,8 @@ export interface AxisStat {
   label: string;
   /** 0 to 10. */
   level: number;
+  /** The same thing before rounding, 0 to 1. XP is built from these. */
+  score: number;
   tier: string;
   /** Exactly what fed the number, so the screen never has to assert it. */
   sources: Array<{ label: string; reached: number; available: number }>;
@@ -1182,7 +1184,28 @@ export interface Profile {
   axes: AxisStat[];
   overall: number;
   rank: string;
+  /**
+   * The same measurement as the rank, a hundred times finer.
+   *
+   * A rank is the mean of seven levels, each of them rounded, so levelling one
+   * slot usually moves nothing a person can see. XP is that mean before the
+   * rounding — each axis contributes 0 to 100 of it — so a single level-up
+   * always moves the bar even when it does not move the rank. A number that
+   * cannot move in a month is decoration.
+   */
+  xp: number;
+  /** XP at the current rank's threshold, so the bar has a floor to fill from. */
+  xpFloor: number;
+  /** XP still owed to the next rank. Zero at the top. */
+  xpToNext: number;
+  /** The rank after this one, or null at the top of the list. */
+  nextRank: string | null;
+  rankIndex: number;
+  rankCount: number;
 }
+
+/** One axis contributes this much XP when it is maxed. */
+const XP_PER_AXIS = 100;
 
 /** The name for a level: the last tier whose threshold it clears. */
 function tierOf(level: number, names: string[]): string {
@@ -1288,6 +1311,9 @@ export function profileStats(
       key: axis.key,
       label: axis.label,
       level,
+      // The score before it was rounded into a level, kept so XP can be finer
+      // than the ten steps the pips show.
+      score: totalWeight ? parts.reduce((sum, p) => sum + p.weight * p.score, 0) / totalWeight : 0,
       tier: tierOf(level, axis.tiers),
       sources: parts.map((p) => ({ label: p.label, reached: p.reached, available: p.available })),
     };
@@ -1297,5 +1323,71 @@ export function profileStats(
     ? Math.round(axes.reduce((sum, a) => sum + a.level, 0) / axes.length)
     : 0;
 
-  return { axes, overall, rank: tierOf(overall, PROFILE.ranks) };
+  // XP is the unrounded version of the same average, scaled so each axis is
+  // worth 100. The rank thresholds are levels out of ten, so a threshold in XP
+  // is that level as a tenth of every axis's full contribution.
+  const xp = Math.round(axes.reduce((sum, a) => sum + a.score * XP_PER_AXIS, 0));
+  const perLevel = (axes.length * XP_PER_AXIS) / 10;
+
+  const bands = PROFILE.tierThresholds;
+  let rankIndex = 0;
+  bands.forEach((min, i) => {
+    if (overall >= min && i < PROFILE.ranks.length) rankIndex = i;
+  });
+  const nextIndex = rankIndex + 1;
+  const hasNext = nextIndex < PROFILE.ranks.length && nextIndex < bands.length;
+
+  return {
+    axes,
+    overall,
+    rank: tierOf(overall, PROFILE.ranks),
+    xp,
+    xpFloor: Math.round(bands[rankIndex] * perLevel),
+    xpToNext: hasNext ? Math.max(0, Math.round(bands[nextIndex] * perLevel) - xp) : 0,
+    nextRank: hasNext ? PROFILE.ranks[nextIndex] : null,
+    rankIndex,
+    rankCount: PROFILE.ranks.length,
+  };
+}
+
+export interface NextUnlock {
+  /** The trick that opens next. */
+  name: string;
+  /** The spoke it sits on, so the card can say what to train. */
+  axis: string;
+  /** Prerequisites mastered, of prerequisites needed. */
+  have: number;
+  need: number;
+}
+
+/**
+ * The nearest closed door: the locked trick with the fewest prerequisites left
+ * to master. Not the same question as "what can I do now" — unlockableTricks
+ * answers that — this one is about what is almost in reach, which is the only
+ * kind of locked thing worth putting on a profile.
+ */
+export function nextUnlock(skate: Skill[]): NextUnlock | null {
+  const statusOf = new Map(skate.map((t) => [t.skillId, t.status]));
+  const axisOf = (family: string) =>
+    PROFILE.axes.find((a) => (a.skate as readonly string[]).includes(family))?.label ?? '';
+
+  let best: NextUnlock | null = null;
+  let bestRemaining = Infinity;
+
+  for (const trick of skate) {
+    if (trick.status === 'mastered') continue;
+    if (!trick.prereqs.length) continue;
+    const have = trick.prereqs.filter((p) => statusOf.get(p) === 'mastered').length;
+    const remaining = trick.prereqs.length - have;
+    // Nothing missing means it is already open, which is a different screen's
+    // business. Ties go to the trick with fewer prerequisites overall, so the
+    // simplest door wins rather than whichever the graph happened to list first.
+    if (remaining <= 0) continue;
+    if (remaining < bestRemaining || (remaining === bestRemaining && best && trick.prereqs.length < best.need)) {
+      bestRemaining = remaining;
+      best = { name: trick.name, axis: axisOf(trick.family ?? ''), have, need: trick.prereqs.length };
+    }
+  }
+
+  return best;
 }
