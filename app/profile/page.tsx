@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Detail from '@/components/Detail';
+import { Cell, Cells, Header, HeaderAction, Pips, Section, TabBar } from '@/components/Chrome';
 import { ApiError, api, getKey } from '@/lib/client/store';
 
 interface Axis {
   key: string;
   label: string;
   level: number;
+  score: number;
   tier: string;
   sources: Array<{ label: string; reached: number; available: number }>;
 }
@@ -18,35 +20,29 @@ interface ProfilePayload {
   axes: Axis[];
   overall: number;
   rank: string;
+  xp: number;
+  xpFloor: number;
+  xpToNext: number;
+  nextRank: string | null;
+  rankIndex: number;
+  rankCount: number;
+  nextUnlock: { name: string; axis: string; have: number; need: number } | null;
 }
 
 const MAX = 10;
-const SIZE = 300;
-const CENTRE = SIZE / 2;
-const RADIUS = 108;
-
-/** Clockwise from the top, so the first spoke in config is the one at 12. */
-function point(index: number, count: number, value: number) {
-  const angle = (index / count) * Math.PI * 2 - Math.PI / 2;
-  const r = (value / MAX) * RADIUS;
-  return { x: CENTRE + r * Math.cos(angle), y: CENTRE + r * Math.sin(angle) };
-}
-
-function polygon(values: number[]) {
-  return values.map((v, i) => {
-    const p = point(i, values.length, v);
-    return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
-  }).join(' ');
-}
 
 /**
- * The profile. Seven spokes over state that already exists — this screen reads
- * and never writes, which is what makes it safe to delete if it stops earning
- * its place.
+ * The profile, as a character sheet.
  *
- * The web is drawn at whole levels rather than at percentages on purpose: a
- * level-up visibly moves one spoke, and nothing else does. See PROFILE in
- * config for why.
+ * It was a radar chart, and a radar chart needs width on both sides of its
+ * centre for the labels — which a 390px phone does not have, so "Mobility" and
+ * "Nerve" were clipped off opposite edges. Seven bars on one grid carry the same
+ * seven numbers, fit the width, and rank the weak axes for you, which the web
+ * never did: reading which spoke was shortest meant comparing lengths radiating
+ * in seven directions.
+ *
+ * Still no new measurement. Everything here is state that already exists
+ * elsewhere, so the screen can be deleted without trace.
  */
 export default function ProfilePage() {
   const router = useRouter();
@@ -73,134 +69,199 @@ export default function ProfilePage() {
   }, [load]);
 
   const axes = data?.axes ?? [];
-  const rings = [2, 4, 6, 8, 10];
+  // The bar fills between this rank's threshold and the next, not from zero:
+  // from zero it would barely move for a year.
+  const span = data ? Math.max(1, data.xp + data.xpToNext - data.xpFloor) : 1;
+  const into = data ? Math.max(0, data.xp - data.xpFloor) : 0;
 
   return (
-    <main className="screen" style={{ gap: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span className="label">Profile</span>
-        <button className="label" onClick={() => router.push('/')} style={{ padding: '8px 0 8px 16px' }}>
-          Today
-        </button>
-      </div>
+    <main className="app">
+      <Header
+        title="Profile"
+        right={
+          /* The design put a fictional "Edit" here. Progress is the history
+             behind this sheet, and the tab bar leaves it with no way in. */
+          <HeaderAction onClick={() => router.push('/progress')}>Progress</HeaderAction>
+        }
+      />
 
-      {error && <div className="banner banner-warn">{error}</div>}
-      {!data && !error && <p className="label">Loading</p>}
+      <div className="app-content" style={{ gap: 18 }}>
+        {error && <div className="banner banner-warn">{error}</div>}
+        {!data && !error && <p className="eyebrow">Loading</p>}
 
-      {data && (
-        <>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span className="num" style={{ fontSize: 46, color: 'var(--amber)' }}>
-              {data.overall}
-            </span>
-            <span style={{ color: 'var(--muted)' }}>overall · {data.rank}</span>
-          </div>
-
-          <svg
-            viewBox={`0 0 ${SIZE} ${SIZE}`}
-            style={{ width: '100%', maxWidth: 340, alignSelf: 'center', overflow: 'visible' }}
-            role="img"
-            aria-label={axes.map((a) => `${a.label} ${a.level} of ${MAX}, ${a.tier}`).join('. ')}
-          >
-            {/* The web. Faint, because the shape is the subject, not the grid. */}
-            {rings.map((r) => (
-              <polygon
-                key={r}
-                points={polygon(axes.map(() => r))}
-                fill="none"
-                stroke="var(--ink-line)"
-                strokeWidth={r === MAX ? 1.5 : 1}
-              />
-            ))}
-            {axes.map((a, i) => {
-              const p = point(i, axes.length, MAX);
-              return <line key={a.key} x1={CENTRE} y1={CENTRE} x2={p.x} y2={p.y} stroke="var(--ink-line)" strokeWidth={1} />;
-            })}
-
-            <polygon
-              points={polygon(axes.map((a) => a.level))}
-              fill="var(--amber)"
-              fillOpacity={0.22}
-              stroke="var(--amber)"
-              strokeWidth={2}
-              strokeLinejoin="round"
-            />
-            {axes.map((a, i) => {
-              const p = point(i, axes.length, a.level);
-              return <circle key={a.key} cx={p.x} cy={p.y} r={3.5} fill="var(--amber)" />;
-            })}
-
-            {/* Labels sit outside the web so a full spoke never covers its own name. */}
-            {axes.map((a, i) => {
-              const p = point(i, axes.length, MAX + 2.6);
-              const dx = p.x - CENTRE;
-              return (
-                <text
-                  key={a.key}
-                  x={p.x}
-                  y={p.y}
-                  fill="var(--muted)"
-                  fontSize={12}
-                  textAnchor={Math.abs(dx) < 12 ? 'middle' : dx > 0 ? 'start' : 'end'}
-                  dominantBaseline="middle"
+        {data && (
+          <>
+            {/* Who you are, at a glance: the badge, the name, the bar. */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div
+                  style={{
+                    position: 'relative',
+                    width: 76,
+                    height: 76,
+                    flex: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '2px solid var(--amber)',
+                    borderRadius: 20,
+                    background: 'var(--card)',
+                  }}
                 >
-                  {a.label}
-                </text>
-              );
-            })}
-          </svg>
-
-          <div className="stack">
-            {axes.map((a) => {
-              const isOpen = open === a.key;
-              return (
-                <div key={a.key}>
-                  <button
-                    aria-expanded={isOpen}
-                    onClick={() => setOpen(isOpen ? null : a.key)}
+                  <span className="num" style={{ fontSize: 52, lineHeight: 0.8, color: 'var(--amber)' }}>
+                    {data.overall}
+                  </span>
+                  <span
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '14px 16px',
-                      borderRadius: 12,
-                      background: 'var(--ink-raised)',
+                      position: 'absolute',
+                      bottom: -9,
+                      padding: '2px 8px',
+                      background: 'var(--ink)',
                       border: '1px solid var(--ink-line)',
-                      minHeight: 'var(--tap)',
+                      borderRadius: 6,
+                      fontSize: 10,
+                      letterSpacing: '0.14em',
+                      textTransform: 'uppercase',
+                      fontWeight: 600,
+                      color: 'var(--muted)',
                     }}
                   >
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: 'block' }}>{a.tier}</span>
-                      <span style={{ display: 'block', fontSize: 13, color: 'var(--muted)' }}>{a.label}</span>
-                    </span>
-                    <span className="num" style={{ fontSize: 21, color: 'var(--amber)' }}>
-                      {a.level}
-                      <span style={{ color: 'var(--muted)', fontSize: '0.7em' }}>/{MAX}</span>
-                    </span>
-                  </button>
-
-                  {/* A stat nobody can audit is a stat nobody believes. */}
-                  {isOpen && (
-                    <Detail
-                      rows={a.sources.map((s) => ({
-                        label: s.label,
-                        value: `${s.reached} of ${s.available}`,
-                      }))}
-                      progress={
-                        a.sources.length
-                          ? 'Depth reached against depth available, weighted by how much there is to reach.'
-                          : 'Nothing feeds this yet.'
-                      }
-                    />
-                  )}
+                    Level
+                  </span>
                 </div>
-              );
-            })}
-          </div>
-        </>
-      )}
+                <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: '-0.01em' }}>{data.rank}</div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      color: 'var(--muted)',
+                    }}
+                  >
+                    Rank {data.rankIndex + 1} of {data.rankCount}
+                    {data.nextRank && ` · Next: ${data.nextRank}`}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <Pips filled={into} total={span} segments={20} height={12} gradient />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>
+                  <span>{data.xp} XP</span>
+                  <span>{data.nextRank ? `${data.xpToNext} to ${data.nextRank}` : 'Top rank'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* The seven spokes, as rows. Tapping one still says what fed it. */}
+            <Section
+              title="Attributes"
+              action={
+                <span className="eyebrow" style={{ color: 'var(--sage)' }}>
+                  {axes.filter((a) => a.level > 0).length} of {axes.length} moving
+                </span>
+              }
+              gap={8}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {axes.map((axis) => (
+                  <div key={axis.key}>
+                    <button
+                      onClick={() => setOpen(open === axis.key ? null : axis.key)}
+                      aria-expanded={open === axis.key}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '104px 1fr 52px',
+                        alignItems: 'center',
+                        gap: 12,
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '6px 0',
+                        minHeight: 40,
+                      }}
+                    >
+                      <span style={{ fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {axis.label}
+                      </span>
+                      <Pips filled={axis.level} total={MAX} />
+                      <span
+                        className="num"
+                        style={{
+                          fontSize: 22,
+                          textAlign: 'right',
+                          color: axis.level > 0 ? 'var(--amber)' : 'var(--dimmer)',
+                        }}
+                      >
+                        {axis.level}
+                      </span>
+                    </button>
+
+                    {open === axis.key && (
+                      <Detail
+                        rows={[
+                          { label: 'Tier', value: axis.tier },
+                          ...axis.sources.map((src) => ({
+                            label: src.label,
+                            value: `${src.reached} of ${src.available}`,
+                          })),
+                        ]}
+                        footnote={
+                          <>A spoke is depth reached against depth available, never a share of the graph.</>
+                        }
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Section>
+
+            {/* The nearest closed door. */}
+            {data.nextUnlock && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '14px 16px',
+                  background: 'var(--sunken)',
+                  border: '1px solid var(--ink-line)',
+                  borderRadius: 14,
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div className="eyebrow eyebrow-action" style={{ marginBottom: 4 }}>
+                    Next unlock
+                  </div>
+                  <div style={{ fontSize: 15 }}>
+                    {data.nextUnlock.axis ? `${data.nextUnlock.axis} opens ` : 'Opens '}
+                    {data.nextUnlock.name}
+                  </div>
+                </div>
+                <span className="row-value" style={{ fontSize: 24 }}>
+                  {data.nextUnlock.have}
+                  <span>/{data.nextUnlock.need}</span>
+                </span>
+              </div>
+            )}
+
+            <div className="pinned">
+              <Cells columns={3}>
+                <Cell value={data.overall} caption="Level" tone="amber" />
+                <Cell
+                  value={axes.reduce((sum, a) => sum + a.level, 0)}
+                  caption="Levels deep"
+                  tone="text"
+                />
+                <Cell value={data.xp} caption="XP" tone="sage" />
+              </Cells>
+            </div>
+          </>
+        )}
+      </div>
+
+      <TabBar />
     </main>
   );
 }

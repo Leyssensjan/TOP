@@ -205,15 +205,19 @@ export function Segmented<T extends string>({
 export function Pips({
   filled,
   total,
+  segments,
   height = 14,
   gradient = false,
 }: {
   filled: number;
   total: number;
+  /** Notches drawn, when that is not the same as the scale being measured. The
+   *  XP bar spans a couple of hundred points and wants twenty. */
+  segments?: number;
   height?: number;
   gradient?: boolean;
 }) {
-  const step = 100 / total;
+  const step = 100 / Math.max(1, segments ?? total);
   const pct = Math.max(0, Math.min(1, total ? filled / total : 0)) * 100;
   return (
     <div
