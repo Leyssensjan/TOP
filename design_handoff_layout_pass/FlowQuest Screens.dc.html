@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas" />
+<style>
+  body { margin:0; background:#080c12; }
+  a { color:#e9a648; text-decoration:none; }
+  a:hover { color:#f2bc6b; }
+</style>
+</helmet>
+<div style="min-height:100%; background:#080c12; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; color:#ece9e3; padding:48px 48px 96px; display:flex; flex-direction:column; gap:40px">
+
+  <div style="display:flex; flex-direction:column; gap:14px; max-width:760px">
+    <div style="font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:#8794a6; font-weight:600">FlowQuest · layout pass</div>
+    <div style="font-size:38px; line-height:1.1; font-weight:600; letter-spacing:-0.01em; text-wrap:pretty">Same ink and amber. One grid, one row shape, one nav.</div>
+    <div style="font-size:16px; line-height:1.55; color:#8794a6; text-wrap:pretty">Five things were making it feel ugly: numbers and their units sat on different baselines, list values floated to whatever width the text left over, buttons came in three heights, the tab links wrapped into two ragged lines, and every screen ended in a wall of empty space. Fixed below — a 4&nbsp;pt spacing scale, a fixed-width value column so all numbers align, one 56&nbsp;px button height, a real bottom bar, and footers pinned to the bottom.</div>
+  </div>
+
+  <div style="display:flex; flex-wrap:wrap; gap:56px 40px; align-items:flex-start">
+
+    <!-- TODAY -->
+    <div style="display:flex; flex-direction:column; gap:14px; width:390px">
+      <div style="width:390px; height:844px; background:#0e1621; border:1px solid #1e2a3c; border-radius:38px; overflow:hidden; display:flex; flex-direction:column">
+        <div style="height:52px; flex:none; padding:0 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #16202e">
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">Today</div>
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">Tue 2 Sep</div>
+        </div>
+        <div style="flex:1; min-height:0; padding:24px 20px; display:flex; flex-direction:column; gap:24px">
+          <div style="display:flex; flex-direction:column; gap:10px">
+            <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">Flow</div>
+            <div style="display:flex; align-items:baseline; gap:8px">
+              <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:80px; line-height:0.8; color:#e9a648; font-variant-numeric:tabular-nums">10</div>
+              <div style="font-size:20px; letter-spacing:0.1em; text-transform:uppercase; color:#8794a6; font-weight:600">min</div>
+            </div>
+            <div style="font-size:15px; color:#8794a6">6 movements · 2 rounds · slot 3 of 14</div>
+          </div>
+          <button style="height:56px; flex:none; border:none; border-radius:14px; background:#e9a648; color:#17120a; font-size:17px; font-weight:600; font-family:inherit; cursor:pointer" style-active="background:#d8952f">Start</button>
+          <div style="display:flex; flex-direction:column; gap:10px">
+            <div style="display:flex; align-items:baseline; justify-content:space-between">
+              <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">This week’s micros</div>
+              <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#e9a648; font-weight:600">All</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px">
+              <div style="display:grid; grid-template-columns:16px 1fr 60px; align-items:center; gap:12px; min-height:64px; padding:12px 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px">
+                <div style="font-size:13px; color:#5d6b80; font-variant-numeric:tabular-nums">1</div>
+                <div style="min-width:0; display:flex; flex-direction:column; gap:2px">
+                  <div style="font-size:16px; font-weight:500">Curb surfer</div>
+                  <div style="font-size:13px; color:#6f7d91">Walking anywhere with a curb</div>
+                </div>
+                <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:26px; line-height:1; color:#e9a648; font-variant-numeric:tabular-nums">0<span style="font-size:15px; color:#6f7d91">/3</span></div>
+              </div>
+              <div style="display:grid; grid-template-columns:16px 1fr 60px; align-items:center; gap:12px; min-height:64px; padding:12px 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px">
+                <div style="font-size:13px; color:#5d6b80; font-variant-numeric:tabular-nums">2</div>
+                <div style="min-width:0; display:flex; flex-direction:column; gap:2px">
+                  <div style="font-size:16px; font-weight:500">Snapdown x5</div>
+                  <div style="font-size:13px; color:#6f7d91">Before you leave the house</div>
+                </div>
+                <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:26px; line-height:1; color:#e9a648; font-variant-numeric:tabular-nums">0<span style="font-size:15px; color:#6f7d91">/2</span></div>
+              </div>
+              <div style="display:grid; grid-template-columns:16px 1fr 60px; align-items:center; gap:12px; min-height:64px; padding:12px 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px">
+                <div style="font-size:13px; color:#5d6b80; font-variant-numeric:tabular-nums">3</div>
+                <div style="min-width:0; display:flex; flex-direction:column; gap:2px">
+                  <div style="font-size:16px; font-weight:500">One-leg stand</div>
+                  <div style="font-size:13px; color:#6f7d91">Brushing teeth, twice a day</div>
+                </div>
+                <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:26px; line-height:1; color:#e9a648; font-variant-numeric:tabular-nums">0<span style="font-size:15px; color:#6f7d91">/10</span></div>
+              </div>
+            </div>
+          </div>
+          <button style="height:56px; flex:none; border:1px solid #24324a; border-radius:14px; background:transparent; color:#ece9e3; font-size:16px; font-family:inherit; cursor:pointer">Give me a skate session</button>
+          <div style="margin-top:auto; display:flex; align-items:center; gap:12px; padding-top:16px; border-top:1px solid #16202e">
+            <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:34px; line-height:1; color:#ece9e3; font-variant-numeric:tabular-nums">0</div>
+            <div style="font-size:14px; color:#8794a6; line-height:1.35">of 3 sessions<br />in the last 7 days</div>
+          </div>
+        </div>
+        <div style="height:68px; flex:none; display:grid; grid-template-columns:repeat(5, 1fr); border-top:1px solid #16202e">
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#e9a648"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#e9a648; font-weight:600">Today</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Week</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Form</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Skate</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">You</div></div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px">
+        <div style="font-size:13px; letter-spacing:0.12em; text-transform:uppercase; color:#ece9e3; font-weight:600">Today</div>
+        <div style="font-size:14px; color:#8794a6; line-height:1.45">Unit sits on the number’s baseline. The five wrapped text links became a bottom bar. The rolling count is pinned to the bottom instead of drifting.</div>
+      </div>
+    </div>
+
+    <!-- WEEK -->
+    <div style="display:flex; flex-direction:column; gap:14px; width:390px">
+      <div style="width:390px; height:844px; background:#0e1621; border:1px solid #1e2a3c; border-radius:38px; overflow:hidden; display:flex; flex-direction:column">
+        <div style="height:52px; flex:none; padding:0 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #16202e">
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">Week</div>
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#e9a648; font-weight:600">Edit</div>
+        </div>
+        <div style="flex:1; min-height:0; padding:20px; display:flex; flex-direction:column; gap:14px">
+          <div style="display:grid; grid-template-columns:44px 1fr 44px; align-items:center; gap:8px">
+            <div style="height:44px; display:flex; align-items:center; justify-content:center; border:1px solid #24324a; border-radius:12px; color:#8794a6; font-size:18px">‹</div>
+            <div style="text-align:center; display:flex; flex-direction:column; gap:2px">
+              <div style="font-size:16px; font-weight:600">Week of 31 Aug</div>
+              <div style="font-size:13px; color:#8794a6">0 of 5 planned</div>
+            </div>
+            <div style="height:44px; display:flex; align-items:center; justify-content:center; border:1px solid #24324a; border-radius:12px; color:#8794a6; font-size:18px">›</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px">
+            <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">Mornings that work</div>
+            <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:6px">
+              <div style="height:46px; display:flex; align-items:center; justify-content:center; border:1px solid #e9a648; border-radius:12px; color:#e9a648; font-size:13px; font-weight:600">Mon</div>
+              <div style="height:46px; display:flex; align-items:center; justify-content:center; border:1px solid #e9a648; border-radius:12px; color:#e9a648; font-size:13px; font-weight:600">Tue</div>
+              <div style="height:46px; display:flex; align-items:center; justify-content:center; border:1px solid #e9a648; border-radius:12px; color:#e9a648; font-size:13px; font-weight:600">Wed</div>
+              <div style="height:46px; display:flex; align-items:center; justify-content:center; border:1px solid #e9a648; border-radius:12px; color:#e9a648; font-size:13px; font-weight:600">Thu</div>
+              <div style="height:46px; display:flex; align-items:center; justify-content:center; border:1px solid #e9a648; border-radius:12px; color:#e9a648; font-size:13px; font-weight:600">Fri</div>
+              <div style="height:46px; display:flex; align-items:center; justify-content:center; border:1px solid #1e2a3c; border-radius:12px; color:#6f7d91; font-size:13px">Sat</div>
+              <div style="height:46px; display:flex; align-items:center; justify-content:center; border:1px solid #1e2a3c; border-radius:12px; color:#6f7d91; font-size:13px">Sun</div>
+            </div>
+          </div>
+          <button style="height:56px; flex:none; border:none; border-radius:14px; background:#e9a648; color:#17120a; font-size:17px; font-weight:600; font-family:inherit; cursor:pointer">Generate week</button>
+          <div style="display:flex; flex-direction:column; gap:6px">
+            <div style="display:grid; grid-template-columns:52px 1fr auto; align-items:center; gap:12px; height:52px; padding:0 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:12px">
+              <div style="font-size:13px; letter-spacing:0.1em; text-transform:uppercase; color:#8794a6; font-weight:600">Mon</div>
+              <div style="font-size:16px">Flow</div>
+              <div style="font-size:13px; color:#6f7d91">07:00</div>
+            </div>
+            <div style="display:grid; grid-template-columns:52px 1fr auto; align-items:center; gap:12px; height:52px; padding:0 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:12px">
+              <div style="font-size:13px; letter-spacing:0.1em; text-transform:uppercase; color:#8794a6; font-weight:600">Tue</div>
+              <div style="font-size:16px">Strength</div>
+              <div style="font-size:13px; color:#6f7d91">07:00</div>
+            </div>
+            <div style="display:grid; grid-template-columns:52px 1fr auto; align-items:center; gap:12px; height:52px; padding:0 16px; background:transparent; border:1px solid #16202e; border-radius:12px">
+              <div style="font-size:13px; letter-spacing:0.1em; text-transform:uppercase; color:#5d6b80; font-weight:600">Wed</div>
+              <div style="font-size:16px; color:#5d6b80">Rest</div>
+              <div style="font-size:13px; color:#3f4c60">—</div>
+            </div>
+            <div style="display:grid; grid-template-columns:52px 1fr auto; align-items:center; gap:12px; height:52px; padding:0 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:12px">
+              <div style="font-size:13px; letter-spacing:0.1em; text-transform:uppercase; color:#8794a6; font-weight:600">Thu</div>
+              <div style="font-size:16px">Flow</div>
+              <div style="font-size:13px; color:#6f7d91">07:00</div>
+            </div>
+            <div style="display:grid; grid-template-columns:52px 1fr auto; align-items:center; gap:12px; height:52px; padding:0 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:12px">
+              <div style="font-size:13px; letter-spacing:0.1em; text-transform:uppercase; color:#8794a6; font-weight:600">Fri</div>
+              <div style="font-size:16px">Flow short</div>
+              <div style="font-size:13px; color:#6f7d91">07:00</div>
+            </div>
+            <div style="display:grid; grid-template-columns:52px 1fr auto; align-items:center; gap:12px; height:52px; padding:0 16px; background:transparent; border:1px solid #16202e; border-radius:12px">
+              <div style="font-size:13px; letter-spacing:0.1em; text-transform:uppercase; color:#5d6b80; font-weight:600">Sat</div>
+              <div style="font-size:16px; color:#5d6b80">Rest</div>
+              <div style="font-size:13px; color:#3f4c60">—</div>
+            </div>
+            <div style="display:grid; grid-template-columns:52px 1fr auto; align-items:center; gap:12px; height:52px; padding:0 16px; background:transparent; border:1px solid #16202e; border-radius:12px">
+              <div style="font-size:13px; letter-spacing:0.1em; text-transform:uppercase; color:#5d6b80; font-weight:600">Sun</div>
+              <div style="font-size:16px; color:#5d6b80">Rest</div>
+              <div style="font-size:13px; color:#3f4c60">—</div>
+            </div>
+          </div>
+          <div style="margin-top:auto; padding-top:16px; border-top:1px solid #16202e; font-size:13px; line-height:1.5; color:#6f7d91; text-wrap:pretty">Tap a day to swap that session. A planned day wins over the daily suggestion.</div>
+        </div>
+        <div style="height:68px; flex:none; display:grid; grid-template-columns:repeat(5, 1fr); border-top:1px solid #16202e">
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Today</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#e9a648"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#e9a648; font-weight:600">Week</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Form</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Skate</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">You</div></div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px">
+        <div style="font-size:13px; letter-spacing:0.12em; text-transform:uppercase; color:#ece9e3; font-weight:600">Week</div>
+        <div style="font-size:14px; color:#8794a6; line-height:1.45">The date no longer wraps around the arrows: a 3-column stepper with the label centred. Day rows share one 52&nbsp;px label column, so Mon–Sun line up.</div>
+      </div>
+    </div>
+
+    <!-- FORM -->
+    <div style="display:flex; flex-direction:column; gap:14px; width:390px">
+      <div style="width:390px; height:844px; background:#0e1621; border:1px solid #1e2a3c; border-radius:38px; overflow:hidden; display:flex; flex-direction:column">
+        <div style="height:52px; flex:none; padding:0 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #16202e">
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">The form</div>
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">6 of 12 slots</div>
+        </div>
+        <div style="flex:1; min-height:0; padding:20px; display:flex; flex-direction:column; gap:12px">
+          <div style="display:flex; align-items:baseline; gap:10px">
+            <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:56px; line-height:0.8; color:#e9a648; font-variant-numeric:tabular-nums">6</div>
+            <div style="font-size:15px; color:#8794a6">levels deep · slot 3 in 14 sessions</div>
+          </div>
+          <div style="position:relative; padding-left:30px; display:flex; flex-direction:column; gap:4px">
+            <div style="position:absolute; left:9px; top:22px; bottom:22px; width:2px; background:#22314a; border-radius:2px"></div>
+            <div style="position:relative; display:grid; grid-template-columns:22px 1fr 56px; align-items:center; gap:12px; height:44px; padding:0 14px; background:#141f2c; border:1px solid #1e2a3c; border-radius:12px">
+              <div style="position:absolute; left:-25px; width:11px; height:11px; border-radius:50%; border:2px solid #e9a648; background:#0e1621"></div>
+              <div style="font-size:13px; color:#5d6b80; text-align:right; font-variant-numeric:tabular-nums">1</div>
+              <div style="min-width:0; display:flex; align-items:baseline; gap:8px"><div style="font-size:15px; font-weight:500; white-space:nowrap">Standing breath</div><div style="font-size:12px; color:#6f7d91; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">Centering</div></div>
+              <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:22px; line-height:1; color:#e9a648; font-variant-numeric:tabular-nums">1<span style="font-size:14px; color:#6f7d91">/4</span></div>
+            </div>
+            <div style="position:relative; display:grid; grid-template-columns:22px 1fr 56px; align-items:center; gap:12px; height:44px; padding:0 14px; background:#141f2c; border:1px solid #1e2a3c; border-radius:12px">
+              <div style="position:absolute; left:-25px; width:11px; height:11px; border-radius:50%; border:2px solid #e9a648; background:#0e1621"></div>
+              <div style="font-size:13px; color:#5d6b80; text-align:right; font-variant-numeric:tabular-nums">2</div>
+              <div style="min-width:0; display:flex; align-items:baseline; gap:8px"><div style="font-size:15px; font-weight:500; white-space:nowrap">Roll down</div><div style="font-size:12px; color:#6f7d91; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">Spinal wave</div></div>
+              <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:22px; line-height:1; color:#e9a648; font-variant-numeric:tabular-nums">1<span style="font-size:14px; color:#6f7d91">/4</span></div>
+            </div>
+            <div style="position:relative; display:grid; grid-template-columns:22px 1fr 56px; align-items:center; gap:12px; height:44px; padding:0 14px; background:transparent; border:1px solid #2a2113; border-radius:12px">
+              <div style="position:absolute; left:-25px; width:11px; height:11px; border-radius:50%; border:2px solid #8a6528; background:#0e1621"></div>
+              <div style="font-size:13px; color:#5d6b80; text-align:right; font-variant-numeric:tabular-nums">3</div>
+              <div style="min-width:0; display:flex; align-items:baseline; gap:8px"><div style="font-size:15px; color:#a9b3c1; white-space:nowrap">Hip opener</div><div style="font-size:12px; color:#8a6528; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">unlocks next</div></div>
+              <div style="text-align:right; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#8a6528; font-weight:600">14 away</div>
+            </div>
+            <div style="position:relative; display:grid; grid-template-columns:22px 1fr 56px; align-items:center; gap:12px; height:44px; padding:0 14px; background:#141f2c; border:1px solid #1e2a3c; border-radius:12px">
+              <div style="position:absolute; left:-25px; width:11px; height:11px; border-radius:50%; border:2px solid #e9a648; background:#0e1621"></div>
+              <div style="font-size:13px; color:#5d6b80; text-align:right; font-variant-numeric:tabular-nums">4</div>
+              <div style="min-width:0; display:flex; align-items:baseline; gap:8px"><div style="font-size:15px; font-weight:500; white-space:nowrap">Deep squat</div><div style="font-size:12px; color:#6f7d91; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">Squat and ankle</div></div>
+              <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:22px; line-height:1; color:#e9a648; font-variant-numeric:tabular-nums">1<span style="font-size:14px; color:#6f7d91">/4</span></div>
+            </div>
+            <div style="position:relative; display:grid; grid-template-columns:22px 1fr 56px; align-items:center; gap:12px; height:44px; padding:0 14px; background:#141f2c; border:1px solid #1e2a3c; border-radius:12px">
+              <div style="position:absolute; left:-25px; width:11px; height:11px; border-radius:50%; border:2px solid #e9a648; background:#0e1621"></div>
+              <div style="font-size:13px; color:#5d6b80; text-align:right; font-variant-numeric:tabular-nums">5</div>
+              <div style="min-width:0; display:flex; align-items:baseline; gap:8px"><div style="font-size:15px; font-weight:500; white-space:nowrap">Beast hold</div><div style="font-size:12px; color:#6f7d91; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">Quadruped load</div></div>
+              <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:22px; line-height:1; color:#e9a648; font-variant-numeric:tabular-nums">1<span style="font-size:14px; color:#6f7d91">/4</span></div>
+            </div>
+            <div style="position:relative; display:grid; grid-template-columns:22px 1fr 56px; align-items:center; gap:12px; height:44px; padding:0 14px; background:#141f2c; border:1px solid #1e2a3c; border-radius:12px">
+              <div style="position:absolute; left:-25px; width:11px; height:11px; border-radius:50%; border:2px solid #e9a648; background:#0e1621"></div>
+              <div style="font-size:13px; color:#5d6b80; text-align:right; font-variant-numeric:tabular-nums">6</div>
+              <div style="min-width:0; display:flex; align-items:baseline; gap:8px"><div style="font-size:15px; font-weight:500; white-space:nowrap">Knee push-up</div><div style="font-size:12px; color:#6f7d91; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">Ground push</div></div>
+              <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:22px; line-height:1; color:#e9a648; font-variant-numeric:tabular-nums">1<span style="font-size:14px; color:#6f7d91">/4</span></div>
+            </div>
+            <div style="position:relative; display:grid; grid-template-columns:22px 1fr 56px; align-items:center; gap:12px; height:44px; padding:0 14px; background:transparent; border:1px solid #16202e; border-radius:12px">
+              <div style="position:absolute; left:-22px; width:6px; height:6px; border-radius:50%; background:#22314a"></div>
+              <div style="font-size:13px; color:#3f4c60; text-align:right; font-variant-numeric:tabular-nums">7</div>
+              <div style="min-width:0; display:flex; align-items:baseline; gap:8px"><div style="font-size:15px; color:#5d6b80; white-space:nowrap">Transition</div></div>
+              <div style="text-align:right; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#3f4c60; font-weight:600">10th</div>
+            </div>
+            <div style="position:relative; display:grid; grid-template-columns:22px 1fr 56px; align-items:center; gap:12px; height:44px; padding:0 14px; background:transparent; border:1px solid #16202e; border-radius:12px">
+              <div style="position:absolute; left:-22px; width:6px; height:6px; border-radius:50%; background:#22314a"></div>
+              <div style="font-size:13px; color:#3f4c60; text-align:right; font-variant-numeric:tabular-nums">8</div>
+              <div style="min-width:0; display:flex; align-items:baseline; gap:8px"><div style="font-size:15px; color:#5d6b80; white-space:nowrap">Posterior chain</div></div>
+              <div style="text-align:right; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#3f4c60; font-weight:600">9th</div>
+            </div>
+            <div style="position:relative; display:grid; grid-template-columns:22px 1fr 56px; align-items:center; gap:12px; height:44px; padding:0 14px; background:transparent; border:1px solid #16202e; border-radius:12px">
+              <div style="position:absolute; left:-22px; width:6px; height:6px; border-radius:50%; background:#22314a"></div>
+              <div style="font-size:13px; color:#3f4c60; text-align:right; font-variant-numeric:tabular-nums">9</div>
+              <div style="min-width:0; display:flex; align-items:baseline; gap:8px"><div style="font-size:15px; color:#5d6b80; white-space:nowrap">Spinal extension</div></div>
+              <div style="text-align:right; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#3f4c60; font-weight:600">11th</div>
+            </div>
+            <div style="position:relative; display:grid; grid-template-columns:22px 1fr 56px; align-items:center; gap:12px; height:44px; padding:0 14px; background:transparent; border:1px solid #16202e; border-radius:12px">
+              <div style="position:absolute; left:-22px; width:6px; height:6px; border-radius:50%; background:#22314a"></div>
+              <div style="font-size:13px; color:#3f4c60; text-align:right; font-variant-numeric:tabular-nums">10</div>
+              <div style="min-width:0; display:flex; align-items:baseline; gap:8px"><div style="font-size:15px; color:#5d6b80; white-space:nowrap">Compression core</div></div>
+              <div style="text-align:right; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#3f4c60; font-weight:600">8th</div>
+            </div>
+            <div style="position:relative; display:grid; grid-template-columns:22px 1fr 56px; align-items:center; gap:12px; height:44px; padding:0 14px; background:transparent; border:1px solid #16202e; border-radius:12px">
+              <div style="position:absolute; left:-22px; width:6px; height:6px; border-radius:50%; background:#22314a"></div>
+              <div style="font-size:13px; color:#3f4c60; text-align:right; font-variant-numeric:tabular-nums">11</div>
+              <div style="min-width:0; display:flex; align-items:baseline; gap:8px"><div style="font-size:15px; color:#5d6b80; white-space:nowrap">Arm balance</div></div>
+              <div style="text-align:right; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#3f4c60; font-weight:600">12th</div>
+            </div>
+            <div style="position:relative; display:grid; grid-template-columns:22px 1fr 56px; align-items:center; gap:12px; height:44px; padding:0 14px; background:#141f2c; border:1px solid #1e2a3c; border-radius:12px">
+              <div style="position:absolute; left:-25px; width:11px; height:11px; border-radius:50%; border:2px solid #e9a648; background:#0e1621"></div>
+              <div style="font-size:13px; color:#5d6b80; text-align:right; font-variant-numeric:tabular-nums">12</div>
+              <div style="min-width:0; display:flex; align-items:baseline; gap:8px"><div style="font-size:15px; font-weight:500; white-space:nowrap">Roll to stand</div><div style="font-size:12px; color:#6f7d91; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">Rise</div></div>
+              <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:22px; line-height:1; color:#e9a648; font-variant-numeric:tabular-nums">1<span style="font-size:14px; color:#6f7d91">/4</span></div>
+            </div>
+          </div>
+          <div style="margin-top:auto; padding-top:14px; border-top:1px solid #16202e; font-size:13px; color:#6f7d91">Tap a slot for the movement and its level.</div>
+        </div>
+        <div style="height:68px; flex:none; display:grid; grid-template-columns:repeat(5, 1fr); border-top:1px solid #16202e">
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Today</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Week</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#e9a648"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#e9a648; font-weight:600">Form</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Skate</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">You</div></div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px">
+        <div style="font-size:13px; letter-spacing:0.12em; text-transform:uppercase; color:#ece9e3; font-weight:600">The Form</div>
+        <div style="font-size:14px; color:#8794a6; line-height:1.45">Names and their tags now share one line and truncate instead of wrapping, so all twelve nodes stay evenly spaced on the spine. Status sits in the same 56&nbsp;px column as the counts.</div>
+      </div>
+    </div>
+
+    <!-- RUNNER -->
+    <div style="display:flex; flex-direction:column; gap:14px; width:390px">
+      <div style="width:390px; height:844px; background:#0e1621; border:1px solid #1e2a3c; border-radius:38px; overflow:hidden; display:flex; flex-direction:column">
+        <div style="height:52px; flex:none; padding:0 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid #16202e">
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">Flow · round 1/2</div>
+          <div style="display:flex; align-items:center; gap:16px">
+            <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#e9a648; font-weight:600">Sound</div>
+            <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">End</div>
+          </div>
+        </div>
+        <div style="flex:none; padding:16px 20px 0; display:grid; grid-template-columns:repeat(6, 1fr); gap:5px">
+          <div style="height:4px; border-radius:2px; background:#e9a648"></div>
+          <div style="height:4px; border-radius:2px; background:#22314a"></div>
+          <div style="height:4px; border-radius:2px; background:#22314a"></div>
+          <div style="height:4px; border-radius:2px; background:#22314a"></div>
+          <div style="height:4px; border-radius:2px; background:#22314a"></div>
+          <div style="height:4px; border-radius:2px; background:#22314a"></div>
+        </div>
+        <div style="flex:1; min-height:0; padding:20px; display:grid; grid-template-columns:22px 1fr; gap:20px">
+          <div style="position:relative">
+            <div style="position:absolute; left:10px; top:10px; bottom:10px; width:2px; background:#22314a; border-radius:2px"></div>
+            <div style="position:absolute; left:10px; top:10px; height:14%; width:2px; background:#e9a648; border-radius:2px"></div>
+            <div style="position:absolute; left:4px; top:6px; width:15px; height:15px; border-radius:50%; background:#e9a648"></div>
+            <div style="position:absolute; left:6px; top:22%; width:11px; height:11px; border-radius:50%; border:2px solid #22314a; background:#0e1621"></div>
+            <div style="position:absolute; left:6px; top:38%; width:11px; height:11px; border-radius:50%; border:2px solid #22314a; background:#0e1621"></div>
+            <div style="position:absolute; left:6px; top:54%; width:11px; height:11px; border-radius:50%; border:2px solid #22314a; background:#0e1621"></div>
+            <div style="position:absolute; left:6px; top:70%; width:11px; height:11px; border-radius:50%; border:2px solid #22314a; background:#0e1621"></div>
+            <div style="position:absolute; left:6px; bottom:6px; width:11px; height:11px; border-radius:50%; border:2px solid #22314a; background:#0e1621"></div>
+          </div>
+          <div style="display:flex; flex-direction:column; justify-content:center; gap:28px">
+            <div style="display:flex; flex-direction:column; gap:10px">
+              <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">Centering · level 1</div>
+              <div style="font-size:40px; line-height:1.05; font-weight:600; letter-spacing:-0.01em">Standing breath</div>
+              <div style="font-size:16px; line-height:1.5; color:#8794a6; text-wrap:pretty">Feet hip width, weight even, breathe into the ribs not the chest. Six breaths.</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px">
+              <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:104px; line-height:0.82; color:#e9a648; font-variant-numeric:tabular-nums">0:58</div>
+              <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#6f7d91; font-weight:600">Tap to pause</div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:none; padding:0 20px 28px; display:grid; grid-template-columns:1fr 1fr; gap:10px">
+          <button style="height:56px; border:1px solid #24324a; border-radius:14px; background:transparent; color:#8794a6; font-size:16px; font-family:inherit; cursor:pointer">Skip</button>
+          <button style="height:56px; border:none; border-radius:14px; background:#e9a648; color:#17120a; font-size:17px; font-weight:600; font-family:inherit; cursor:pointer">Next</button>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px">
+        <div style="font-size:13px; letter-spacing:0.12em; text-transform:uppercase; color:#ece9e3; font-weight:600">Runner</div>
+        <div style="font-size:14px; color:#8794a6; line-height:1.45">The thread became a left rail with the content set beside it on one axis, so nothing floats mid-screen. Round progress is a segment bar at the top; Skip sits next to Next at the same height.</div>
+      </div>
+    </div>
+
+    <!-- CLOSE -->
+    <div style="display:flex; flex-direction:column; gap:14px; width:390px">
+      <div style="width:390px; height:844px; background:#0e1621; border:1px solid #1e2a3c; border-radius:38px; overflow:hidden; display:flex; flex-direction:column">
+        <div style="height:52px; flex:none; padding:0 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #16202e">
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">Session done</div>
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">Skip</div>
+        </div>
+        <div style="flex:1; min-height:0; padding:24px 20px; display:flex; flex-direction:column; gap:28px">
+          <div style="display:flex; align-items:baseline; gap:8px">
+            <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:80px; line-height:0.8; color:#e9a648; font-variant-numeric:tabular-nums">11</div>
+            <div style="font-size:20px; letter-spacing:0.1em; text-transform:uppercase; color:#8794a6; font-weight:600">min</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px">
+            <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">How it felt</div>
+            <div style="display:flex; padding:4px; gap:4px; background:#111a26; border:1px solid #1e2a3c; border-radius:14px">
+              <div style="flex:1; height:48px; display:flex; align-items:center; justify-content:center; border-radius:10px; font-size:16px; color:#8794a6">Easy</div>
+              <div style="flex:1; height:48px; display:flex; align-items:center; justify-content:center; border-radius:10px; background:#e9a648; color:#17120a; font-size:16px; font-weight:600">Right</div>
+              <div style="flex:1; height:48px; display:flex; align-items:center; justify-content:center; border-radius:10px; font-size:16px; color:#8794a6">Hard</div>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px">
+            <div style="display:flex; align-items:baseline; justify-content:space-between">
+              <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">Anything sore</div>
+              <div style="font-size:13px; color:#6f7d91">optional</div>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px">
+              <div style="height:48px; display:flex; align-items:center; justify-content:center; border:1px solid #1e2a3c; border-radius:12px; font-size:15px; color:#ece9e3">Wrists</div>
+              <div style="height:48px; display:flex; align-items:center; justify-content:center; border:1px solid #1e2a3c; border-radius:12px; font-size:15px; color:#ece9e3">Shoulders</div>
+              <div style="height:48px; display:flex; align-items:center; justify-content:center; border:1px solid #1e2a3c; border-radius:12px; font-size:15px; color:#ece9e3">Back</div>
+              <div style="height:48px; display:flex; align-items:center; justify-content:center; border:1px solid #e9a648; border-radius:12px; font-size:15px; color:#e9a648; font-weight:600">Hips</div>
+              <div style="height:48px; display:flex; align-items:center; justify-content:center; border:1px solid #1e2a3c; border-radius:12px; font-size:15px; color:#ece9e3">Knees</div>
+              <div style="height:48px; display:flex; align-items:center; justify-content:center; border:1px solid #1e2a3c; border-radius:12px; font-size:15px; color:#ece9e3">Ankles</div>
+            </div>
+          </div>
+          <div style="margin-top:auto; display:flex; flex-direction:column; gap:14px">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
+              <div style="padding:14px 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px; display:flex; flex-direction:column; gap:4px">
+                <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:30px; line-height:1; color:#ece9e3; font-variant-numeric:tabular-nums">1</div>
+                <div style="font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:#8794a6; font-weight:600">of 3 this week</div>
+              </div>
+              <div style="padding:14px 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px; display:flex; flex-direction:column; gap:4px">
+                <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:30px; line-height:1; color:#93a98f; font-variant-numeric:tabular-nums">6</div>
+                <div style="font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:#8794a6; font-weight:600">slots trained</div>
+              </div>
+            </div>
+            <button style="height:56px; flex:none; border:none; border-radius:14px; background:#e9a648; color:#17120a; font-size:17px; font-weight:600; font-family:inherit; cursor:pointer">Log it</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px">
+        <div style="font-size:13px; letter-spacing:0.12em; text-transform:uppercase; color:#ece9e3; font-weight:600">Close</div>
+        <div style="font-size:14px; color:#8794a6; line-height:1.45">Easy/right/hard is one segmented control rather than three loose boxes of different widths. The 400&nbsp;px of dead space is now two summary cells above the button.</div>
+      </div>
+    </div>
+
+    <!-- MICROS -->
+    <div style="display:flex; flex-direction:column; gap:14px; width:390px">
+      <div style="width:390px; height:844px; background:#0e1621; border:1px solid #1e2a3c; border-radius:38px; overflow:hidden; display:flex; flex-direction:column">
+        <div style="height:52px; flex:none; padding:0 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #16202e">
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">‹ Micros</div>
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">Week 36</div>
+        </div>
+        <div style="flex:1; min-height:0; padding:24px 20px; display:flex; flex-direction:column; gap:20px">
+          <div style="display:flex; align-items:baseline; gap:10px">
+            <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:56px; line-height:0.8; color:#e9a648; font-variant-numeric:tabular-nums">0</div>
+            <div style="font-size:15px; color:#8794a6">of 15 logged this week</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px">
+            <div style="display:grid; grid-template-columns:1fr 60px; align-items:center; gap:12px; min-height:76px; padding:14px 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px">
+              <div style="min-width:0; display:flex; flex-direction:column; gap:3px">
+                <div style="font-size:17px; font-weight:500">Curb surfer</div>
+                <div style="font-size:13px; color:#6f7d91">Walking anywhere with a curb</div>
+                <div style="font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:#93a98f; font-weight:600">Feeds centering</div>
+              </div>
+              <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:30px; line-height:1; color:#e9a648; font-variant-numeric:tabular-nums">0<span style="font-size:16px; color:#6f7d91">/3</span></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 60px; align-items:center; gap:12px; min-height:76px; padding:14px 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px">
+              <div style="min-width:0; display:flex; flex-direction:column; gap:3px">
+                <div style="font-size:17px; font-weight:500">Snapdown x5</div>
+                <div style="font-size:13px; color:#6f7d91">Before you leave the house</div>
+                <div style="font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:#93a98f; font-weight:600">Feeds pop</div>
+              </div>
+              <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:30px; line-height:1; color:#e9a648; font-variant-numeric:tabular-nums">0<span style="font-size:16px; color:#6f7d91">/2</span></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 60px; align-items:center; gap:12px; min-height:76px; padding:14px 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px">
+              <div style="min-width:0; display:flex; flex-direction:column; gap:3px">
+                <div style="font-size:17px; font-weight:500">One-leg stand</div>
+                <div style="font-size:13px; color:#6f7d91">Brushing teeth, twice a day</div>
+                <div style="font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:#93a98f; font-weight:600">Feeds balance</div>
+              </div>
+              <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:30px; line-height:1; color:#e9a648; font-variant-numeric:tabular-nums">0<span style="font-size:16px; color:#6f7d91">/10</span></div>
+            </div>
+          </div>
+          <div style="margin-top:auto; display:flex; flex-direction:column; gap:14px">
+            <div style="padding:16px; background:#111a26; border:1px solid #1e2a3c; border-radius:14px; font-size:14px; line-height:1.5; color:#8794a6; text-wrap:pretty">Tap a card to log one, tap again for several. Micros never count as sessions.</div>
+            <button style="height:56px; flex:none; border:1px solid #24324a; border-radius:14px; background:transparent; color:#ece9e3; font-size:16px; font-family:inherit; cursor:pointer">Swap this week’s set</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px">
+        <div style="font-size:13px; letter-spacing:0.12em; text-transform:uppercase; color:#ece9e3; font-weight:600">Micros</div>
+        <div style="font-size:14px; color:#8794a6; line-height:1.45">Cards share a fixed height and a fixed value column, so the counts stack in a straight line whatever the title length. The orphaned footer sentence is now a card with the action beneath it.</div>
+      </div>
+    </div>
+
+    <!-- SKATE -->
+    <div style="display:flex; flex-direction:column; gap:14px; width:390px">
+      <div style="width:390px; height:844px; background:#0e1621; border:1px solid #1e2a3c; border-radius:38px; overflow:hidden; display:flex; flex-direction:column">
+        <div style="height:52px; flex:none; padding:0 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #16202e">
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">Skate</div>
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#e9a648; font-weight:600">Session</div>
+        </div>
+        <div style="flex:1; min-height:0; padding:20px; display:flex; flex-direction:column; gap:12px">
+          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px">
+            <div style="padding:12px 14px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px; display:flex; flex-direction:column; gap:4px">
+              <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:30px; line-height:1; color:#93a98f; font-variant-numeric:tabular-nums">0</div>
+              <div style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:#8794a6; font-weight:600">Mastered</div>
+            </div>
+            <div style="padding:12px 14px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px; display:flex; flex-direction:column; gap:4px">
+              <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:30px; line-height:1; color:#e9a648; font-variant-numeric:tabular-nums">0</div>
+              <div style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:#8794a6; font-weight:600">In progress</div>
+            </div>
+            <div style="padding:12px 14px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px; display:flex; flex-direction:column; gap:4px">
+              <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:30px; line-height:1; color:#ece9e3; font-variant-numeric:tabular-nums">21</div>
+              <div style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:#8794a6; font-weight:600">Tricks</div>
+            </div>
+          </div>
+          <div style="padding:14px 16px; background:#111a26; border:1px solid #24324a; border-radius:14px; display:flex; flex-direction:column; gap:10px">
+            <div style="font-size:16px; font-weight:600">Everything starts locked</div>
+            <div style="font-size:14px; line-height:1.5; color:#8794a6; text-wrap:pretty">Go through the first three tiers and tap anything you can already do until it reads mastered.</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
+              <button style="height:48px; border:1px solid #24324a; border-radius:12px; background:transparent; color:#8794a6; font-size:15px; font-family:inherit; cursor:pointer">Later</button>
+              <button style="height:48px; border:1px solid #e9a648; border-radius:12px; background:transparent; color:#e9a648; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer">Done</button>
+            </div>
+          </div>
+          <div style="display:flex; padding:4px; gap:4px; background:#111a26; border:1px solid #1e2a3c; border-radius:14px">
+            <div style="flex:1; height:44px; display:flex; align-items:center; justify-content:center; border-radius:10px; background:#e9a648; color:#17120a; font-size:15px; font-weight:600">Tier 0</div>
+            <div style="flex:1; height:44px; display:flex; align-items:center; justify-content:center; border-radius:10px; font-size:15px; color:#8794a6">Tier 1</div>
+            <div style="flex:1; height:44px; display:flex; align-items:center; justify-content:center; border-radius:10px; font-size:15px; color:#8794a6">Tier 2</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px">
+            <div style="display:grid; grid-template-columns:1fr 96px; align-items:center; gap:12px; height:58px; padding:0 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px">
+              <div style="min-width:0; display:flex; flex-direction:column; gap:2px">
+                <div style="font-size:16px; color:#a9b3c1">Foot placement reset</div>
+                <div style="font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:#6f7d91; font-weight:600">Foundation</div>
+              </div>
+              <div style="text-align:right; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:#6f7d91; font-weight:600">Locked</div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 96px; align-items:center; gap:12px; height:58px; padding:0 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px">
+              <div style="min-width:0; display:flex; flex-direction:column; gap:2px">
+                <div style="font-size:16px; color:#a9b3c1">Heel-toe press</div>
+                <div style="font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:#6f7d91; font-weight:600">Balance</div>
+              </div>
+              <div style="text-align:right; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:#6f7d91; font-weight:600">Locked</div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 96px; align-items:center; gap:12px; height:58px; padding:0 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px">
+              <div style="min-width:0; display:flex; flex-direction:column; gap:2px">
+                <div style="font-size:16px; color:#a9b3c1">Safe bail reflex</div>
+                <div style="font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:#6f7d91; font-weight:600">Foundation</div>
+              </div>
+              <div style="text-align:right; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:#6f7d91; font-weight:600">Locked</div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 96px; align-items:center; gap:12px; height:58px; padding:0 16px; background:#141f2c; border:1px solid #e9a648; border-radius:14px">
+              <div style="min-width:0; display:flex; flex-direction:column; gap:2px">
+                <div style="font-size:16px">Stance discovery</div>
+                <div style="font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:#e9a648; font-weight:600">Ready · foundation</div>
+              </div>
+              <div style="text-align:right; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:#e9a648; font-weight:600">Start</div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 96px; align-items:center; gap:12px; height:58px; padding:0 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px">
+              <div style="min-width:0; display:flex; flex-direction:column; gap:2px">
+                <div style="font-size:16px; color:#a9b3c1">Static balance</div>
+                <div style="font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:#6f7d91; font-weight:600">Foundation</div>
+              </div>
+              <div style="text-align:right; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:#6f7d91; font-weight:600">Locked</div>
+            </div>
+          </div>
+          <div style="margin-top:auto; padding-top:12px; border-top:1px solid #16202e; font-size:13px; color:#6f7d91">Amber edge: prerequisites mastered.</div>
+        </div>
+        <div style="height:68px; flex:none; display:grid; grid-template-columns:repeat(5, 1fr); border-top:1px solid #16202e">
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Today</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Week</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Form</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#e9a648"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#e9a648; font-weight:600">Skate</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">You</div></div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px">
+        <div style="font-size:13px; letter-spacing:0.12em; text-transform:uppercase; color:#ece9e3; font-weight:600">Skate</div>
+        <div style="font-size:14px; color:#8794a6; line-height:1.45">The three loose numbers in the header became three equal stat cells. Tier 0/1/2 is a full-width segmented control instead of three small pills adrift on the left.</div>
+      </div>
+    </div>
+
+    <!-- STRENGTH -->
+    <div style="display:flex; flex-direction:column; gap:14px; width:390px">
+      <div style="width:390px; height:844px; background:#0e1621; border:1px solid #1e2a3c; border-radius:38px; overflow:hidden; display:flex; flex-direction:column">
+        <div style="height:52px; flex:none; padding:0 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #16202e">
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">‹ Strength</div>
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">5 ladders</div>
+        </div>
+        <div style="flex:1; min-height:0; padding:24px 20px; display:flex; flex-direction:column; gap:20px">
+          <div style="display:flex; align-items:baseline; gap:10px">
+            <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:56px; line-height:0.8; color:#e9a648; font-variant-numeric:tabular-nums">0</div>
+            <div style="font-size:15px; color:#8794a6">levels deep across five ladders</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px">
+            <div style="display:grid; grid-template-columns:1fr 56px; align-items:center; gap:12px; min-height:68px; padding:12px 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px">
+              <div style="min-width:0; display:flex; flex-direction:column; gap:3px">
+                <div style="font-size:17px; font-weight:500">Pull</div>
+                <div style="font-size:13px; color:#8a6528">Nothing on the floor trains this</div>
+              </div>
+              <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:26px; line-height:1; color:#6f7d91; font-variant-numeric:tabular-nums">0<span style="font-size:15px">/0</span></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 56px; align-items:center; gap:12px; min-height:68px; padding:12px 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px">
+              <div style="min-width:0; display:flex; flex-direction:column; gap:3px">
+                <div style="font-size:17px; font-weight:500">Push</div>
+                <div style="font-size:13px; color:#6f7d91">Serves ground push</div>
+              </div>
+              <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:26px; line-height:1; color:#e9a648; font-variant-numeric:tabular-nums">0<span style="font-size:15px; color:#6f7d91">/4</span></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 56px; align-items:center; gap:12px; min-height:68px; padding:12px 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px">
+              <div style="min-width:0; display:flex; flex-direction:column; gap:3px">
+                <div style="font-size:17px; font-weight:500">Single leg</div>
+                <div style="font-size:13px; color:#6f7d91">Serves rise</div>
+              </div>
+              <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:26px; line-height:1; color:#e9a648; font-variant-numeric:tabular-nums">0<span style="font-size:15px; color:#6f7d91">/4</span></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 56px; align-items:center; gap:12px; min-height:68px; padding:12px 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px">
+              <div style="min-width:0; display:flex; flex-direction:column; gap:3px">
+                <div style="font-size:17px; font-weight:500">Hinge</div>
+                <div style="font-size:13px; color:#6f7d91">Serves spinal extension</div>
+              </div>
+              <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:26px; line-height:1; color:#e9a648; font-variant-numeric:tabular-nums">0<span style="font-size:15px; color:#6f7d91">/4</span></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 56px; align-items:center; gap:12px; min-height:68px; padding:12px 16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px">
+              <div style="min-width:0; display:flex; flex-direction:column; gap:3px">
+                <div style="font-size:17px; font-weight:500">Hang</div>
+                <div style="font-size:13px; color:#6f7d91">Serves compression core</div>
+              </div>
+              <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:26px; line-height:1; color:#e9a648; font-variant-numeric:tabular-nums">0<span style="font-size:15px; color:#6f7d91">/4</span></div>
+            </div>
+          </div>
+          <div style="margin-top:auto; display:flex; flex-direction:column; gap:14px">
+            <div style="padding:16px; background:#111a26; border:1px solid #2a2113; border-radius:14px; display:flex; flex-direction:column; gap:6px">
+              <div style="font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:#e9a648; font-weight:600">Unsolved</div>
+              <div style="font-size:14px; line-height:1.5; color:#8794a6; text-wrap:pretty">No pull option indoors from November to March. The template shows a plain note until a bar exists.</div>
+            </div>
+            <button style="height:56px; flex:none; border:1px solid #24324a; border-radius:14px; background:transparent; color:#ece9e3; font-size:16px; font-family:inherit; cursor:pointer">Log a strength day</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px">
+        <div style="font-size:13px; letter-spacing:0.12em; text-transform:uppercase; color:#ece9e3; font-weight:600">Strength</div>
+        <div style="font-size:14px; color:#8794a6; line-height:1.45">The amber warning that sat loose between two cards moved inside the Pull row, so the list stays an unbroken rhythm.</div>
+      </div>
+    </div>
+
+    <!-- PROGRESS -->
+    <div style="display:flex; flex-direction:column; gap:14px; width:390px">
+      <div style="width:390px; height:844px; background:#0e1621; border:1px solid #1e2a3c; border-radius:38px; overflow:hidden; display:flex; flex-direction:column">
+        <div style="height:52px; flex:none; padding:0 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #16202e">
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">‹ Progress</div>
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">Since Aug</div>
+        </div>
+        <div style="flex:1; min-height:0; padding:24px 20px; display:flex; flex-direction:column; gap:20px">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
+            <div style="padding:16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px; display:flex; flex-direction:column; gap:6px">
+              <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:44px; line-height:0.85; color:#e9a648; font-variant-numeric:tabular-nums">0</div>
+              <div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:#8794a6; font-weight:600">Sessions</div>
+            </div>
+            <div style="padding:16px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px; display:flex; flex-direction:column; gap:6px">
+              <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:44px; line-height:0.85; color:#e9a648; font-variant-numeric:tabular-nums">0</div>
+              <div style="font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:#8794a6; font-weight:600">Weeks at target</div>
+            </div>
+          </div>
+          <div style="display:flex; padding:4px; gap:4px; background:#111a26; border:1px solid #1e2a3c; border-radius:14px">
+            <div style="flex:1; height:44px; display:flex; align-items:center; justify-content:center; border-radius:10px; background:#e9a648; color:#17120a; font-size:15px; font-weight:600">All</div>
+            <div style="flex:1; height:44px; display:flex; align-items:center; justify-content:center; border-radius:10px; font-size:15px; color:#8794a6">Milestones</div>
+            <div style="flex:1; height:44px; display:flex; align-items:center; justify-content:center; border-radius:10px; font-size:15px; color:#8794a6">Sessions</div>
+          </div>
+          <div style="flex:1; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:32px 24px; background:#111a26; border:1px solid #1e2a3c; border-radius:16px; text-align:center">
+            <div style="width:44px; height:44px; border-radius:50%; border:2px solid #22314a"></div>
+            <div style="font-size:17px; font-weight:600">Nothing logged yet</div>
+            <div style="font-size:14px; line-height:1.5; color:#8794a6; text-wrap:pretty">Levels, slots, rounds and tricks land here as they happen. Your first Flow will fill this page.</div>
+            <button style="height:48px; padding:0 22px; border:1px solid #e9a648; border-radius:12px; background:transparent; color:#e9a648; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer">Start today’s Flow</button>
+          </div>
+        </div>
+        <div style="height:68px; flex:none; display:grid; grid-template-columns:repeat(5, 1fr); border-top:1px solid #16202e">
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Today</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Week</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Form</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Skate</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#e9a648"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#e9a648; font-weight:600">You</div></div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px">
+        <div style="font-size:13px; letter-spacing:0.12em; text-transform:uppercase; color:#ece9e3; font-weight:600">Progress</div>
+        <div style="font-size:14px; color:#8794a6; line-height:1.45">Two bare numbers with tiny captions became two equal cells. The empty state now fills the screen and offers the one action that ends it.</div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div style="display:flex; flex-direction:column; gap:14px; width:390px">
+      <div style="width:390px; height:844px; background:#0e1621; border:1px solid #1e2a3c; border-radius:38px; overflow:hidden; display:flex; flex-direction:column">
+        <div style="height:52px; flex:none; padding:0 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #16202e">
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">Profile</div>
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#e9a648; font-weight:600">Edit</div>
+        </div>
+        <div style="flex:1; min-height:0; padding:20px; display:flex; flex-direction:column; gap:18px">
+          <div style="display:flex; flex-direction:column; gap:12px">
+            <div style="display:flex; align-items:center; gap:14px">
+              <div style="position:relative; width:76px; height:76px; flex:none; display:flex; align-items:center; justify-content:center; border:2px solid #e9a648; border-radius:20px; background:#141f2c">
+                <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:52px; line-height:0.8; color:#e9a648; font-variant-numeric:tabular-nums">1</div>
+                <div style="position:absolute; bottom:-9px; padding:2px 8px; background:#0e1621; border:1px solid #24324a; border-radius:6px; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#8794a6; font-weight:600">Level</div>
+              </div>
+              <div style="min-width:0; display:flex; flex-direction:column; gap:4px">
+                <div style="font-size:26px; font-weight:600; letter-spacing:-0.01em">Roller</div>
+                <div style="font-size:13px; letter-spacing:0.1em; text-transform:uppercase; color:#8794a6; font-weight:600">Rank 1 of 8 · next: Cruiser</div>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px">
+              <div style="position:relative; height:12px; border-radius:3px; background:#131d29; border:1px solid #1e2a3c; overflow:hidden" style-after="content:''; position:absolute; inset:0; background-image:repeating-linear-gradient(90deg, transparent 0 calc(5% - 2px), #0e1621 calc(5% - 2px) 5%)">
+                <div style="width:30%; height:12px; background:linear-gradient(90deg, #8a6528, #e9a648)"></div>
+              </div>
+              <div style="display:flex; align-items:baseline; justify-content:space-between">
+                <div style="font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:#8794a6; font-weight:600">120 xp</div>
+                <div style="font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">280 to Cruiser</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:14px">
+            <div style="display:flex; align-items:baseline; justify-content:space-between">
+              <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">Attributes</div>
+              <div style="font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:#93a98f; font-weight:600">+3 this month</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:14px">
+              <div style="display:grid; grid-template-columns:104px 1fr 52px; align-items:center; gap:12px">
+                <div style="font-size:15px">Balance</div>
+                <div style="position:relative; height:14px; border-radius:3px; background:#131d29; border:1px solid #1e2a3c; overflow:hidden" style-after="content:''; position:absolute; inset:0; background-image:repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), #0e1621 calc(10% - 2px) 10%)"><div style="width:20%; height:14px; background:linear-gradient(90deg, #c98a34, #e9a648)"></div></div>
+                <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:22px; color:#e9a648; font-variant-numeric:tabular-nums">2</div>
+              </div>
+              <div style="display:grid; grid-template-columns:104px 1fr 52px; align-items:center; gap:12px">
+                <div style="font-size:15px">Power</div>
+                <div style="position:relative; height:14px; border-radius:3px; background:#131d29; border:1px solid #1e2a3c; overflow:hidden" style-after="content:''; position:absolute; inset:0; background-image:repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), #0e1621 calc(10% - 2px) 10%)"><div style="width:30%; height:14px; background:linear-gradient(90deg, #c98a34, #e9a648)"></div></div>
+                <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:22px; color:#e9a648; font-variant-numeric:tabular-nums">3</div>
+              </div>
+              <div style="display:grid; grid-template-columns:104px 1fr 52px; align-items:center; gap:12px">
+                <div style="font-size:15px">Mobility</div>
+                <div style="position:relative; height:14px; border-radius:3px; background:#131d29; border:1px solid #1e2a3c; overflow:hidden" style-after="content:''; position:absolute; inset:0; background-image:repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), #0e1621 calc(10% - 2px) 10%)"><div style="width:30%; height:14px; background:linear-gradient(90deg, #c98a34, #e9a648)"></div></div>
+                <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:22px; color:#e9a648; font-variant-numeric:tabular-nums">3</div>
+              </div>
+              <div style="display:grid; grid-template-columns:104px 1fr 52px; align-items:center; gap:12px">
+                <div style="font-size:15px">Board control</div>
+                <div style="position:relative; height:14px; border-radius:3px; background:#131d29; border:1px solid #1e2a3c; overflow:hidden" style-after="content:''; position:absolute; inset:0; background-image:repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), #0e1621 calc(10% - 2px) 10%)"><div style="width:10%; height:14px; background:linear-gradient(90deg, #c98a34, #e9a648)"></div></div>
+                <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:22px; color:#e9a648; font-variant-numeric:tabular-nums">1</div>
+              </div>
+              <div style="display:grid; grid-template-columns:104px 1fr 52px; align-items:center; gap:12px">
+                <div style="font-size:15px; color:#8794a6">Pop</div>
+                <div style="position:relative; height:14px; border-radius:3px; background:#131d29; border:1px solid #1e2a3c; overflow:hidden" style-after="content:''; position:absolute; inset:0; background-image:repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), #0e1621 calc(10% - 2px) 10%)"><div style="width:2%; height:14px; background:#22314a"></div></div>
+                <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:20px; color:#5d6b80; font-variant-numeric:tabular-nums">0</div>
+              </div>
+              <div style="display:grid; grid-template-columns:104px 1fr 52px; align-items:center; gap:12px">
+                <div style="font-size:15px; color:#8794a6">Nerve</div>
+                <div style="position:relative; height:14px; border-radius:3px; background:#131d29; border:1px solid #1e2a3c; overflow:hidden" style-after="content:''; position:absolute; inset:0; background-image:repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), #0e1621 calc(10% - 2px) 10%)"><div style="width:2%; height:14px; background:#22314a"></div></div>
+                <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:20px; color:#5d6b80; font-variant-numeric:tabular-nums">0</div>
+              </div>
+              <div style="display:grid; grid-template-columns:104px 1fr 52px; align-items:center; gap:12px">
+                <div style="font-size:15px; color:#8794a6">Engine</div>
+                <div style="position:relative; height:14px; border-radius:3px; background:#131d29; border:1px solid #1e2a3c; overflow:hidden" style-after="content:''; position:absolute; inset:0; background-image:repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), #0e1621 calc(10% - 2px) 10%)"><div style="width:2%; height:14px; background:#22314a"></div></div>
+                <div style="text-align:right; font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:20px; color:#5d6b80; font-variant-numeric:tabular-nums">0</div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:auto; display:flex; flex-direction:column; gap:10px">
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px">
+              <div style="padding:12px 14px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px; display:flex; flex-direction:column; gap:3px">
+                <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:28px; line-height:1; color:#ece9e3; font-variant-numeric:tabular-nums">6</div>
+                <div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#8794a6; font-weight:600">Sessions</div>
+              </div>
+              <div style="padding:12px 14px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px; display:flex; flex-direction:column; gap:3px">
+                <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:28px; line-height:1; color:#93a98f; font-variant-numeric:tabular-nums">2<span style="font-size:16px; color:#6f7d91">/21</span></div>
+                <div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#8794a6; font-weight:600">Tricks</div>
+              </div>
+              <div style="padding:12px 14px; background:#141f2c; border:1px solid #1e2a3c; border-radius:14px; display:flex; flex-direction:column; gap:3px">
+                <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:28px; line-height:1; color:#ece9e3; font-variant-numeric:tabular-nums">2</div>
+                <div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#8794a6; font-weight:600">Week streak</div>
+              </div>
+            </div>
+            <div style="padding:14px 16px; background:#111a26; border:1px solid #24324a; border-radius:14px; display:grid; grid-template-columns:1fr auto; align-items:center; gap:12px">
+              <div style="min-width:0; display:flex; flex-direction:column; gap:3px">
+                <div style="font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:#e9a648; font-weight:600">Next unlock</div>
+                <div style="font-size:15px">Board control 2 opens the powerslide</div>
+              </div>
+              <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:24px; line-height:1; color:#e9a648; font-variant-numeric:tabular-nums">1<span style="font-size:14px; color:#6f7d91">/2</span></div>
+            </div>
+          </div>
+        </div>
+        <div style="height:68px; flex:none; display:grid; grid-template-columns:repeat(5, 1fr); border-top:1px solid #16202e">
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Today</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Week</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Form</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#2b384c"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#6f7d91; font-weight:600">Skate</div></div>
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px"><div style="width:6px; height:6px; border-radius:50%; background:#e9a648"></div><div style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#e9a648; font-weight:600">You</div></div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px">
+        <div style="font-size:13px; letter-spacing:0.12em; text-transform:uppercase; color:#ece9e3; font-weight:600">Profile</div>
+        <div style="font-size:14px; color:#8794a6; line-height:1.45">The radar chart clipped “Mobility” and “Nerve” off both edges. Seven bars on one grid read the same information, fit the width, and rank the weak axes for you.</div>
+      </div>
+    </div>
+
+    <!-- ROUTES -->
+    <div style="display:flex; flex-direction:column; gap:14px; width:390px">
+      <div style="width:390px; height:844px; background:#0e1621; border:1px solid #1e2a3c; border-radius:38px; overflow:hidden; display:flex; flex-direction:column">
+        <div style="height:52px; flex:none; padding:0 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #16202e">
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">‹ Routes</div>
+          <div style="font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#8794a6; font-weight:600">Berouw 74</div>
+        </div>
+        <div style="flex:1; min-height:0; padding:20px; display:flex; flex-direction:column; gap:14px">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; padding:0 2px 2px">
+            <div style="font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:#8794a6; font-weight:600">Door to door</div>
+            <div style="font-size:12px; color:#6f7d91">incl. 0.9 km each way to Bataviabrug</div>
+          </div>
+          <div style="padding:20px 18px; background:#141f2c; border:1px solid #1e2a3c; border-radius:16px; display:flex; flex-direction:column; gap:12px">
+            <div style="display:flex; align-items:baseline; gap:8px">
+              <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:38px; line-height:0.8; color:#e9a648; font-variant-numeric:tabular-nums">3.3</div>
+              <div style="font-size:14px; letter-spacing:0.1em; text-transform:uppercase; color:#8794a6; font-weight:600">km</div>
+              <div style="margin-left:auto; font-size:17px; font-weight:500">Two Bridges</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+              <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#e9a648; font-weight:600">Bataviabrug</div>
+              <div style="font-size:13px; color:#3f4c60">›</div>
+              <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#e9a648; font-weight:600">Matadibrug</div>
+            </div>
+            <div style="font-size:14px; line-height:1.45; color:#8794a6; text-wrap:pretty">Cross at Batavia, down the Koopvaardijlaan, back over Matadi.</div>
+            <div style="display:grid; grid-template-columns:1fr auto; align-items:center; gap:12px">
+              <div style="font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:#6f7d91; font-weight:600">Quiet 4/5 · 2 laps = 6.6</div>
+              <button style="height:44px; padding:0 20px; border:1px solid #e9a648; border-radius:12px; background:transparent; color:#e9a648; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer">Run this</button>
+            </div>
+          </div>
+          <div style="padding:20px 18px; background:#141f2c; border:1px solid #1e2a3c; border-radius:16px; display:flex; flex-direction:column; gap:12px">
+            <div style="display:flex; align-items:baseline; gap:8px">
+              <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:38px; line-height:0.8; color:#e9a648; font-variant-numeric:tabular-nums">4.1</div>
+              <div style="font-size:14px; letter-spacing:0.1em; text-transform:uppercase; color:#8794a6; font-weight:600">km</div>
+              <div style="margin-left:auto; font-size:17px; font-weight:500">Muidelaan Turn</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+              <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#e9a648; font-weight:600">Matadibrug</div>
+              <div style="font-size:13px; color:#3f4c60">›</div>
+              <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#e9a648; font-weight:600">Verapazbrug</div>
+            </div>
+            <div style="font-size:14px; line-height:1.45; color:#8794a6; text-wrap:pretty">South to Matadi, north along the Nieuwe Dokken, back at Muidelaan.</div>
+            <div style="display:grid; grid-template-columns:1fr auto; align-items:center; gap:12px">
+              <div style="font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:#6f7d91; font-weight:600">Quiet 5/5 · 2 laps = 8.2</div>
+              <button style="height:44px; padding:0 20px; border:1px solid #e9a648; border-radius:12px; background:transparent; color:#e9a648; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer">Run this</button>
+            </div>
+          </div>
+          <div style="padding:20px 18px; background:#141f2c; border:1px solid #1e2a3c; border-radius:16px; display:flex; flex-direction:column; gap:12px">
+            <div style="display:flex; align-items:baseline; gap:8px">
+              <div style="font-family:'Avenir Next Condensed','Arial Narrow',sans-serif; font-stretch:condensed; font-weight:600; font-size:38px; line-height:0.8; color:#e9a648; font-variant-numeric:tabular-nums">5.5</div>
+              <div style="font-size:14px; letter-spacing:0.1em; text-transform:uppercase; color:#8794a6; font-weight:600">km</div>
+              <div style="margin-left:auto; font-size:17px; font-weight:500">The Big Tour</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+              <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#e9a648; font-weight:600">Matadibrug</div>
+              <div style="font-size:13px; color:#3f4c60">›</div>
+              <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#e9a648; font-weight:600">Muidebrug</div>
+              <div style="font-size:13px; color:#3f4c60">›</div>
+              <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#e9a648; font-weight:600">Bataviabrug</div>
+            </div>
+            <div style="font-size:14px; line-height:1.45; color:#8794a6; text-wrap:pretty">Full east quay, round Zeppospark, back down the west quay.</div>
+            <div style="display:grid; grid-template-columns:1fr auto; align-items:center; gap:12px">
+              <div style="font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:#6f7d91; font-weight:600">Longest · car-free</div>
+              <button style="height:44px; padding:0 20px; border:1px solid #e9a648; border-radius:12px; background:transparent; color:#e9a648; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer">Run this</button>
+            </div>
+          </div>
+          <div style="margin-top:auto; padding-top:16px; border-top:1px solid #16202e; display:flex; align-items:baseline; justify-content:space-between; gap:12px">
+            <div style="font-size:13px; color:#6f7d91">Distances are estimates until your first GPS run.</div>
+            <div style="font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:#e9a648; font-weight:600">Add route</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px">
+        <div style="font-size:13px; letter-spacing:0.12em; text-transform:uppercase; color:#ece9e3; font-weight:600">Routes</div>
+        <div style="font-size:14px; color:#8794a6; line-height:1.45">Your three loops, named and measured. Every distance is door to door — the 0.9 km from Berouw 74 to the Bataviabrug and the 0.9 km back are included. The bridge sequence is the route’s identity, which is how you describe a run; lap hints cover the longer days.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

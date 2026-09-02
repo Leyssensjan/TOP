@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FlowQuest · Routes map</title>
+<link rel="stylesheet" id="leaflet-css" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --ink:#0e1621; --raised:#141f2c; --line:#1e2a3c; --edge:#24324a;
+    --amber:#e9a648; --sage:#93a98f; --text:#ece9e3; --muted:#8794a6;
+    --condensed:'Avenir Next Condensed','Arial Narrow',sans-serif;
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    margin:0; background:#080c12; color:var(--text);
+    font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    display:flex; align-items:flex-start; justify-content:center; gap:40px;
+    padding:48px; min-height:100vh;
+  }
+  a { color:var(--amber); text-decoration:none; }
+  a:hover { color:#f2bc6b; }
+  .phone {
+    width:390px; height:844px; flex:none; background:var(--ink);
+    border:1px solid var(--line); border-radius:38px; overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  .bar {
+    height:52px; flex:none; padding:0 20px; display:flex; align-items:center;
+    justify-content:space-between; border-bottom:1px solid #16202e;
+  }
+  .cap { font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .cap.amber { color:var(--amber); }
+  .seg { display:flex; gap:3px; padding:4px; margin:12px 16px 0; background:#111a26; border:1px solid var(--line); border-radius:14px; overflow-x:auto; scrollbar-width:none; }
+  .seg::-webkit-scrollbar { display:none; }
+  .seg button {
+    flex:none; padding:0 9px; height:44px; border:none; border-radius:10px; background:transparent;
+    color:var(--muted); font:inherit; font-size:13px; cursor:pointer; white-space:nowrap;
+  }
+  .seg button[aria-pressed="true"] { background:var(--amber); color:#17120a; font-weight:600; }
+  #map { height:400px; flex:none; margin:12px 16px 0; border-radius:16px; overflow:hidden; background:#101a26; }
+  .leaflet-container { background:#101a26; }
+  .leaflet-tile-pane { filter:brightness(0.62) saturate(0.55) contrast(1.08); }
+  .leaflet-control-attribution { background:rgba(14,22,33,0.82) !important; color:#6f7d91 !important; font-size:10px; }
+  .leaflet-control-attribution a { color:#8794a6 !important; }
+  .sheet { flex:none; padding:16px; display:flex; flex-direction:column; gap:12px; }
+  .head { display:flex; align-items:baseline; gap:8px; }
+  .num { font-family:var(--condensed); font-stretch:condensed; font-weight:600; font-size:40px; line-height:0.8; color:var(--amber); font-variant-numeric:tabular-nums; }
+  .unit { font-size:14px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .name { margin-left:auto; font-size:17px; font-weight:500; }
+  .desc { font-size:14px; line-height:1.5; color:var(--muted); text-wrap:pretty; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; }
+  .chip { padding:5px 10px; border:1px solid var(--line); border-radius:8px; font-size:12px; color:var(--muted); }
+  .laps { display:grid; grid-template-columns:1fr auto; align-items:center; gap:12px; }
+  .lapcap { font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .lapbtns { display:flex; gap:6px; }
+  .lapbtns button {
+    width:44px; height:40px; border-radius:10px; border:1px solid var(--line);
+    background:transparent; color:var(--muted); font:inherit; font-size:15px; cursor:pointer;
+  }
+  .lapbtns button[aria-pressed="true"] { border-color:var(--amber); color:var(--amber); font-weight:600; }
+  .actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .actions button {
+    height:48px; border-radius:12px; font:inherit; font-size:15px; cursor:pointer;
+    background:transparent; border:1px solid var(--edge); color:var(--muted);
+  }
+  .actions button.go { border-color:var(--amber); color:var(--amber); font-weight:600; }
+  .notes { width:340px; display:flex; flex-direction:column; gap:12px; padding-top:8px; }
+  .notes h1 { margin:0; font-size:24px; font-weight:600; letter-spacing:-0.01em; }
+  .notes p { margin:0; font-size:14px; line-height:1.55; color:var(--muted); text-wrap:pretty; }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="bar">
+      <div class="cap">&lsaquo; Routes</div>
+      <div class="cap amber">List</div>
+    </div>
+    <div class="seg" id="seg"></div>
+    <div id="map"></div>
+    <div class="sheet">
+      <div class="head">
+        <div class="num" id="dist">–</div>
+        <div class="unit">km</div>
+        <div class="name" id="name">Oude Dokken loop</div>
+      </div>
+      <div class="desc" id="desc"></div>
+      <div class="chips" id="chips"></div>
+      <div class="laps">
+        <div class="lapcap">Laps</div>
+        <div class="lapbtns" id="laps">
+          <button type="button" aria-pressed="true">1</button>
+          <button type="button" aria-pressed="false">2</button>
+          <button type="button" aria-pressed="false">3</button>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="go">Run this</button>
+        <button id="fit">Recentre</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <h1>Routes, on the actual map</h1>
+    <p>Real OpenStreetMap tiles, darkened to sit inside the app's ink palette, with the route drawn over them in amber. Tap a route to switch; pinch and drag to look around. Start and finish are marked at Berouw.</p>
+    <p>Five loops built from the run you described — Doornzelestraat out, then whichever bridge you feel like: Bataviabrug, Matadibrug, Verapazbrug, or all the way to the Muidebrug. Amber dots mark the bridges; laps multiply the distance, which is how you said you stretch a run.</p>
+    <p>Quay legs are snapped to the OpenStreetMap footpath network (OSRM). Where the router's data predates a dock bridge it tries to detour kilometres around it, so any leg that routes more than 2.6× its straight-line length is drawn direct instead — which means the kilometre figures are close but conservative until you run one with GPS and the recorded track replaces it.</p>
+    <p>This screen is plain HTML with Leaflet, so it drops into the Next app as a client component with the same markup. OSM's public tile server rate-limits sandboxed previews, so an occasional grey "access blocked" tile here is the preview, not the code — from your own Vercel domain the tiles load normally.</p>
+  </div>
+
+<script>
+  // Anchor points looked up from OpenStreetMap; bridge crossings are drawn
+  // explicitly because the public router's data predates the newer dock bridges
+  // and detours kilometres around them.
+  var HOME=[51.0634,3.7264], DZ=[51.0643,3.7324], DOKN=[51.0662,3.7323],
+      HOUT=[51.0706,3.7316], ZEPPO=[51.0708,3.7323], NIEUW=[51.0657,3.7368],
+      KOOP=[51.0613,3.7382], KLEIN=[51.0586,3.7386], DAMP=[51.0570,3.7396],
+      BAT_W=[51.0647,3.7347], BAT_E=[51.0649,3.7370],
+      MAT_W=[51.0617,3.7362], MAT_E=[51.0621,3.7381],
+      VER_W=[51.0680,3.7328], VER_E=[51.0680,3.7349],
+      MUI_W=[51.0702,3.7294], MUI_E=[51.0704,3.7311];
+
+  var ROUTES = [
+    {
+      key:'batavia', label:'Batavia', name:'Batavia – Matadi',
+      desc:'Doornzelestraat to the Bataviabrug, down the Koopvaardijlaan side, back over the Matadibrug. The short one before work.',
+      chips:['2 bridges','Car-free quay','Quiet 4/5'],
+      legs:[['p',[HOME,DZ,[51.0645,3.7340],BAT_W]],['b',[BAT_W,BAT_E],'Bataviabrug'],
+            ['p',[BAT_E,KOOP,MAT_E]],['b',[MAT_E,MAT_W],'Matadibrug'],
+            ['p',[MAT_W,[51.0625,3.7330],HOME]]]
+    },
+    {
+      key:'verapaz', label:'Verapaz', name:'Nieuwe Dokken loop',
+      desc:'Over the Bataviabrug, north along the Nieuwe Dokken, back across the Verapazbrug and down Dok Noord.',
+      chips:['2 bridges','Nieuwe Dokken','Quiet 5/5'],
+      legs:[['p',[HOME,DZ,[51.0645,3.7340],BAT_W]],['b',[BAT_W,BAT_E],'Bataviabrug'],
+            ['p',[BAT_E,NIEUW,VER_E]],['b',[VER_E,VER_W],'Verapazbrug'],
+            ['p',[VER_W,DOKN,DZ,HOME]]]
+    },
+    {
+      key:'zeppos', label:'Zeppos', name:'Zeppospark loop',
+      desc:'Bataviabrug, the full east quay past the Nieuwe Dokken, back over the Verapazbrug and round Kapitein Zeppospark and the Houtdok.',
+      chips:['2 bridges','Park + Houtdok','Quiet 5/5'],
+      legs:[['p',[HOME,DZ,[51.0645,3.7340],BAT_W]],['b',[BAT_W,BAT_E],'Bataviabrug'],
+            ['p',[BAT_E,NIEUW,[51.0672,3.7360],VER_E]],['b',[VER_E,VER_W],'Verapazbrug'],
+            ['p',[VER_W,ZEPPO,HOUT,[51.0690,3.7305],DOKN,DZ,HOME]]]
+    },
+    {
+      key:'muide', label:'Muide', name:'Muidebrug big loop',
+      desc:'The whole dock: east quay all the way north, across the Muidebrug, round the Houtdok and back down the west quay to Dok Noord.',
+      chips:['2 bridges','Longest loop','Quiet 5/5'],
+      legs:[['p',[HOME,DZ,[51.0645,3.7340],BAT_W]],['b',[BAT_W,BAT_E],'Bataviabrug'],
+            ['p',[BAT_E,NIEUW,VER_E,MUI_E]],['b',[MUI_E,MUI_W],'Muidebrug'],
+            ['p',[MUI_W,HOUT,ZEPPO,[51.0690,3.7302],DOKN,DZ,HOME]]]
+    },
+    {
+      key:'dampoort', label:'Dampoort', name:'Matadi to Dampoort',
+      desc:'South over the Matadibrug, along the Kleindokkaai to Dampoort, then back the same quay and over the Matadibrug again. One busy junction at the station.',
+      chips:['Matadibrug twice','Busy at Dampoort','Quiet 3/5'],
+      legs:[['p',[HOME,DZ,[51.0630,3.7330],MAT_W]],['b',[MAT_W,MAT_E],'Matadibrug'],
+            ['p',[MAT_E,KLEIN,DAMP]],['p',[DAMP,KLEIN,MAT_E]],['b',[MAT_E,MAT_W],'Matadibrug'],
+            ['p',[MAT_W,[51.0625,3.7330],HOME]]]
+    }
+  ];
+
+  var el = document.getElementById('map');
+  var map, layer, current = 0, fitBoundsOf = null;
+
+  function fit() { if (fitBoundsOf) map.fitBounds(fitBoundsOf, { padding:[26,26] }); }
+
+  function haversine(a, b) {
+    var R = 6371000, p = Math.PI / 180;
+    var dLat = (b[0]-a[0]) * p, dLon = (b[1]-a[1]) * p;
+    var s = Math.sin(dLat/2)*Math.sin(dLat/2) +
+            Math.cos(a[0]*p)*Math.cos(b[0]*p)*Math.sin(dLon/2)*Math.sin(dLon/2);
+    return 2 * R * Math.asin(Math.sqrt(s));
+  }
+
+  function osrm(a, b) {
+    var coords = a[1] + ',' + a[0] + ';' + b[1] + ',' + b[0];
+    var direct = haversine(a, b);
+    return fetch('https://router.project-osrm.org/route/v1/foot/' + coords + '?overview=full&geometries=geojson')
+      .then(function (res) { return res.json(); })
+      .then(function (j) {
+        if (!j.routes || !j.routes.length) throw new Error(j.code || 'no route');
+        var d = j.routes[0].distance;
+        // A leg that routes far longer than the straight line means the router's
+        // OSM extract is missing a crossing; trust the direct line instead.
+        if (direct > 60 && d > direct * 2.6 && d - direct > 400) throw new Error('detour');
+        return {
+          line: j.routes[0].geometry.coordinates.map(function (c) { return [c[1], c[0]]; }),
+          dist: d
+        };
+      });
+  }
+
+  function snap(r, done) {
+    if (r.built) { done(); return; }
+    var cached = null;
+    try { cached = JSON.parse(localStorage.getItem('fq.route.v6.' + r.key) || 'null'); } catch (e) {}
+    if (cached && cached.line && cached.line.length > 10) {
+      r.built = cached; r.dist = cached.dist; done(); return;
+    }
+    var line = [], meters = 0, bridges = [], jobs = [];
+    r.legs.forEach(function (leg) {
+      if (leg[0] === 'b') {
+        jobs.push(function () {
+          line = line.concat(leg[1]);
+          meters += haversine(leg[1][0], leg[1][1]);
+          bridges.push({ at:[(leg[1][0][0]+leg[1][1][0])/2, (leg[1][0][1]+leg[1][1][1])/2], name:leg[2] });
+          return Promise.resolve();
+        });
+        return;
+      }
+      leg[1].forEach(function (pt, n) {
+        if (!n) return;
+        var a = leg[1][n-1], b = pt;
+        jobs.push(function () {
+          return osrm(a, b)
+            .then(function (o) { line = line.concat(o.line); meters += o.dist; })
+            .catch(function () { line = line.concat([a, b]); meters += haversine(a, b); r.approx = true; });
+        });
+      });
+    });
+    jobs.reduce(function (p, job) { return p.then(job); }, Promise.resolve()).then(function () {
+      r.built = { line:line, bridges:bridges, dist:(meters/1000).toFixed(1) };
+      r.dist = r.built.dist;
+      try { localStorage.setItem('fq.route.v6.' + r.key, JSON.stringify(r.built)); } catch (e) {}
+      done();
+    });
+  }
+
+  var laps = 1;
+
+  function draw(i) {
+    current = i;
+    var r = ROUTES[i];
+    document.getElementById('dist').textContent = r.dist ? (r.dist * laps).toFixed(1) : '–';
+    document.getElementById('name').textContent = r.name;
+    document.getElementById('desc').textContent = r.desc;
+    document.getElementById('chips').innerHTML = r.chips
+      .map(function (c) { return '<div class="chip">' + c + '</div>'; }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('#seg button'), function (b, n) {
+      b.setAttribute('aria-pressed', n === i ? 'true' : 'false');
+    });
+    if (!map) return;
+    if (!r.built) { snap(r, function () { if (current === i) draw(i); }); return; }
+    var line = r.built.line;
+    layer.clearLayers();
+    L.polyline(line, { color:'#000000', opacity:0.35, weight:9, lineCap:'round' }).addTo(layer);
+    var path = L.polyline(line, { color:'#e9a648', weight:4, opacity:0.95, lineCap:'round' }).addTo(layer);
+    (r.built.bridges || []).forEach(function (b) {
+      L.circleMarker(b.at, { radius:5, color:'#e9a648', weight:2, fillColor:'#0e1621', fillOpacity:1 })
+        .addTo(layer).bindTooltip(b.name, { direction:'top' });
+    });
+    L.circleMarker(line[0], { radius:6, color:'#93a98f', weight:3, fillColor:'#0e1621', fillOpacity:1 })
+      .addTo(layer).bindTooltip('Home · Berouw', { direction:'right' });
+    fitBoundsOf = path.getBounds();
+    fit();
+  }
+
+  // Leaflet pins its zoom and stops re-projecting if it is constructed against a
+  // 0x0 box, and that cannot be repaired afterwards — so only build it once the
+  // container reports a real size.
+  function build() {
+    if (map || !el.clientWidth || !el.clientHeight) return;
+    map = L.map(el, { zoomControl:false, attributionControl:true, fadeAnimation:false })
+      .setView([51.070,3.732], 13);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom:19,
+      attribution:'© OpenStreetMap contributors'
+    }).addTo(map);
+    layer = L.layerGroup().addTo(map);
+    draw(current);
+  }
+
+  document.getElementById('seg').innerHTML = ROUTES
+    .map(function (r) { return '<button type="button">' + r.label + '</button>'; }).join('');
+  Array.prototype.forEach.call(document.querySelectorAll('#seg button'), function (b, n) {
+    b.addEventListener('click', function () { build(); draw(n); });
+  });
+  document.getElementById('fit').addEventListener('click', function () { build(); draw(current); });
+
+  Array.prototype.forEach.call(document.querySelectorAll('#laps button'), function (b, n) {
+    b.addEventListener('click', function () {
+      laps = n + 1;
+      Array.prototype.forEach.call(document.querySelectorAll('#laps button'), function (o, m) {
+        o.setAttribute('aria-pressed', m === n ? 'true' : 'false');
+      });
+      draw(current);
+    });
+  });
+
+  new ResizeObserver(function () {
+    if (!map) { build(); return; }
+    if (el.clientHeight && map.getSize().y !== el.clientHeight) { map.invalidateSize(); fit(); }
+  }).observe(el);
+
+  draw(0);
+  build();
+  // Timers, not requestAnimationFrame: rAF is suspended in backgrounded iframes,
+  // and the container measures 0 until the render-blocking stylesheet resolves.
+  document.addEventListener('DOMContentLoaded', build);
+  window.addEventListener('load', build);
+  var css = document.getElementById('leaflet-css');
+  if (css) { css.addEventListener('load', build); }
+  var tries = 0;
+  var timer = setInterval(function () {
+    build();
+    if (map || ++tries > 100) clearInterval(timer);
+  }, 100);
+</script>
+</body>
+</html>

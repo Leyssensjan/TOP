@@ -9,8 +9,21 @@
   --text: #ece9e3;
   --muted: #8a94a4;
 
+  /* The layout pass. Cards sit slightly cooler than --ink-raised, and the
+     hairline is darker than --ink-line so a rule reads quieter than a border. */
+  --card: #141f2c;
+  --card-line: #1e2a3c;
+  --hairline: #16202e;
+  --sunken: #111a26;
+  --dim: #6f7d91;
+  --dimmer: #5d6b80;
+  --dimmest: #3f4c60;
+  --inactive: #2b384c;
+
   --tap: 56px;
   --pad: 20px;
+  --header: 52px;
+  --tabbar: 68px;
 
   /* iOS ships Avenir Next Condensed, which is the characterful condensed face.
      Everything falls back to a narrow grotesque, then to the system sans. */
@@ -94,10 +107,10 @@ button {
 .btn-primary {
   background: var(--amber);
   border-color: var(--amber);
-  color: #1a1206;
+  color: #17120a;
   font-weight: 600;
-  min-height: 68px;
-  font-size: 20px;
+  min-height: var(--tap);
+  font-size: 17px;
 }
 
 .btn-primary:active {
@@ -132,6 +145,336 @@ button {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* --- the shared layout system -------------------------------------------- */
+/* Every screen is the same three pieces: a fixed header, a content column that
+   fits, and either a tab bar or nothing. Most of what read as ugly was each
+   screen inventing its own version of these. */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+}
+
+.app-header {
+  height: var(--header);
+  flex: none;
+  padding: 0 var(--pad);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--hairline);
+  padding-top: env(safe-area-inset-top);
+  height: calc(var(--header) + env(safe-area-inset-top));
+}
+
+.app-content {
+  flex: 1;
+  min-height: 0;
+  padding: 24px var(--pad);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Screens with no tab bar still keep clear of the home indicator. */
+.app-content:last-child {
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+}
+
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.eyebrow-action {
+  color: var(--amber);
+}
+
+/* Footers sit at the bottom of the content column rather than wherever the
+   content happens to run out. */
+.pinned {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+}
+
+/* --- the bottom tab bar --------------------------------------------------- */
+
+.tabbar {
+  height: var(--tabbar);
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  border-top: 1px solid var(--hairline);
+  padding-bottom: env(safe-area-inset-bottom);
+  height: calc(var(--tabbar) + env(safe-area-inset-bottom));
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.tab-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--inactive);
+}
+
+.tab-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--dim);
+}
+
+.tab[aria-current='page'] .tab-dot {
+  background: var(--amber);
+}
+
+.tab[aria-current='page'] .tab-label {
+  color: var(--amber);
+}
+
+/* --- the list row: one shape everywhere ----------------------------------- */
+/* The fixed value column is the whole point. It is what makes the numbers line
+   up down the page instead of each row placing its own. */
+
+.row {
+  display: grid;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 12px 16px;
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  border-radius: 14px;
+  width: 100%;
+  text-align: left;
+}
+
+.row-dense {
+  min-height: 58px;
+  border-radius: 12px;
+}
+
+.row-quiet {
+  background: transparent;
+  border-color: var(--hairline);
+}
+
+.row-live {
+  border-color: var(--amber);
+}
+
+.row-index {
+  font-size: 13px;
+  color: var(--dimmer);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Titles truncate rather than push, so a long name never changes row height. */
+.row-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.row-title {
+  font-size: 16px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row-sub {
+  font-size: 13px;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row-value {
+  text-align: right;
+  font-family: var(--condensed);
+  font-stretch: condensed;
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--amber);
+  font-variant-numeric: tabular-nums;
+}
+
+.row-value-zero {
+  color: var(--dimmer);
+}
+
+.row-value span {
+  font-size: 15px;
+  color: var(--dim);
+}
+
+/* A status word stands in the same column a number would have used. */
+.row-status {
+  text-align: right;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--dim);
+}
+
+/* --- segmented control ---------------------------------------------------- */
+
+.seg {
+  display: flex;
+  padding: 4px;
+  gap: 4px;
+  background: var(--sunken);
+  border: 1px solid var(--card-line);
+  border-radius: 14px;
+}
+
+.seg > button {
+  flex: 1;
+  height: 44px;
+  border-radius: 10px;
+  font-size: 15px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seg > button[aria-pressed='true'] {
+  background: var(--amber);
+  color: #17120a;
+  font-weight: 600;
+}
+
+/* --- stat cells ----------------------------------------------------------- */
+
+.cells {
+  display: grid;
+  gap: 8px;
+}
+
+.cell {
+  padding: 14px;
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  border-radius: 14px;
+}
+
+.cell-num {
+  font-family: var(--condensed);
+  font-stretch: condensed;
+  font-weight: 600;
+  font-size: 32px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.cell-cap {
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* --- hero number ---------------------------------------------------------- */
+/* The unit sits on the number's baseline, and the meta line never wraps around
+   the number. Both were wrong before. */
+
+.hero {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.hero-num {
+  font-family: var(--condensed);
+  font-stretch: condensed;
+  font-weight: 600;
+  font-size: 80px;
+  line-height: 0.8;
+  color: var(--amber);
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-unit {
+  font-size: 20px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.hero-meta {
+  font-size: 15px;
+  color: var(--muted);
+}
+
+/* --- note card ------------------------------------------------------------ */
+
+.note {
+  padding: 14px 16px;
+  background: var(--sunken);
+  border: 1px solid var(--ink-line);
+  border-radius: 14px;
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.note-warn {
+  border-color: #2a2113;
+}
+
+/* --- buttons, at the pass's heights --------------------------------------- */
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--ink-line);
+  color: var(--text);
+  font-size: 16px;
+}
+
+.btn-inline {
+  min-height: 48px;
+  border-radius: 12px;
+  background: transparent;
+  font-size: 15px;
+  padding: 12px 16px;
+}
+
+.btn-amber-outline {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 @media (prefers-reduced-motion: reduce) {
