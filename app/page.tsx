@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Detail from '@/components/Detail';
+import { Header, HeaderFact, Hero, Section, TabBar } from '@/components/Chrome';
 import { unlockSound } from '@/lib/client/sound';
 import type { SessionPlan } from '@/lib/rules';
 import { minutes, titleCase } from '@/lib/format';
@@ -22,19 +23,16 @@ import {
 
 type Status = 'loading' | 'ready' | 'nokey' | 'error';
 
-/** No icons: eight invented glyphs at 6am is more to decode, not less. */
-const DOMAINS = [
-  { label: 'Form', path: '/form' },
-  { label: 'Strength', path: '/strength' },
-  { label: 'Skate', path: '/skate' },
-];
-
-const UTILITIES = [
-  { label: 'Profile', path: '/profile' },
-  { label: 'Progress', path: '/progress' },
-  { label: 'Week', path: '/week' },
-  { label: 'Routes', path: '/routes' },
-];
+/** Tue 2 Sep. The header's right-hand fact. */
+function dayLabel(date: string): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  return new Intl.DateTimeFormat('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(d);
+}
 
 export default function TodayPage() {
   const router = useRouter();
@@ -214,209 +212,76 @@ export default function TodayPage() {
   const loggedMinutes = payload.loggedToday.reduce((n, l) => n + (l.actualMinutes ?? 0), 0);
 
   return (
-    <main className="screen">
-      {/* Above the fold: type, duration, one button. Nothing else. */}
-      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8, paddingTop: 8 }}>
-        <p className="label" style={{ margin: 0 }}>
-          {done ? 'Today' : payload.rest ? 'Planned rest' : titleCase(session.type)}
-        </p>
-        {/* Done for the day: the same card, just smaller and out of the way. */}
-        <div
-          className="num"
-          style={{
-            fontSize: done ? 'clamp(48px, 16vw, 68px)' : 'clamp(92px, 34vw, 150px)',
-            color: done ? 'var(--sage)' : payload.rest ? 'var(--muted)' : 'var(--amber)',
-          }}
-        >
-          {done ? loggedMinutes : minutes(session.totalSeconds) || session.targetMinutes}
-          <span style={{ fontSize: '0.28em', color: 'var(--muted)', marginLeft: 10 }}>MIN</span>
-        </div>
-        {/* The most important small thing in the app: the only place the arc
-            is stated every single morning. The horizon clause is amber. */}
-        {done && <p style={{ margin: '0 0 18px', color: 'var(--muted)' }}>Done!</p>}
+    <main className="app">
+      <Header
+        title={done ? 'Today' : payload.rest ? 'Planned rest' : titleCase(session.type)}
+        right={<HeaderFact>{dayLabel(payload.date)}</HeaderFact>}
+      />
 
-        {!done && (
-        <p style={{ margin: '0 0 22px', color: 'var(--muted)' }}>
-          {hasMovements
-            ? `${session.movements.length} movements · ${session.rounds} ${session.rounds === 1 ? 'round' : 'rounds'}`
-            : hasStrength
-              ? `${strengthMovements} lifts · ${session.strength!.blocks.filter((b) => !b.warmUp).length} blocks`
-              : hasSkate
-                ? `${skateTricks} ${skateTricks === 1 ? 'trick' : 'tricks'} · ${session.skate!.blocks.length} blocks`
-                : (session.note ?? '')}
-          {payload.rest && `${titleCase(session.type)} if you want it · `}
-          {payload.horizon && payload.horizon.inSessions !== null && (
-            <span style={{ color: 'var(--amber)' }}>
-              {' · '}
-              slot {payload.horizon.slot} in {payload.horizon.inSessions} sessions
-            </span>
-          )}
-        </p>
-        )}
+      <div className="app-content">
+        {/* Above the fold: type, duration, one button. Nothing else. */}
+        <Hero
+          value={done ? loggedMinutes : minutes(session.totalSeconds) || session.targetMinutes}
+          unit="min"
+          tone={done ? 'sage' : payload.rest ? 'muted' : 'amber'}
+          meta={
+            done ? (
+              'Done!'
+            ) : (
+              <>
+                {hasMovements
+                  ? `${session.movements.length} movements · ${session.rounds} ${session.rounds === 1 ? 'round' : 'rounds'}`
+                  : hasStrength
+                    ? `${strengthMovements} lifts · ${session.strength!.blocks.filter((b) => !b.warmUp).length} blocks`
+                    : hasSkate
+                      ? `${skateTricks} ${skateTricks === 1 ? 'trick' : 'tricks'} · ${session.skate!.blocks.length} blocks`
+                      : (session.note ?? '')}
+                {payload.rest && ` · ${titleCase(session.type)} if you want it`}
+                {/* The only place the arc is stated every single morning. */}
+                {payload.horizon && payload.horizon.inSessions !== null && (
+                  <span style={{ color: 'var(--amber)' }}>
+                    {' · '}
+                    slot {payload.horizon.slot} in {payload.horizon.inSessions} sessions
+                  </span>
+                )}
+              </>
+            )
+          }
+        />
 
         {/* A planned rest day still offers the session, quietly. The plan is a
             decision already made, not a lock. */}
-        <button
-          className={payload.rest ? 'btn btn-quiet' : 'btn btn-primary'}
-          onClick={() => begin(session, payload.date)}
-          disabled={!canStart}
-          style={canStart ? undefined : { opacity: 0.4 }}
-        >
-          {payload.rest ? 'Train anyway' : resumable ? 'Restart' : 'Start'}
-        </button>
-
-        {resumable && (
-          <button className="btn btn-quiet" onClick={() => router.push('/runner')}>
-            Resume
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <button
+            className={payload.rest ? 'btn btn-secondary' : 'btn btn-primary'}
+            onClick={() => begin(session, payload.date)}
+            disabled={!canStart}
+            style={canStart ? undefined : { opacity: 0.4 }}
+          >
+            {payload.rest ? 'Train anyway' : resumable ? 'Restart' : 'Start'}
           </button>
-        )}
 
-        <div className="stack" style={{ paddingTop: 14 }}>
-          {stale && <div className="banner">Showing the last saved copy. Not refreshed yet.</div>}
-          {pending > 0 && (
-            <div className="banner banner-warn">
-              {pending} {pending === 1 ? 'session has' : 'sessions have'} not reached Notion yet.
-            </div>
+          {resumable && (
+            <button className="btn btn-secondary" onClick={() => router.push('/runner')}>
+              Resume
+            </button>
           )}
 
-          {/* At most one proposal, ever, and it sits with the session because it
-              is a decision rather than a number to glance at. */}
-          {payload.proposal && <ProposalCard proposal={payload.proposal} onDone={() => void refresh()} />}
+          {/* Adjust belongs with the session it bends, and the design left the
+              header's right side to the date. It is one amber word here rather
+              than a button competing with Start. */}
+          {!adjusting && !done && (
+            <button
+              className="eyebrow eyebrow-action"
+              onClick={() => setAdjusting(true)}
+              style={{ alignSelf: 'flex-start', padding: '6px 0' }}
+            >
+              Adjust
+            </button>
+          )}
         </div>
-      </div>
 
-      {/* Micros sit here, below the session and above everything else: they are
-          tapped through the day, so a trip to another screen loses them. */}
-      {payload.micros.length > 0 && (
-        <div style={{ paddingTop: 22 }}>
-          {/* The section label is the way through to the full list, so micros
-              no longer need a button of their own down in the nav. */}
-          <button
-            className="label"
-            onClick={() => router.push('/micros')}
-            style={{ margin: '0 0 10px', padding: '4px 0', display: 'block' }}
-          >
-            This week&rsquo;s micros
-          </button>
-          <div className="stack" style={{ gap: 8 }}>
-            {payload.micros.map((m, i) => {
-              const shown = m.count + (pendingTaps[m.name] ?? 0);
-              const target = m.weeklyTarget ?? 0;
-              const met = target > 0 && shown >= target;
-              return (
-                <div key={m.id}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      borderRadius: 12,
-                      background: 'var(--ink-raised)',
-                      border: '1px solid var(--ink-line)',
-                      opacity: met ? 0.7 : 1,
-                    }}
-                  >
-                    {/* Tapping the name explains it; tapping the count logs it. */}
-                    <button
-                      onClick={() => setOpenMicro(openMicro === m.id ? null : m.id)}
-                      aria-expanded={openMicro === m.id}
-                      style={{ flex: 1, minWidth: 0, textAlign: 'left', padding: '14px 0 14px 16px', minHeight: 'var(--tap)' }}
-                    >
-                      <span style={{ display: 'block', fontSize: 16 }}>
-                        <span className="num" style={{ color: 'var(--muted)', marginRight: 8 }}>
-                          {i + 1}
-                        </span>
-                        {m.name}
-                      </span>
-                      <span style={{ display: 'block', fontSize: 13, color: 'var(--muted)', marginLeft: 22 }}>
-                        {m.trigger}
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => tapMicro(m.name)}
-                      aria-label={`Log ${m.name}`}
-                      style={{ flex: 'none', padding: '14px 16px', minHeight: 'var(--tap)' }}
-                    >
-                      <span className="num" style={{ fontSize: 30, color: met ? 'var(--sage)' : 'var(--amber)' }}>
-                        {shown}
-                      </span>
-                      <span className="num" style={{ fontSize: 18, color: 'var(--muted)' }}>
-                        /{target || '-'}
-                      </span>
-                    </button>
-                  </div>
-
-                  {openMicro === m.id && (
-                    <Detail
-                      rows={[
-                        { label: 'Cue', value: m.cue },
-                        { label: 'When', value: m.trigger },
-                        { label: 'Takes', value: m.duration },
-                        {
-                          label: 'Feeds',
-                          links: m.feedsName
-                            ? [{ label: m.feedsName, onClick: () => router.push('/form') }]
-                            : undefined,
-                        },
-                      ]}
-                      footnote={met ? <>Done for this week. A new one has taken its place.</> : null}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Skating is opportunistic, so it gets its own way in rather than
-          waiting to be the suggested session. */}
-      <button className="btn btn-quiet" style={{ marginTop: 18 }} onClick={() => void skateNow()}>
-        Give me a skate session
-      </button>
-
-      <div className="stack" style={{ paddingTop: 18, marginTop: 'auto' }}>
-        {payload.suggestion && (
-          <p style={{ margin: 0, color: 'var(--muted)', fontSize: 15 }}>{payload.suggestion.line}</p>
-        )}
-
-        <Rolling rolling={rolling} />
-
-        {!adjusting ? (
-          <>
-            {/* The four training domains get buttons: at 6am the question is
-                "which of my four kinds of training", not "which of my screens". */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-              {DOMAINS.map((d) => (
-                <button
-                  key={d.path}
-                  className="btn btn-quiet"
-                  style={{ flex: '1 1 0', padding: '16px 8px', minWidth: 0 }}
-                  onClick={() => router.push(d.path)}
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
-
-            {/* The utilities are a text strip, not buttons. */}
-            <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', paddingTop: 2 }}>
-              <button className="label" onClick={() => setAdjusting(true)} style={{ padding: '10px 0' }}>
-                Adjust
-              </button>
-              {UTILITIES.map((u) => (
-                <button
-                  key={u.path}
-                  className="label"
-                  onClick={() => router.push(u.path)}
-                  style={{ padding: '10px 0' }}
-                >
-                  {u.label}
-                </button>
-              ))}
-            </div>
-          </>
-        ) : (
+        {adjusting && (
           <Checkin
             onCancel={() => setAdjusting(false)}
             onAdjusted={(plan) => {
@@ -425,19 +290,125 @@ export default function TodayPage() {
             }}
           />
         )}
+
+        {(stale || pending > 0 || payload.proposal) && (
+          <div className="stack">
+            {stale && <div className="banner">Showing the last saved copy. Not refreshed yet.</div>}
+            {pending > 0 && (
+              <div className="banner banner-warn">
+                {pending} {pending === 1 ? 'session has' : 'sessions have'} not reached Notion yet.
+              </div>
+            )}
+            {/* At most one proposal, ever, and it sits with the session because
+                it is a decision rather than a number to glance at. */}
+            {payload.proposal && <ProposalCard proposal={payload.proposal} onDone={() => void refresh()} />}
+          </div>
+        )}
+
+        {/* Micros sit below the session and above everything else: they are
+            tapped through the day, so a trip to another screen loses them. */}
+        {payload.micros.length > 0 && (
+          <Section
+            title="This week's micros"
+            action={
+              <button className="eyebrow eyebrow-action" onClick={() => router.push('/micros')} style={{ padding: '4px 0' }}>
+                All
+              </button>
+            }
+          >
+            <div className="stack" style={{ gap: 8 }}>
+              {payload.micros.map((m, i) => {
+                const shown = m.count + (pendingTaps[m.name] ?? 0);
+                const target = m.weeklyTarget ?? 0;
+                const met = target > 0 && shown >= target;
+                return (
+                  <div key={m.id}>
+                    {/* The row is the design's shape exactly; it keeps two
+                        targets because the name still has to be able to explain
+                        itself. The value column is what logs. */}
+                    <div className="row" style={{ gridTemplateColumns: '16px 1fr 60px', padding: 0, opacity: met ? 0.7 : 1 }}>
+                      <button
+                        onClick={() => setOpenMicro(openMicro === m.id ? null : m.id)}
+                        aria-expanded={openMicro === m.id}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '16px 1fr',
+                          alignItems: 'center',
+                          gap: 12,
+                          gridColumn: '1 / 3',
+                          minWidth: 0,
+                          textAlign: 'left',
+                          padding: '12px 0 12px 16px',
+                          minHeight: 64,
+                        }}
+                      >
+                        <span className="row-index">{i + 1}</span>
+                        <span className="row-body">
+                          <span className="row-title">{m.name}</span>
+                          <span className="row-sub">{m.trigger}</span>
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => tapMicro(m.name)}
+                        aria-label={`Log ${m.name}`}
+                        style={{ padding: '12px 16px 12px 0', minHeight: 64 }}
+                      >
+                        <span className="row-value" style={{ display: 'block', color: met ? 'var(--sage)' : undefined }}>
+                          {shown}
+                          <span>/{target || '-'}</span>
+                        </span>
+                      </button>
+                    </div>
+
+                    {openMicro === m.id && (
+                      <Detail
+                        rows={[
+                          { label: 'Cue', value: m.cue },
+                          { label: 'When', value: m.trigger },
+                          { label: 'Takes', value: m.duration },
+                          {
+                            label: 'Feeds',
+                            links: m.feedsName
+                              ? [{ label: m.feedsName, onClick: () => router.push('/form') }]
+                              : undefined,
+                          },
+                        ]}
+                        footnote={met ? <>Done for this week. A new one has taken its place.</> : null}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </Section>
+        )}
+
+        {/* Skating is opportunistic, so it gets its own way in rather than
+            waiting to be the suggested session. */}
+        <button className="btn btn-secondary" onClick={() => void skateNow()}>
+          Give me a skate session
+        </button>
+
+        <div className="pinned">
+          <Rolling rolling={rolling} />
+        </div>
       </div>
+
+      <TabBar />
     </main>
   );
 }
 
 function Rolling({ rolling }: { rolling: TodayPayload['rolling'] }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, color: 'var(--muted)' }}>
-      <span className="num" style={{ fontSize: 30, color: 'var(--text)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <span className="num" style={{ fontSize: 34, color: 'var(--text)', lineHeight: 1 }}>
         {rolling.count}
       </span>
-      <span style={{ fontSize: 15 }}>
-        of {rolling.target} in the last {rolling.windowDays} days
+      <span style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.35 }}>
+        of {rolling.target} sessions
+        <br />
+        in the last {rolling.windowDays} days
         {rolling.daysRemaining !== null && ` · ${rolling.daysRemaining}d of slack`}
         {rolling.streakWeeks > 0 && ` · ${rolling.streakWeeks} weeks`}
       </span>
