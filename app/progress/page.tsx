@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { titleCase } from '@/lib/format';
+import { Cell, Cells, Header, HeaderFact, Segmented } from '@/components/Chrome';
 import { ApiError, api, getKey } from '@/lib/client/store';
 
 type Entry =
@@ -69,52 +70,71 @@ export default function ProgressPage() {
     ) ?? [];
 
   return (
-    <main className="screen" style={{ gap: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span className="label">Progress</span>
-        <button className="label" onClick={() => router.push('/')} style={{ padding: '8px 0 8px 16px' }}>
-          Today
-        </button>
-      </div>
+    <main className="app">
+      <Header
+        title="Progress"
+        back
+        backTo="/profile"
+        right={<HeaderFact>{data ? `${data.milestoneCount} milestones` : ''}</HeaderFact>}
+      />
 
-      {error && <div className="banner banner-warn">{error}</div>}
-      {!data && !error && <p className="label">Loading</p>}
+      <div className="app-content" style={{ gap: 16 }}>
+        {error && <div className="banner banner-warn">{error}</div>}
+        {!data && !error && <p className="eyebrow">Loading</p>}
 
-      {data && (
-        <>
-          {/* The two numbers that matter. Nothing else above the log. */}
-          <div style={{ display: 'flex', gap: 28 }}>
-            <div>
-              <span className="num" style={{ fontSize: 52, color: 'var(--amber)', display: 'block' }}>
-                {data.totalSessions}
-              </span>
-              <span className="label">sessions</span>
-            </div>
-            <div>
-              <span className="num" style={{ fontSize: 52, color: 'var(--amber)', display: 'block' }}>
-                {data.weeksAtTarget}
-              </span>
-              <span className="label">weeks at target</span>
-            </div>
-          </div>
+        {data && (
+          <>
+            {/* Two bare numbers with tiny captions became two equal cells. */}
+            <Cells columns={2}>
+              <Cell value={data.totalSessions} caption="Sessions" tone="amber" />
+              <Cell value={data.weeksAtTarget} caption="Weeks at target" tone="amber" />
+            </Cells>
 
-          <div style={{ display: 'flex', gap: 8 }}>
-            {(['All', 'Milestones', 'Sessions'] as const).map((f) => (
-              <button
-                key={f}
-                className="btn btn-quiet"
-                aria-pressed={filter === f}
-                style={{ width: 'auto', flex: 'none', padding: '10px 16px', minHeight: 44, fontSize: 15 }}
-                onClick={() => setFilter(f)}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
+            <Segmented
+              options={[
+                { value: 'All', label: 'All' },
+                { value: 'Milestones', label: 'Milestones' },
+                { value: 'Sessions', label: 'Sessions' },
+              ]}
+              value={filter}
+              onChange={(v) => setFilter(v as Filter)}
+            />
 
           {shown.length === 0 ? (
-            <div className="banner">
-              Nothing logged yet. Milestones land here as they happen: levels, slots, rounds, tricks.
+            /* The empty state fills the height it is given and offers the one
+               action that ends it, rather than sitting as a grey line under a
+               screen of nothing. */
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                gap: 14,
+              }}
+            >
+              <span
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: '50%',
+                  border: '2px solid var(--card-line)',
+                }}
+              />
+              <span style={{ fontSize: 17, fontWeight: 600 }}>Nothing logged yet</span>
+              <span style={{ fontSize: 14, color: 'var(--muted)', maxWidth: 260 }}>
+                Milestones land here as they happen: levels, slots, rounds, tricks.
+              </span>
+              <button
+                className="btn btn-inline btn-amber-outline"
+                style={{ width: 'auto', padding: '12px 20px' }}
+                onClick={() => router.push('/')}
+              >
+                Start today&rsquo;s Flow
+              </button>
             </div>
           ) : (
             <div className="spine">
@@ -154,8 +174,9 @@ export default function ProgressPage() {
               )}
             </div>
           )}
-        </>
-      )}
+          </>
+        )}
+      </div>
     </main>
   );
 }
