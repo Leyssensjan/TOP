@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Cell, Cells, Header, HeaderAction, Hero, Section, Segmented } from '@/components/Chrome';
 import {
   clearActive,
   enqueue,
@@ -44,6 +45,15 @@ export default function ClosePage() {
 
   const elapsedMinutes = active ? Math.max(1, Math.round(active.elapsedMs / 60000)) : 0;
   const isEngine = active?.plan.type === 'engine';
+  // What the session actually contained, read off the plan that just ran. The
+  // two cells state it rather than leaving the screen to end on a bare button.
+  const worked = active
+    ? active.plan.movements.length ||
+      (active.plan.strength?.blocks.reduce((n, b) => n + b.movements.length, 0) ?? 0) ||
+      (active.plan.skate?.blocks.reduce((n, b) => n + b.tricks.length, 0) ?? 0)
+    : 0;
+  const workedLabel =
+    active?.plan.type === 'strength' ? 'Lifts' : active?.plan.type === 'skate' ? 'Tricks' : 'Movements';
 
   const done = async () => {
     if (!active) return;
@@ -104,84 +114,81 @@ export default function ClosePage() {
   }
 
   return (
-    <main className="screen" style={{ gap: 26 }}>
-      <div style={{ paddingTop: 8 }}>
-        <p className="label" style={{ margin: 0 }}>
-          Done
-        </p>
-        <p className="num" style={{ fontSize: 68, margin: '4px 0 0', color: 'var(--amber)' }}>
-          {elapsedMinutes}
-          <span style={{ fontSize: '0.3em', color: 'var(--muted)', marginLeft: 8 }}>MIN</span>
-        </p>
-      </div>
+    <main className="app">
+      <Header
+        title="Session done"
+        right={<HeaderAction onClick={() => router.replace('/')}>Skip</HeaderAction>}
+      />
 
-      <div>
-        <p className="label" style={{ margin: '0 0 10px' }}>
-          How it felt
-        </p>
-        <div style={{ display: 'flex', gap: 10 }}>
-          {(['easy', 'right', 'hard'] as const).map((d) => (
-            <button
-              key={d}
-              className="btn"
-              aria-pressed={difficulty === d}
-              onClick={() => setDifficulty(d)}
-            >
-              {d}
-            </button>
-          ))}
-        </div>
-      </div>
+      <div className="app-content" style={{ gap: 20 }}>
+        <Hero value={elapsedMinutes} unit="min" />
 
-      {isEngine && (
-        <div>
-          <p className="label" style={{ margin: '0 0 10px' }}>
-            Distance
-          </p>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {DISTANCES.map((d) => (
+        <Section title="How it felt">
+          <Segmented
+            options={[
+              { value: 'easy', label: 'Easy' },
+              { value: 'right', label: 'Right' },
+              { value: 'hard', label: 'Hard' },
+            ]}
+            value={difficulty}
+            onChange={(v) => setDifficulty(v as 'easy' | 'right' | 'hard')}
+          />
+        </Section>
+
+        {isEngine && (
+          <Section title="Distance">
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${DISTANCES.length}, 1fr)`, gap: 8 }}>
+              {DISTANCES.map((d) => (
+                <button
+                  key={d}
+                  className="btn btn-inline"
+                  aria-pressed={distance === d}
+                  onClick={() => setDistance(distance === d ? null : d)}
+                >
+                  <span className="num" style={{ fontSize: 18 }}>
+                    {d}
+                  </span>
+                </button>
+              ))}
+            </div>
+            {active.routeName && (
+              <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 13 }}>{active.routeName}</p>
+            )}
+          </Section>
+        )}
+
+        <Section
+          title="Anything sore"
+          action={<span className="eyebrow">Optional</span>}
+        >
+          {/* A grid of equal cells, not a wrapping row: multi-select chips that
+              reflow put the last one on a line of its own at a different width
+              from the rest. */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {SORE.map((part) => (
               <button
-                key={d}
-                className="btn"
-                aria-pressed={distance === d}
-                style={{ width: 'auto', flex: '1 1 20%', padding: '14px 8px' }}
-                onClick={() => setDistance(distance === d ? null : d)}
+                key={part}
+                className="btn btn-inline"
+                aria-pressed={sore.includes(part)}
+                onClick={() => toggleSore(part)}
               >
-                <span className="num" style={{ fontSize: 19 }}>
-                  {d}
-                </span>
+                {part}
               </button>
             ))}
           </div>
-          {active.routeName && (
-            <p style={{ margin: '8px 0 0', color: 'var(--muted)', fontSize: 14 }}>{active.routeName}</p>
-          )}
-        </div>
-      )}
+        </Section>
 
-      <div>
-        <p className="label" style={{ margin: '0 0 10px' }}>
-          Anything sore
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-          {SORE.map((part) => (
-            <button
-              key={part}
-              className="btn"
-              aria-pressed={sore.includes(part)}
-              style={{ width: 'auto', flex: '1 1 30%', padding: '14px 10px' }}
-              onClick={() => toggleSore(part)}
-            >
-              {part}
-            </button>
-          ))}
+        {/* Pinned, so the 400px of dead space between the chips and the button
+            is gone and Done is always in the same place under the thumb. */}
+        <div className="pinned" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <Cells columns={2}>
+            <Cell value={worked} caption={workedLabel} tone="amber" />
+            <Cell value={active.plan.rounds || 1} caption="Rounds" tone="text" />
+          </Cells>
+          <button className="btn btn-primary" disabled={saving} onClick={() => void done()}>
+            {saving ? 'Saving' : 'Log it'}
+          </button>
         </div>
-      </div>
-
-      <div style={{ marginTop: 'auto' }}>
-        <button className="btn btn-primary" disabled={saving} onClick={() => void done()}>
-          {saving ? 'Saving' : 'Done'}
-        </button>
       </div>
     </main>
   );
