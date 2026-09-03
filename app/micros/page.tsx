@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Header, HeaderFact, Hero } from '@/components/Chrome';
 import { ApiError, api, enqueue, getKey, sync } from '@/lib/client/store';
 
 interface MicroRow {
@@ -29,6 +30,7 @@ const COALESCE_MS = 1200;
 export default function MicrosPage() {
   const router = useRouter();
   const [micros, setMicros] = useState<MicroRow[] | null>(null);
+  const [weekStart, setWeekStart] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingTaps, setPendingTaps] = useState<Record<string, number>>({});
   const timers = useRef<Record<string, number>>({});
@@ -41,6 +43,7 @@ export default function MicrosPage() {
     try {
       const state = await api<StatePayload>('/state');
       setMicros(state.micros);
+      setWeekStart(state.weekStart);
       setError(null);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) router.replace('/');
@@ -78,92 +81,93 @@ export default function MicrosPage() {
     return () => Object.values(pending).forEach((t) => window.clearTimeout(t));
   }, []);
 
+  const logged = micros?.reduce((sum, m) => sum + m.count + (pendingTaps[m.name] ?? 0), 0) ?? 0;
+  const target = micros?.reduce((sum, m) => sum + (m.weeklyTarget ?? 0), 0) ?? 0;
+
   return (
-    <main className="screen" style={{ gap: 18 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span className="label">Micros</span>
-        <button className="label" onClick={() => router.push('/')} style={{ padding: '8px 0 8px 16px' }}>
-          Today
-        </button>
-      </div>
+    <main className="app">
+      <Header title="Micros" back right={<HeaderFact>{weekLabel(weekStart)}</HeaderFact>} />
 
-      {error && <div className="banner banner-warn">{error}</div>}
-      {micros === null && !error && <p className="label">Loading</p>}
-      {micros?.length === 0 && (
-        <div className="banner">No micros are active. The weekly plan picks them.</div>
-      )}
+      <div className="app-content" style={{ gap: 18 }}>
+        {error && <div className="banner banner-warn">{error}</div>}
+        {micros === null && !error && <p className="eyebrow">Loading</p>}
+        {micros?.length === 0 && (
+          <div className="note">No micros are active. The weekly plan picks them.</div>
+        )}
 
-      <div className="stack">
-        {micros?.map((row) => {
-          const pending = pendingTaps[row.name] ?? 0;
-          const shown = row.count + pending;
-          const target = row.weeklyTarget ?? 0;
-          const met = target > 0 && shown >= target;
-          return (
-            <button
-              key={row.id}
-              onClick={() => tap(row)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                width: '100%',
-                textAlign: 'left',
-                padding: '16px 18px',
-                borderRadius: 14,
-                background: 'var(--ink-raised)',
-                border: '1px solid var(--ink-line)',
-                minHeight: 'var(--tap)',
-              }}
-            >
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 17, marginBottom: 3 }}>{row.name}</div>
-                <div style={{ fontSize: 14, color: 'var(--muted)' }}>{row.trigger}</div>
-                {/* What it feeds, which is the reason to do it at all. */}
-                {row.feedsName && (
-                  <div
-                    role="link"
-                    tabIndex={0}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push('/form');
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.stopPropagation();
-                        router.push('/form');
-                      }
-                    }}
-                    style={{
-                      fontSize: 14,
-                      marginTop: 3,
-                      color: row.assisting ? 'var(--sage)' : 'var(--muted)',
-                    }}
-                  >
-                    feeds {row.feedsName}
-                    {row.assisting && ' · assisting'}
-                  </div>
-                )}
-              </div>
-              <div style={{ textAlign: 'right', flex: 'none' }}>
-                <span
-                  className="num"
-                  style={{ fontSize: 32, color: met ? 'var(--sage)' : 'var(--amber)' }}
-                >
+        {micros !== null && micros.length > 0 && (
+          <Hero value={logged} unit={`of ${target}`} meta="logged this week" />
+        )}
+
+        <div className="stack" style={{ gap: 8 }}>
+          {micros?.map((row) => {
+            const pending = pendingTaps[row.name] ?? 0;
+            const shown = row.count + pending;
+            const target = row.weeklyTarget ?? 0;
+            const met = target > 0 && shown >= target;
+            return (
+              <button
+                key={row.id}
+                className="row"
+                onClick={() => tap(row)}
+                style={{ gridTemplateColumns: '1fr 60px', minHeight: 76 }}
+              >
+                <span className="row-body">
+                  <span className="row-title" style={{ fontSize: 17 }}>
+                    {row.name}
+                  </span>
+                  <span className="row-sub">{row.trigger}</span>
+                  {/* What it feeds, which is the reason to do it at all. */}
+                  {row.feedsName && (
+                    <span
+                      style={{
+                        marginTop: 2,
+                        fontSize: 12,
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase',
+                        fontWeight: 600,
+                        color: row.assisting ? 'var(--sage)' : 'var(--dim)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      Feeds {row.feedsName}
+                      {row.assisting && ' · assisting'}
+                    </span>
+                  )}
+                </span>
+                <span className="row-value" style={{ fontSize: 30, color: met ? 'var(--sage)' : undefined }}>
                   {shown}
+                  <span>/{target || '-'}</span>
                 </span>
-                <span className="num" style={{ fontSize: 19, color: 'var(--muted)' }}>
-                  /{target || '-'}
-                </span>
-              </div>
-            </button>
-          );
-        })}
-      </div>
+              </button>
+            );
+          })}
+        </div>
 
-      <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 'auto' }}>
-        Tap to log one. Tap again for several. Micros never count as sessions.
-      </p>
+        <div className="pinned" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="note">
+            Tap to log one, tap again for several. Micros never count as sessions. The set is chosen
+            when the week is generated and holds until the next one starts.
+          </div>
+          {/* The handoff puts "Swap this week's set" here. Nothing swaps a set
+              on demand — the rotation is what the week generation decides — so
+              the button goes where that decision is actually made. */}
+          <button className="btn btn-secondary" onClick={() => router.push('/week')}>
+            Plan the week
+          </button>
+        </div>
+      </div>
     </main>
   );
+}
+
+/** "Week 36", from the Monday the set belongs to. */
+function weekLabel(weekStart: string | null): string {
+  if (!weekStart) return '';
+  const d = new Date(`${weekStart}T12:00:00Z`);
+  const firstJan = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const days = Math.floor((d.getTime() - firstJan.getTime()) / 86400000);
+  return `Week ${Math.floor(days / 7) + 1}`;
 }
