@@ -207,57 +207,94 @@ function Runner({ active }: { active: ActiveSession }) {
   });
 
   return (
-    <main className="screen" style={{ gap: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span className="label">
+    <main className="app">
+      <header className="app-header">
+        <span className="eyebrow">
           {titleCase(active.plan.type)}
-          {active.plan.rounds > 1 && ` · round ${step.round} of ${active.plan.rounds}`}
+          {active.plan.rounds > 1 && ` · round ${step.round}/${active.plan.rounds}`}
         </span>
         <span style={{ display: 'flex', alignItems: 'center' }}>
           <SoundToggle />
-          <button className="label" onClick={finish} style={{ padding: '8px 0 8px 12px' }}>
+          <button className="eyebrow eyebrow-action" onClick={finish} style={{ padding: '10px 0 10px 12px' }}>
             End
           </button>
         </span>
-      </div>
+      </header>
 
-      <div style={{ flex: 1, display: 'flex', gap: 18, minHeight: 0 }}>
-        <Thread nodes={nodes} progress={progress} />
-
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
-          <p className="label" style={{ margin: '0 0 6px' }}>
-            {step.slotName} · level {step.level}
-          </p>
-          <h1 style={{ margin: '0 0 14px', fontSize: 'clamp(30px, 8.5vw, 44px)', lineHeight: 1.08, fontWeight: 600 }}>
-            {step.name}
-          </h1>
-          <p style={{ margin: '0 0 28px', color: 'var(--muted)', fontSize: 17, lineHeight: 1.4 }}>{step.cues}</p>
-
-          <button
-            onClick={() => setRunning((r) => !r)}
-            aria-label={running ? 'Pause' : 'Resume'}
-            style={{ textAlign: 'left', padding: 0 }}
-          >
+      {/* One segment per movement in a round, filled as the round is walked.
+          The round used to be a phrase in the header and nothing else. */}
+      {active.plan.movements.length > 1 && (
+        <div
+          style={{
+            flex: 'none',
+            display: 'grid',
+            gridTemplateColumns: `repeat(${active.plan.movements.length}, 1fr)`,
+            gap: 4,
+            padding: '10px var(--pad) 0',
+          }}
+        >
+          {active.plan.movements.map((m, i) => (
             <span
-              className="num"
+              key={`${m.slot}-${i}`}
               style={{
-                fontSize: 'clamp(96px, 30vw, 140px)',
-                color: running ? 'var(--amber)' : 'var(--muted)',
-                display: 'block',
+                height: 4,
+                borderRadius: 2,
+                background: i <= step.indexInRound ? 'var(--amber)' : 'var(--card-line)',
               }}
+            />
+          ))}
+        </div>
+      )}
+
+      <div className="app-content" style={{ gap: 0 }}>
+        {/* The thread is a rail beside the content rather than a column with
+            the text floating somewhere to the right of it. */}
+        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '22px 1fr', gap: 20, minHeight: 0 }}>
+          <Thread nodes={nodes} progress={progress} />
+
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
+            <p className="eyebrow" style={{ margin: '0 0 8px' }}>
+              {step.slotName} · level {step.level}
+            </p>
+            <h1 style={{ margin: '0 0 12px', fontSize: 'clamp(28px, 8vw, 40px)', lineHeight: 1.08, fontWeight: 600 }}>
+              {step.name}
+            </h1>
+            <p style={{ margin: '0 0 24px', color: 'var(--muted)', fontSize: 16, lineHeight: 1.4 }}>{step.cues}</p>
+
+            <button
+              onClick={() => setRunning((r) => !r)}
+              aria-label={running ? 'Pause' : 'Resume'}
+              style={{ textAlign: 'left', padding: 0 }}
             >
-              {mmss(remaining / 1000)}
-            </span>
-            <span className="label" style={{ display: 'block', marginTop: 8 }}>
-              {running ? 'tap to pause' : 'paused · tap to resume'}
-            </span>
+              <span
+                className="num"
+                style={{
+                  fontSize: 'clamp(84px, 26vw, 104px)',
+                  color: running ? 'var(--amber)' : 'var(--muted)',
+                  display: 'block',
+                  lineHeight: 0.9,
+                }}
+              >
+                {mmss(remaining / 1000)}
+              </span>
+              <span className="eyebrow" style={{ display: 'block', marginTop: 10 }}>
+                {running ? 'Tap to pause' : 'Paused · tap to resume'}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Two equal buttons. Skip used to be missing entirely, so a movement
+            that could not be done meant sitting out its clock. */}
+        <div className="pair" style={{ flex: 'none', marginTop: 16 }}>
+          <button className="btn btn-secondary" onClick={advance}>
+            Skip
+          </button>
+          <button className="btn btn-primary" onClick={advance}>
+            {index + 1 >= timeline.length ? 'Finish' : 'Next'}
           </button>
         </div>
       </div>
-
-      <button className="btn btn-primary" onClick={advance}>
-        {index + 1 >= timeline.length ? 'Finish' : 'Next'}
-      </button>
     </main>
   );
 }
