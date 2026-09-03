@@ -416,41 +416,49 @@ export class MemoryStore implements Store {
     if (entry) Object.assign(entry, patch);
   }
 
-  // The three scouted routes, so the Routes screen can be exercised locally.
+  /**
+   * The three loops Jan actually runs, measured door to door from Berouw 74 —
+   * every distance includes the 0.9km out to the Bataviabrug and the 0.9km
+   * back, because a number that only counts the interesting part is a number he
+   * has to do arithmetic on at 6am.
+   */
   async getRoutes(): Promise<Route[]> {
     return [
       {
         id: 'route-1',
-        name: 'Oude Dokken loop',
-        distanceKm: 3.5,
-        startPoint: 'Berouw',
-        description:
-          'North up Dok Noord to the Houtdok, round Kapitein Zeppospark, back down the west quay of the Handelsdok. Almost entirely car-free promenade.',
-        mapLink: 'https://www.google.com/maps/dir/?api=1&origin=Berouw,Gent&destination=Berouw,Gent',
-        surface: 'Paved promenade and quay',
+        name: 'Two Bridges',
+        distanceKm: 3.3,
+        startPoint: 'Berouw 74',
+        description: 'Cross at Batavia, down the Koopvaardijlaan, back over Matadi.',
+        mapLink: 'https://www.google.com/maps/dir/?api=1&origin=Berouw+74,Gent&destination=Berouw+74,Gent',
+        surface: 'Paved quay',
         quietRating: 4,
+        bridges: ['Bataviabrug', 'Matadibrug'],
+        lapHint: '2 laps = 6.6',
       },
       {
         id: 'route-2',
-        name: 'Dampoort and Ganda',
-        distanceKm: 5.5,
-        startPoint: 'Berouw',
-        description:
-          'East along the Handelsdok past the Nieuwe Dokken, through Dampoort, down to Portus Ganda, then back north along the Visserij.',
-        mapLink: 'https://www.google.com/maps/dir/?api=1&origin=Berouw,Gent&destination=Berouw,Gent',
-        surface: 'Paved, one busy junction',
-        quietRating: 3,
+        name: 'Muidelaan Turn',
+        distanceKm: 4.1,
+        startPoint: 'Berouw 74',
+        description: 'South to Matadi, north along the Nieuwe Dokken, back at Muidelaan.',
+        mapLink: 'https://www.google.com/maps/dir/?api=1&origin=Berouw+74,Gent&destination=Berouw+74,Gent',
+        surface: 'Paved quay',
+        quietRating: 5,
+        bridges: ['Matadibrug', 'Verapazbrug'],
+        lapHint: '2 laps = 8.2',
       },
       {
         id: 'route-3',
-        name: 'Voorhaven out and back',
-        distanceKm: 8,
-        startPoint: 'Berouw',
-        description:
-          'North through Muide onto the Voorhaven quays, up to the Meulestede tip and back. Water the whole distance, virtually no cars at any hour.',
-        mapLink: 'https://www.google.com/maps/dir/?api=1&origin=Berouw,Gent&destination=Berouw,Gent',
-        surface: 'Paved quay, some cobbles near Muide',
+        name: 'The Big Tour',
+        distanceKm: 5.5,
+        startPoint: 'Berouw 74',
+        description: 'Full east quay, round Zeppospark, back down the west quay.',
+        mapLink: 'https://www.google.com/maps/dir/?api=1&origin=Berouw+74,Gent&destination=Berouw+74,Gent',
+        surface: 'Car-free promenade',
         quietRating: 5,
+        bridges: ['Matadibrug', 'Muidebrug', 'Bataviabrug'],
+        lapHint: 'Longest · car-free',
       },
     ];
   }

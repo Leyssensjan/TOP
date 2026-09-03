@@ -205,6 +205,14 @@ export interface Route {
   mapLink: string;
   surface: string;
   quietRating: number | null;
+  /**
+   * The bridges crossed, in order. On a route round a dock system the bridges
+   * are the route's identity — which one you cross is the whole decision — and
+   * a description cannot carry that at a glance.
+   */
+  bridges: string[];
+  /** What two laps come to, when the loop is short enough to repeat. */
+  lapHint: string;
 }
 
 export interface NewSkill {

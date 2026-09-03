@@ -246,6 +246,14 @@ function toPlanEntry(page: NotionPage): PlanEntry {
   };
 }
 
+/** A multi-select, a comma-separated text field, or nothing at all. */
+function rNames(prop: any): string[] {
+  if (!prop) return [];
+  if (Array.isArray(prop.multi_select)) return prop.multi_select.map((o: any) => o?.name).filter(Boolean);
+  const text = rText(prop);
+  return text ? text.split(',').map((s) => s.trim()).filter(Boolean) : [];
+}
+
 function toRoute(page: NotionPage): Route {
   const p = page.properties;
   return {
@@ -257,6 +265,11 @@ function toRoute(page: NotionPage): Route {
     mapLink: rText(p['Map link']),
     surface: rText(p['Surface']),
     quietRating: rNum(p['Quiet rating']),
+    // Either a multi-select or a comma string, and absent on a table that has
+    // not been given the column yet — which must read as "no bridges known"
+    // rather than as a crash.
+    bridges: rNames(p['Bridges']),
+    lapHint: rText(p['Lap hint']),
   };
 }
 

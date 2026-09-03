@@ -2,20 +2,14 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Header, HeaderFact } from '@/components/Chrome';
 import { ApiError, api, getKey, startSession, saveActive, getActive } from '@/lib/client/store';
 import { TARGET_MINUTES } from '@/lib/config';
 import { today as todayDate } from '@/lib/dates';
 
-interface Route {
-  id: string;
-  name: string;
-  distanceKm: number | null;
-  startPoint: string;
-  description: string;
-  mapLink: string;
-  surface: string;
-  quietRating: number | null;
-}
+// The screen reads the store's shape rather than restating it, so a field
+// added to a route reaches the screen instead of being quietly dropped here.
+import type { Route } from '@/lib/types';
 
 /** Engine routes, read-only. Scouted by hand and held in Notion. */
 export default function RoutesPage() {
@@ -69,78 +63,117 @@ export default function RoutesPage() {
   };
 
   return (
-    <main className="screen" style={{ gap: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span className="label">Routes</span>
-        <button className="label" onClick={() => router.push('/')} style={{ padding: '8px 0 8px 16px' }}>
-          Today
-        </button>
-      </div>
+    <main className="app">
+      <Header title="Routes" back backTo="/week" right={<HeaderFact>Berouw 74</HeaderFact>} />
 
-      {error && <div className="banner banner-warn">{error}</div>}
-      {!routes && !error && <p className="label">Loading</p>}
-      {note && <div className="banner">{note}</div>}
+      <div className="app-content" style={{ gap: 14 }}>
+        {error && <div className="banner banner-warn">{error}</div>}
+        {!routes && !error && <p className="eyebrow">Loading</p>}
+        {note && <div className="note">{note}</div>}
 
-      <div className="stack">
-        {routes
-          ?.slice()
-          .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
-          .map((route) => (
-            <div
-              key={route.id}
-              style={{
-                padding: '16px 18px',
-                borderRadius: 14,
-                background: 'var(--ink-raised)',
-                border: '1px solid var(--ink-line)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6 }}>
-                <span className="num" style={{ fontSize: 34, color: 'var(--amber)' }}>
-                  {route.distanceKm ?? '?'}
-                  <span style={{ fontSize: '0.4em', color: 'var(--muted)', marginLeft: 4 }}>KM</span>
-                </span>
-                <span style={{ flex: 1, minWidth: 0 }}>{route.name}</span>
-              </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+          <span className="eyebrow" style={{ whiteSpace: 'nowrap' }}>
+            Door to door
+          </span>
+          <span style={{ fontSize: 11, color: 'var(--dim)', textAlign: 'right', minWidth: 0 }}>
+            incl. 0.9 km each way to Bataviabrug
+          </span>
+        </div>
 
-              {route.description && (
-                <p style={{ margin: '0 0 10px', color: 'var(--muted)', fontSize: 15, lineHeight: 1.45 }}>
-                  {route.description}
-                </p>
-              )}
+        <div className="stack" style={{ gap: 10, minHeight: 0, overflowY: 'auto' }}>
+          {routes
+            ?.slice()
+            .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
+            .map((route) => (
+              <div
+                key={route.id}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                  padding: '20px 18px',
+                  borderRadius: 16,
+                  background: 'var(--card)',
+                  border: '1px solid var(--card-line)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                  <span className="num" style={{ fontSize: 38, color: 'var(--amber)', lineHeight: 0.9 }}>
+                    {route.distanceKm ?? '?'}
+                  </span>
+                  <span className="hero-unit" style={{ fontSize: 15 }}>
+                    km
+                  </span>
+                  <span style={{ marginLeft: 'auto', fontSize: 17, fontWeight: 500, minWidth: 0 }}>{route.name}</span>
+                </div>
 
-              <p style={{ margin: '0 0 10px', color: 'var(--muted)', fontSize: 13 }}>
-                {[
-                  route.startPoint && `from ${route.startPoint}`,
-                  route.surface,
-                  route.quietRating !== null && `quiet ${route.quietRating}/5`,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </p>
-
-              <div style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
-                {/* One tap from reading a route to running it. */}
-                <button
-                  className="label"
-                  style={{ color: 'var(--amber)', padding: '10px 0' }}
-                  onClick={() => start(route)}
-                >
-                  Run this
-                </button>
-                {route.mapLink && (
-                  <a
-                    href={route.mapLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ color: 'var(--amber)', fontSize: 15 }}
-                  >
-                    Open the map
-                  </a>
+                {/* The bridges are the route's identity: on a loop round the
+                    docks, which one you cross is the whole decision. */}
+                {route.bridges.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+                    {route.bridges.map((bridge, i) => (
+                      <span key={bridge} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {i > 0 && <span style={{ color: 'var(--dimmest)' }}>›</span>}
+                        <span
+                          style={{
+                            fontSize: 12,
+                            letterSpacing: '0.08em',
+                            textTransform: 'uppercase',
+                            fontWeight: 600,
+                            color: 'var(--amber)',
+                          }}
+                        >
+                          {bridge}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
                 )}
+
+                {route.description && (
+                  <p style={{ margin: 0, color: 'var(--muted)', fontSize: 14, lineHeight: 1.4 }}>
+                    {route.description}
+                  </p>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: 12 }}>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      color: 'var(--dim)',
+                      minWidth: 0,
+                    }}
+                  >
+                    {[
+                      route.quietRating !== null && `Quiet ${route.quietRating}/5`,
+                      route.lapHint,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </span>
+                  {/* One tap from reading a route to running it. */}
+                  <button
+                    className="btn btn-inline btn-amber-outline"
+                    style={{ width: 'auto', minHeight: 44, padding: '10px 16px' }}
+                    onClick={() => start(route)}
+                  >
+                    Run this
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+        </div>
+
+        <div
+          className="pinned"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}
+        >
+          <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+            Distances are estimates until your first GPS run.
+          </span>
+        </div>
       </div>
     </main>
   );
