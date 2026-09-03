@@ -4,19 +4,26 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Cell, Cells, Header, HeaderAction, Hero, Section, Segmented } from '@/components/Chrome';
 import {
+  api,
   clearActive,
   enqueue,
   getActive,
   sync,
   type ActiveSession,
 } from '@/lib/client/store';
+import type { Route } from '@/lib/types';
 
 type Difficulty = 'easy' | 'right' | 'hard';
 
 const SORE = ['wrists', 'shoulders', 'back', 'hips', 'knees', 'ankles'];
 
-/** Engine distances, in km. Quick picks only; the route seeds the real value. */
-const DISTANCES = [3, 3.5, 5, 5.5, 8, 10];
+/**
+ * Which route it was is a fact about the run that just happened, not a decision
+ * to make before setting off. It is asked here, after, where the answer is
+ * known — and a run that was not one of the three regulars just says how far it
+ * went.
+ */
+const OTHER = '__other__';
 
 /** Three taps: how it felt, anything sore, done. Under ten seconds. */
 export default function ClosePage() {
@@ -27,18 +34,50 @@ export default function ClosePage() {
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<'synced' | 'queued' | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
+  const [routes, setRoutes] = useState<Route[]>([]);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [typedKm, setTypedKm] = useState('');
 
   useEffect(() => {
     const found = getActive();
-    if (!found) {
+    // A stored session with no plan is not a session. It should not be
+    // possible, and this is the one screen where a crash costs the work that
+    // was just done — so it fails back to Today rather than to an error page.
+    if (!found?.plan) {
       router.replace('/');
       return;
     }
     setActive(found);
-    // Seed the distance from the route picked in the Runner, so the common case
-    // is already answered and only a different run needs a tap.
+    // Seeded when the run was started from the Routes screen, which is still a
+    // way in — it just is not the only one any more.
     if (found.distanceKm != null) setDistance(found.distanceKm);
+    if (found.routeName) setPicked(found.routeName);
+
+    if (found.plan.type === 'engine') {
+      void api<{ routes: Route[] }>('/routes')
+        .then((res) => setRoutes(res.routes))
+        // Offline, the three regulars are simply not offered and the typed
+        // distance carries the run on its own.
+        .catch(() => setRoutes([]));
+    }
   }, [router]);
+
+  const pickRoute = (route: Route) => {
+    setPicked(route.name);
+    setDistance(route.distanceKm);
+    setTypedKm('');
+  };
+
+  const pickOther = () => {
+    setPicked(OTHER);
+    setDistance(null);
+  };
+
+  const typeKm = (value: string) => {
+    setTypedKm(value);
+    const km = Number(value.replace(',', '.'));
+    setDistance(Number.isFinite(km) && km > 0 ? km : null);
+  };
 
   const toggleSore = (part: string) =>
     setSore((prev) => (prev.includes(part) ? prev.filter((p) => p !== part) : [...prev, part]));
@@ -54,6 +93,10 @@ export default function ClosePage() {
     : 0;
   const workedLabel =
     active?.plan.type === 'strength' ? 'Lifts' : active?.plan.type === 'skate' ? 'Tricks' : 'Movements';
+  // A run has no movements and one round, so those two cells would state
+  // nothing. Distance and pace are what a run is actually made of.
+  const pace = distance && distance > 0 ? elapsedMinutes / distance : null;
+  const paceLabel = pace ? `${Math.floor(pace)}:${String(Math.round((pace % 1) * 60)).padStart(2, '0')}` : '—';
 
   const done = async () => {
     if (!active) return;
@@ -84,7 +127,7 @@ export default function ClosePage() {
       sets: active.sets ?? [],
       tricks: active.tricks ?? [],
       distanceKm: isEngine ? distance : null,
-      route: active.routeName ?? '',
+      route: picked && picked !== OTHER ? picked : '',
       clientId: active.clientId,
     });
 
@@ -136,23 +179,67 @@ export default function ClosePage() {
         </Section>
 
         {isEngine && (
-          <Section title="Distance">
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${DISTANCES.length}, 1fr)`, gap: 8 }}>
-              {DISTANCES.map((d) => (
-                <button
-                  key={d}
-                  className="btn btn-inline"
-                  aria-pressed={distance === d}
-                  onClick={() => setDistance(distance === d ? null : d)}
-                >
-                  <span className="num" style={{ fontSize: 18 }}>
-                    {d}
-                  </span>
-                </button>
-              ))}
+          <Section title="Which route" gap={8}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {routes
+                .slice()
+                .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
+                .map((route) => (
+                  <button
+                    key={route.id}
+                    className={`row row-dense${picked === route.name ? ' row-live' : ''}`}
+                    aria-pressed={picked === route.name}
+                    onClick={() => pickRoute(route)}
+                    style={{ gridTemplateColumns: '1fr 56px' }}
+                  >
+                    <span className="row-body">
+                      <span className="row-title">{route.name}</span>
+                      {route.bridges.length > 0 && (
+                        <span className="row-sub">{route.bridges.join(' › ')}</span>
+                      )}
+                    </span>
+                    <span
+                      className="row-value"
+                      style={{ fontSize: 22, color: picked === route.name ? 'var(--amber)' : 'var(--dimmer)' }}
+                    >
+                      {route.distanceKm ?? '?'}
+                      <span>km</span>
+                    </span>
+                  </button>
+                ))}
+
+              <button
+                className={`row row-dense${picked === OTHER ? ' row-live' : ''}`}
+                aria-pressed={picked === OTHER}
+                onClick={pickOther}
+                style={{ gridTemplateColumns: '1fr 56px' }}
+              >
+                <span className="row-body">
+                  <span className="row-title">Somewhere else</span>
+                  <span className="row-sub">Say how far it was</span>
+                </span>
+                <span className="row-value" style={{ fontSize: 22, color: 'var(--dimmer)' }}>
+                  ?
+                </span>
+              </button>
             </div>
-            {active.routeName && (
-              <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 13 }}>{active.routeName}</p>
+
+            {picked === OTHER && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 4 }}>
+                <input
+                  className="btn"
+                  value={typedKm}
+                  onChange={(e) => typeKm(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="0.0"
+                  aria-label="Distance in kilometres"
+                  autoFocus
+                  style={{ flex: 1, minWidth: 0, textAlign: 'right', fontSize: 22, padding: '0 16px' }}
+                />
+                <span className="eyebrow" style={{ flex: 'none' }}>
+                  km
+                </span>
+              </div>
             )}
           </Section>
         )}
@@ -182,8 +269,17 @@ export default function ClosePage() {
             is gone and Done is always in the same place under the thumb. */}
         <div className="pinned" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <Cells columns={2}>
-            <Cell value={worked} caption={workedLabel} tone="amber" />
-            <Cell value={active.plan.rounds || 1} caption="Rounds" tone="text" />
+            {isEngine ? (
+              <>
+                <Cell value={distance ?? '—'} caption="Km" tone="amber" />
+                <Cell value={paceLabel} caption="Min per km" tone="text" />
+              </>
+            ) : (
+              <>
+                <Cell value={worked} caption={workedLabel} tone="amber" />
+                <Cell value={active.plan.rounds || 1} caption="Rounds" tone="text" />
+              </>
+            )}
           </Cells>
           <button className="btn btn-primary" disabled={saving} onClick={() => void done()}>
             {saving ? 'Saving' : 'Log it'}

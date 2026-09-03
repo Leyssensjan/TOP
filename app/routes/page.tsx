@@ -73,10 +73,13 @@ export default function RoutesPage() {
 
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
           <span className="eyebrow" style={{ whiteSpace: 'nowrap' }}>
-            Door to door
+            From Berouw 74
           </span>
+          {/* The handoff annotated these as door-to-door including 0.9km each
+              way to the Bataviabrug. Jan's own distances do not fit that
+              arithmetic, and his are the ones he ran. */}
           <span style={{ fontSize: 11, color: 'var(--dim)', textAlign: 'right', minWidth: 0 }}>
-            incl. 0.9 km each way to Bataviabrug
+            estimates until a GPS run
           </span>
         </div>
 

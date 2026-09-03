@@ -417,41 +417,40 @@ export class MemoryStore implements Store {
   }
 
   /**
-   * The three loops Jan actually runs, measured door to door from Berouw 74 —
-   * every distance includes the 0.9km out to the Bataviabrug and the 0.9km
-   * back, because a number that only counts the interesting part is a number he
-   * has to do arithmetic on at 6am.
+   * The three loops Jan actually runs, at the distances he gave. The handoff
+   * had them at 3.3, 4.1 and 5.5 on the strength of a door-to-door calculation;
+   * these are his, and his win.
    */
   async getRoutes(): Promise<Route[]> {
     return [
       {
         id: 'route-1',
         name: 'Two Bridges',
-        distanceKm: 3.3,
+        distanceKm: 2.5,
         startPoint: 'Berouw 74',
         description: 'Cross at Batavia, down the Koopvaardijlaan, back over Matadi.',
         mapLink: 'https://www.google.com/maps/dir/?api=1&origin=Berouw+74,Gent&destination=Berouw+74,Gent',
         surface: 'Paved quay',
         quietRating: 4,
         bridges: ['Bataviabrug', 'Matadibrug'],
-        lapHint: '2 laps = 6.6',
+        lapHint: '2 laps = 5',
       },
       {
         id: 'route-2',
         name: 'Muidelaan Turn',
-        distanceKm: 4.1,
+        distanceKm: 3,
         startPoint: 'Berouw 74',
         description: 'South to Matadi, north along the Nieuwe Dokken, back at Muidelaan.',
         mapLink: 'https://www.google.com/maps/dir/?api=1&origin=Berouw+74,Gent&destination=Berouw+74,Gent',
         surface: 'Paved quay',
         quietRating: 5,
         bridges: ['Matadibrug', 'Verapazbrug'],
-        lapHint: '2 laps = 8.2',
+        lapHint: '2 laps = 6',
       },
       {
         id: 'route-3',
         name: 'The Big Tour',
-        distanceKm: 5.5,
+        distanceKm: 4.5,
         startPoint: 'Berouw 74',
         description: 'Full east quay, round Zeppospark, back down the west quay.',
         mapLink: 'https://www.google.com/maps/dir/?api=1&origin=Berouw+74,Gent&destination=Berouw+74,Gent',
