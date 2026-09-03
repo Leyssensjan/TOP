@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Detail from '@/components/Detail';
+import { Header, HeaderFact, Hero } from '@/components/Chrome';
 import { ApiError, api, getKey } from '@/lib/client/store';
 
 interface Ladder {
@@ -74,66 +75,45 @@ export default function StrengthPage() {
   const levels = ladders?.reduce((sum, l) => sum + l.currentLevel, 0) ?? 0;
 
   return (
-    <main className="screen" style={{ gap: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span className="label">Strength</span>
-        <button className="label" onClick={() => router.push('/')} style={{ padding: '8px 0 8px 16px' }}>
-          Today
-        </button>
-      </div>
+    <main className="app">
+      <Header title="Strength" back backTo="/form" right={<HeaderFact>{ladders?.length ?? 5} ladders</HeaderFact>} />
 
-      {error && <div className="banner banner-warn">{error}</div>}
-      {!ladders && !error && <p className="label">Loading</p>}
+      <div className="app-content" style={{ gap: 16 }}>
+        {error && <div className="banner banner-warn">{error}</div>}
+        {!ladders && !error && <p className="eyebrow">Loading</p>}
 
-      {ladders && (
-        <>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span className="num" style={{ fontSize: 46, color: 'var(--amber)' }}>
-              {ladders.length}
-            </span>
-            <span style={{ color: 'var(--muted)' }}>ladders · {levels} levels deep</span>
-          </div>
+        {ladders && (
+          <>
+            <Hero value={ladders.length} unit="ladders" meta={`${levels} levels deep`} />
 
-          <div className="stack">
+            <div className="stack" style={{ gap: 8 }}>
             {ladders.map((l) => {
               const isOpen = open === l.family;
               return (
                 <div key={l.family}>
                   <button
+                    className="row"
                     aria-expanded={isOpen}
                     onClick={() => setOpen(isOpen ? null : l.family)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '14px 16px',
-                      borderRadius: 12,
-                      background: 'var(--ink-raised)',
-                      border: '1px solid var(--ink-line)',
-                      minHeight: 'var(--tap)',
-                    }}
+                    style={{ gridTemplateColumns: '11px 1fr 56px' }}
                   >
                     <span className="mass" data-level={l.currentLevel} style={{ width: 11, height: 11, flex: 'none' }} />
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: 'block' }}>{l.current?.name ?? l.family}</span>
-                      <span style={{ display: 'block', fontSize: 13, color: 'var(--muted)' }}>
-                        {l.family}
-                        {l.servesName && ` · serves ${l.servesName}`}
+                    <span className="row-body">
+                      <span className="row-title">{l.current?.name ?? l.family}</span>
+                      {/* The justification for the whole domain lives inside
+                          the row it belongs to. Loose between two cards it broke
+                          the list's rhythm and read as a stray warning. */}
+                      <span className="row-sub" style={{ color: l.note ? 'var(--amber-dim)' : undefined }}>
+                        {l.note
+                          ? l.note
+                          : `${l.family}${l.servesName ? ` · serves ${l.servesName}` : ''}`}
                       </span>
                     </span>
-                    <span className="num" style={{ fontSize: 21, color: 'var(--amber)' }}>
+                    <span className="row-value" style={{ fontSize: 22 }}>
                       {l.currentLevel}
-                      <span style={{ color: 'var(--muted)', fontSize: '0.7em' }}>/{l.maxLevel}</span>
+                      <span>/{l.maxLevel}</span>
                     </span>
                   </button>
-
-                  {/* The justification for the whole domain, where it will be
-                      read on the morning the session is about to be skipped. */}
-                  {l.note && (
-                    <p style={{ margin: '6px 0 0 16px', color: 'var(--amber)', fontSize: 15 }}>{l.note}</p>
-                  )}
 
                   {isOpen && l.current && (
                     <Detail
@@ -171,9 +151,23 @@ export default function StrengthPage() {
                 </div>
               );
             })}
-          </div>
-        </>
-      )}
+            </div>
+
+            <div className="pinned" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div className="note note-warn">
+                <span className="eyebrow eyebrow-action" style={{ display: 'block', marginBottom: 4 }}>
+                  Unsolved
+                </span>
+                Rabotpark is outdoors and works April to October. November to March has no indoor
+                fallback written yet, and the pull ladder is the one that cannot move without it.
+              </div>
+              <button className="btn btn-secondary" onClick={() => router.push('/')}>
+                Log a strength day
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </main>
   );
 }
